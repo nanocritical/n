@@ -17,7 +17,14 @@
 #define NB(t) n$builtins$##t
 #define SY(t) n$syscall$##t
 
+#define SY_int n$builtins$I32
+#define SY_clockid_t n$builtins$I32
+
 #ifdef NLANG_DEFINE_FUNCTIONS
+
+NB(Uint) SY(Strlen)(NB(U8) *s) {
+  return strlen((char *) s);
+}
 
 NB(I32) SY(_EPERM) = EPERM;
 NB(I32) SY(_ENOENT) = ENOENT;
@@ -221,25 +228,25 @@ static NB(I32) SY(errno)(void) {
   return _$Nlatestsyscallerrno;
 }
 
-static NB(Int) SY(unlink)(NB(U8) *pathname) {
+static SY_int SY(unlink)(NB(U8) *pathname) {
   int ret = unlink((char *) pathname);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(close)(NB(Int) fd) {
+static SY_int SY(close)(SY_int fd) {
   int ret = close(fd);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(open)(NB(U8) *pathname, NB(I32) flags, NB(U32) mode) {
+static SY_int SY(open)(NB(U8) *pathname, NB(I32) flags, NB(U32) mode) {
   int ret = open((char *) pathname, flags, mode);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(openat)(NB(Int) dirfd, NB(U8) *pathname, NB(I32) flags, NB(U32) mode) {
+static SY_int SY(openat)(SY_int dirfd, NB(U8) *pathname, NB(I32) flags, NB(U32) mode) {
   // openat() wrapper is borked on glibc < 2.21, see
   // https://sourceware.org/bugzilla/show_bug.cgi?id=17523
   int ret = syscall(SYS_openat, dirfd, (char *) pathname, flags, mode);
@@ -247,82 +254,82 @@ static NB(Int) SY(openat)(NB(Int) dirfd, NB(U8) *pathname, NB(I32) flags, NB(U32
   return ret;
 }
 
-static NB(Int) SY(mkfifoat)(NB(Int) dirfd, NB(U8) *pathname, NB(U32) mode) {
+static SY_int SY(mkfifoat)(SY_int dirfd, NB(U8) *pathname, NB(U32) mode) {
   int ret = mkfifoat(dirfd, (char *) pathname, mode);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(linkat)(NB(Int) olddirfd, NB(U8) *oldpath,
-                          NB(Int) newdirfd, NB(U8) *newpath, NB(I32) flags) {
+static SY_int SY(linkat)(SY_int olddirfd, NB(U8) *oldpath,
+                          SY_int newdirfd, NB(U8) *newpath, NB(I32) flags) {
   int ret = linkat(olddirfd, (char *) oldpath, newdirfd, (char *) newpath, flags);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(unlinkat)(NB(Int) dirfd, NB(U8) *pathname, NB(I32) flags) {
+static SY_int SY(unlinkat)(SY_int dirfd, NB(U8) *pathname, NB(I32) flags) {
   int ret = unlinkat(dirfd, (char *) pathname, flags);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(mkdirat)(NB(Int) dirfd, NB(U8) *pathname, NB(U32) mode) {
+static SY_int SY(mkdirat)(SY_int dirfd, NB(U8) *pathname, NB(U32) mode) {
   int ret = mkdirat(dirfd, (char *) pathname, mode);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(fchdir)(NB(Int) fd) {
+static SY_int SY(fchdir)(SY_int fd) {
   int ret = fchdir(fd);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(symlinkat)(NB(U8) *target, NB(Int) newdirfd, NB(U8) *linkpath) {
+static SY_int SY(symlinkat)(NB(U8) *target, SY_int newdirfd, NB(U8) *linkpath) {
   int ret = symlinkat((char *) target, newdirfd, (char *) linkpath);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(readlinkat)(NB(Int) dirfd, NB(U8) *pathname, NB(U8) *buf, NB(Uint) bufsiz) {
+static NB(Int) SY(readlinkat)(SY_int dirfd, NB(U8) *pathname, NB(U8) *buf, NB(Uint) bufsiz) {
   ssize_t ret = readlinkat(dirfd, (char *) pathname, (char *) buf, bufsiz);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(renameat)(NB(Int) olddirfd, NB(U8) *oldpath,
-                            NB(Int) newdirfd, NB(U8) *newpath, NB(U32) flags) {
+static SY_int SY(renameat)(SY_int olddirfd, NB(U8) *oldpath,
+                            SY_int newdirfd, NB(U8) *newpath, NB(U32) flags) {
   (void) flags;
   int ret = renameat(olddirfd, (char *) oldpath, newdirfd, (char *) newpath);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(write)(NB(Int) fd, NB(U8) *buf, NB(Uint) count) {
+static NB(Int) SY(write)(SY_int fd, NB(U8) *buf, NB(Uint) count) {
   ssize_t ret = write(fd, buf, count);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(pwrite)(NB(Int) fd, NB(U8) *buf, NB(Uint) count, NB(Uint) off) {
+static NB(Int) SY(pwrite)(SY_int fd, NB(U8) *buf, NB(Uint) count, NB(Uint) off) {
   ssize_t ret = pwrite(fd, buf, count, off);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(read)(NB(Int) fd, NB(U8) *buf, NB(Uint) count) {
+static NB(Int) SY(read)(SY_int fd, NB(U8) *buf, NB(Uint) count) {
   ssize_t ret = read(fd, buf, count);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(pread)(NB(Int) fd, NB(U8) *buf, NB(Uint) count, NB(Uint) off) {
+static NB(Int) SY(pread)(SY_int fd, NB(U8) *buf, NB(Uint) count, NB(Uint) off) {
   ssize_t ret = pread(fd, buf, count, off);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(lseek)(NB(Int) fd, NB(Int) off, NB(I32) whence) {
+static NB(Int) SY(lseek)(SY_int fd, NB(Int) off, NB(I32) whence) {
   off_t ret = lseek(fd, off, whence);
   _$Nlatestsyscallerrno = errno;
   return ret;
@@ -335,7 +342,7 @@ static NB(Int) SY(sysconf)(NB(Int) name) {
   return ret;
 }
 
-static NB(Int) SY(fstatat)(NB(Int) dirfd, NB(U8) *pathname, struct SY(Stat_t) *buf, NB(I32) flags) {
+static SY_int SY(fstatat)(SY_int dirfd, NB(U8) *pathname, struct SY(Stat_t) *buf, NB(I32) flags) {
   errno = 0;
   struct stat st = { 0 };
   int ret = fstatat(dirfd, (char *) pathname, &st, flags);
@@ -353,56 +360,56 @@ static NB(Int) SY(fstatat)(NB(Int) dirfd, NB(U8) *pathname, struct SY(Stat_t) *b
   return ret;
 }
 
-static NB(Int) SY(fdatasync)(NB(Int) fd) {
+static SY_int SY(fdatasync)(SY_int fd) {
   errno = 0;
   int ret = fdatasync(fd);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(fsync)(NB(Int) fd) {
+static SY_int SY(fsync)(SY_int fd) {
   errno = 0;
   int ret = fsync(fd);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(ftruncate)(NB(Int) fd, NB(Uint) size) {
+static SY_int SY(ftruncate)(SY_int fd, NB(Uint) size) {
   errno = 0;
   int ret = ftruncate(fd, size);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(fchown)(NB(Int) fd, NB(Int) uid, NB(Int) gid) {
+static SY_int SY(fchown)(SY_int fd, NB(Int) uid, NB(Int) gid) {
   errno = 0;
   int ret = fchown(fd, uid, gid);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(fsetxattr)(NB(Int) fd, NB(U8) *name, NB(U8) *value, NB(Uint) size, NB(I32) flags) {
+static SY_int SY(fsetxattr)(SY_int fd, NB(U8) *name, NB(U8) *value, NB(Uint) size, NB(I32) flags) {
   errno = 0;
-  ssize_t ret = fsetxattr(fd, (char *) name, (char *) value, size, flags);
+  int ret = fsetxattr(fd, (char *) name, (char *) value, size, flags);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(fgetxattr)(NB(Int) fd, NB(U8) *name, NB(U8) *value, NB(Uint) size) {
+static NB(Int) SY(fgetxattr)(SY_int fd, NB(U8) *name, NB(U8) *value, NB(Uint) size) {
   errno = 0;
   ssize_t ret = fgetxattr(fd, (char *) name, (char *) value, size);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(flistxattr)(NB(Int) fd, NB(U8) *list, NB(Uint) size) {
+static NB(Int) SY(flistxattr)(SY_int fd, NB(U8) *list, NB(Uint) size) {
   errno = 0;
   ssize_t ret = flistxattr(fd, (char *) list, size);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(clock_getres)(NB(I32) clk_id, NB(Int) *s, NB(Int) *ns) {
+static SY_int SY(clock_getres)(SY_clockid_t clk_id, NB(Int) *s, NB(Int) *ns) {
   struct timespec res = { 0 };
   int ret = clock_getres((clockid_t) clk_id, &res);
   *s = res.tv_sec;
@@ -410,7 +417,7 @@ static NB(Int) SY(clock_getres)(NB(I32) clk_id, NB(Int) *s, NB(Int) *ns) {
   return ret;
 }
 
-static NB(Int) SY(clock_gettime)(NB(I32) clk_id, NB(Int) *s, NB(Int) *ns) {
+static SY_int SY(clock_gettime)(SY_clockid_t clk_id, NB(Int) *s, NB(Int) *ns) {
   struct timespec res = { 0 };
   int ret = clock_gettime((clockid_t) clk_id, &res);
   *s = res.tv_sec;
@@ -418,41 +425,37 @@ static NB(Int) SY(clock_gettime)(NB(I32) clk_id, NB(Int) *s, NB(Int) *ns) {
   return ret;
 }
 
-NB(Uint) SY(Strlen)(NB(U8) *s) {
-  return strlen((char *) s);
-}
-
 static NB(U8) *SY(getenv)(NB(U8) *name) {
   return (NB(U8) *) secure_getenv((char *) name);
 }
 
-static NB(Int) SY(setenv)(NB(U8) *name, NB(U8) *value, NB(I32) overwrite) {
+static SY_int SY(setenv)(NB(U8) *name, NB(U8) *value, NB(I32) overwrite) {
   return setenv((char *) name, (char *) value, overwrite);
 }
 
 static NB(U8) *SY(mmap)(NB(Uintptr) addr, NB(Uint) length, NB(I32) prot, NB(I32) flags,
-                        NB(Int) fd, NB(Uint) offset) {
+                        SY_int fd, NB(Uint) offset) {
   void *ret = mmap((void *) addr, length, prot, flags, fd, offset);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(munmap)(NB(U8) *addr, NB(Uint) length) {
+static SY_int SY(munmap)(NB(U8) *addr, NB(Uint) length) {
   int ret = munmap((void *) addr, length);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-NB(Int) SY(_EAI_ADDRFAMILY) = EAI_ADDRFAMILY;
-NB(Int) SY(_EAI_AGAIN) = EAI_AGAIN;
-NB(Int) SY(_EAI_BADFLAGS) = EAI_BADFLAGS;
-NB(Int) SY(_EAI_FAIL) = EAI_FAIL;
-NB(Int) SY(_EAI_FAMILY) = EAI_FAMILY;
-NB(Int) SY(_EAI_MEMORY) = EAI_MEMORY;
-NB(Int) SY(_EAI_NODATA) = EAI_NODATA;
-NB(Int) SY(_EAI_NONAME) = EAI_NONAME;
-NB(Int) SY(_EAI_SERVICE) = EAI_SERVICE;
-NB(Int) SY(_EAI_SOCKTYPE) = EAI_SOCKTYPE;
+SY_int SY(_EAI_ADDRFAMILY) = EAI_ADDRFAMILY;
+SY_int SY(_EAI_AGAIN) = EAI_AGAIN;
+SY_int SY(_EAI_BADFLAGS) = EAI_BADFLAGS;
+SY_int SY(_EAI_FAIL) = EAI_FAIL;
+SY_int SY(_EAI_FAMILY) = EAI_FAMILY;
+SY_int SY(_EAI_MEMORY) = EAI_MEMORY;
+SY_int SY(_EAI_NODATA) = EAI_NODATA;
+SY_int SY(_EAI_NONAME) = EAI_NONAME;
+SY_int SY(_EAI_SERVICE) = EAI_SERVICE;
+SY_int SY(_EAI_SOCKTYPE) = EAI_SOCKTYPE;
 
 NB(I32) SY(AF_INET) = AF_INET;
 NB(I32) SY(AF_INET6) = AF_INET6;
@@ -551,7 +554,7 @@ NB(Void) SY(Sockaddr_ip)(NB(byteslice) *buf, NB(I32) family, NB(byteslice) ip6, 
   }
 }
 
-static NB(Int) SY(getaddrinfo)(NB(U8) *node, NB(U8) *service, struct SY(Addrinfo) *hints,
+static SY_int SY(getaddrinfo)(NB(U8) *node, NB(U8) *service, struct SY(Addrinfo) *hints,
                                NB(U8) **res) {
   struct addrinfo _hints = {
     .ai_flags = hints->Flags,
@@ -588,25 +591,25 @@ static inline NB(U16) SY(Ntohs)(NB(U16) netshort) {
 }
 
 
-static NB(Int) SY(socket)(NB(I32) domain, NB(I32) type, NB(I32) protocol) {
+static SY_int SY(socket)(NB(I32) domain, NB(I32) type, NB(I32) protocol) {
   int ret = socket(domain, type, protocol);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(bind)(NB(Int) sockfd, NB(U8) *raw_addr, NB(Uint) raw_addrlen) {
+static SY_int SY(bind)(SY_int sockfd, NB(U8) *raw_addr, NB(Uint) raw_addrlen) {
   int ret = bind(sockfd, (const struct sockaddr *) raw_addr, (socklen_t) raw_addrlen);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(listen)(NB(Int) sockfd, NB(Int) backlog) {
+static SY_int SY(listen)(SY_int sockfd, NB(Int) backlog) {
   int ret = listen(sockfd, backlog);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(accept4)(NB(Int) sockfd, NB(U8) *raw_addr, NB(Uint) *raw_addrlen, NB(I32) flags) {
+static SY_int SY(accept4)(SY_int sockfd, NB(U8) *raw_addr, NB(Uint) *raw_addrlen, NB(I32) flags) {
   socklen_t addrlen = *raw_addrlen;
   int ret = accept4(sockfd, (struct sockaddr *) raw_addr, &addrlen, flags);
   _$Nlatestsyscallerrno = errno;
@@ -614,7 +617,7 @@ static NB(Int) SY(accept4)(NB(Int) sockfd, NB(U8) *raw_addr, NB(Uint) *raw_addrl
   return ret;
 }
 
-static NB(Int) SY(connect)(NB(Int) sockfd, NB(U8) *raw_addr, NB(Uint) raw_addrlen) {
+static SY_int SY(connect)(SY_int sockfd, NB(U8) *raw_addr, NB(Uint) raw_addrlen) {
   socklen_t addrlen = raw_addrlen;
   int ret = connect(sockfd, (struct sockaddr *) raw_addr, addrlen);
   _$Nlatestsyscallerrno = errno;
@@ -626,7 +629,7 @@ NB(I32) SY(SOL_SOCKET) = SOL_SOCKET;
 NB(I32) SY(SO_REUSEADDR) = SO_REUSEADDR;
 NB(I32) SY(SO_ERROR) = SO_ERROR;
 
-static NB(Int) SY(getsockopt)(NB(Int) sockfd, NB(I32) level, NB(I32) optname,
+static SY_int SY(getsockopt)(SY_int sockfd, NB(I32) level, NB(I32) optname,
                               NB(U8) *optval, NB(Uint) *optlen) {
   socklen_t _optlen = *optlen;
   int ret = getsockopt(sockfd, level, optname, optval, &_optlen);
@@ -635,7 +638,7 @@ static NB(Int) SY(getsockopt)(NB(Int) sockfd, NB(I32) level, NB(I32) optname,
   return ret;
 }
 
-static NB(Int) SY(setsockopt)(NB(Int) sockfd, NB(I32) level, NB(I32) optname,
+static SY_int SY(setsockopt)(SY_int sockfd, NB(I32) level, NB(I32) optname,
                               NB(U8) *optval, NB(Uint) optlen) {
   socklen_t _optlen = optlen;
   int ret = setsockopt(sockfd, level, optname, optval, _optlen);
@@ -643,7 +646,7 @@ static NB(Int) SY(setsockopt)(NB(Int) sockfd, NB(I32) level, NB(I32) optname,
   return ret;
 }
 
-static NB(Int) SY(getsockname)(NB(Int) sockfd, NB(U8) *raw_addr, NB(Uint) *raw_addrlen) {
+static SY_int SY(getsockname)(SY_int sockfd, NB(U8) *raw_addr, NB(Uint) *raw_addrlen) {
   socklen_t addrlen = *raw_addrlen;
   int ret = getsockname(sockfd, (struct sockaddr *) raw_addr, &addrlen);
   _$Nlatestsyscallerrno = errno;
@@ -655,7 +658,7 @@ NB(I32) SY(SHUT_RD) = SHUT_RD;
 NB(I32) SY(SHUT_WR) = SHUT_WR;
 NB(I32) SY(SHUT_RDWR) = SHUT_RDWR;
 
-static NB(Int) SY(shutdown)(NB(Int) sockfd, NB(I32) how) {
+static SY_int SY(shutdown)(SY_int sockfd, NB(I32) how) {
   int ret = shutdown(sockfd, how);
   _$Nlatestsyscallerrno = errno;
   return ret;
@@ -678,19 +681,19 @@ NB(U32) SY(EPOLLET) = EPOLLET;
 NB(U32) SY(EPOLLONESHOT) = EPOLLONESHOT;
 NB(U32) SY(EPOLLWAKEUP) = EPOLLWAKEUP;
 
-static NB(Int) SY(epoll_create1)(NB(Int) flags) {
+static SY_int SY(epoll_create1)(SY_int flags) {
   int ret = epoll_create1(flags);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(epoll_ctl)(NB(Int) epfd, NB(I32) op, NB(Int) fd, NB(U8) *raw_event) {
+static SY_int SY(epoll_ctl)(SY_int epfd, NB(I32) op, SY_int fd, NB(U8) *raw_event) {
   int ret = epoll_ctl(epfd, op, fd, (struct epoll_event *) raw_event);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
-static NB(Int) SY(epoll_pwait)(NB(Int) epfd, NB(U8) *raw_events, NB(Uint) maxevents, NB(Int) timeout,
+static SY_int SY(epoll_pwait)(SY_int epfd, NB(U8) *raw_events, NB(Uint) maxevents, NB(Int) timeout,
                                NB(U8) *raw_sigmask) {
   int ret = epoll_pwait(epfd, (struct epoll_event *) raw_events, maxevents, timeout, (const sigset_t *) raw_sigmask);
   _$Nlatestsyscallerrno = errno;
@@ -733,7 +736,7 @@ NB(U8) *n$syscall$SIGACTION_IGN(void) {
   return (void *)&act;
 }
 
-static NB(Int) SY(sigaction)(NB(I32) signum, NB(U8) *raw_act, NB(U8) *raw_oldact) {
+static SY_int SY(sigaction)(NB(I32) signum, NB(U8) *raw_act, NB(U8) *raw_oldact) {
   int ret = sigaction(signum, (const struct sigaction *)raw_act, (struct sigaction *)raw_oldact);
   _$Nlatestsyscallerrno = errno;
   return ret;

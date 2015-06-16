@@ -5,139 +5,145 @@ import n.logging
 
 within logging.Log
 
-extern let _EPERM:I32
-extern let _ENOENT:I32
-extern let _ESRCH:I32
-extern let _EINTR:I32
-extern let _EIO:I32
-extern let _ENXIO:I32
-extern let _E2BIG:I32
-extern let _ENOEXEC:I32
-extern let _EBADF:I32
-extern let _ECHILD:I32
-extern let _EAGAIN:I32
-extern let _ENOMEM:I32
-extern let _EACCES:I32
-extern let _EFAULT:I32
-extern let _ENOTBLK:I32
-extern let _EBUSY:I32
-extern let _EEXIST:I32
-extern let _EXDEV:I32
-extern let _ENODEV:I32
-extern let _ENOTDIR:I32
-extern let _EISDIR:I32
-extern let _EINVAL:I32
-extern let _ENFILE:I32
-extern let _EMFILE:I32
-extern let _ENOTTY:I32
-extern let _ETXTBSY:I32
-extern let _EFBIG:I32
-extern let _ENOSPC:I32
-extern let _ESPIPE:I32
-extern let _EROFS:I32
-extern let _EMLINK:I32
-extern let _EPIPE:I32
-extern let _EDOM:I32
-extern let _ERANGE:I32
-extern let _EDEADLK:I32
-extern let _ENAMETOOLONG:I32
-extern let _ENOLCK:I32
-extern let _ENOSYS:I32
-extern let _ENOTEMPTY:I32
-extern let _ELOOP:I32
-extern let _EWOULDBLOCK:I32
-extern let _ENOMSG:I32
-extern let _EIDRM:I32
-extern let _ECHRNG:I32
-extern let _EL2NSYNC:I32
-extern let _EL3HLT:I32
-extern let _EL3RST:I32
-extern let _ELNRNG:I32
-extern let _EUNATCH:I32
-extern let _ENOCSI:I32
-extern let _EL2HLT:I32
-extern let _EBADE:I32
-extern let _EBADR:I32
-extern let _EXFULL:I32
-extern let _ENOANO:I32
-extern let _EBADRQC:I32
-extern let _EBADSLT:I32
-extern let _EDEADLOCK:I32
-extern let _EBFONT:I32
-extern let _ENOSTR:I32
-extern let _ENODATA:I32
-extern let _ETIME:I32
-extern let _ENOSR:I32
-extern let _ENONET:I32
-extern let _ENOPKG:I32
-extern let _EREMOTE:I32
-extern let _ENOLINK:I32
-extern let _EADV:I32
-extern let _ESRMNT:I32
-extern let _ECOMM:I32
-extern let _EPROTO:I32
-extern let _EMULTIHOP:I32
-extern let _EDOTDOT:I32
-extern let _EBADMSG:I32
-extern let _EOVERFLOW:I32
-extern let _ENOTUNIQ:I32
-extern let _EBADFD:I32
-extern let _EREMCHG:I32
-extern let _ELIBACC:I32
-extern let _ELIBBAD:I32
-extern let _ELIBSCN:I32
-extern let _ELIBMAX:I32
-extern let _ELIBEXEC:I32
-extern let _EILSEQ:I32
-extern let _ERESTART:I32
-extern let _ESTRPIPE:I32
-extern let _EUSERS:I32
-extern let _ENOTSOCK:I32
-extern let _EDESTADDRREQ:I32
-extern let _EMSGSIZE:I32
-extern let _EPROTOTYPE:I32
-extern let _ENOPROTOOPT:I32
-extern let _EPROTONOSUPPORT:I32
-extern let _ESOCKTNOSUPPORT:I32
-extern let _EOPNOTSUPP:I32
-extern let _EPFNOSUPPORT:I32
-extern let _EAFNOSUPPORT:I32
-extern let _EADDRINUSE:I32
-extern let _EADDRNOTAVAIL:I32
-extern let _ENETDOWN:I32
-extern let _ENETUNREACH:I32
-extern let _ENETRESET:I32
-extern let _ECONNABORTED:I32
-extern let _ECONNRESET:I32
-extern let _ENOBUFS:I32
-extern let _EISCONN:I32
-extern let _ENOTCONN:I32
-extern let _ESHUTDOWN:I32
-extern let _ETOOMANYREFS:I32
-extern let _ETIMEDOUT:I32
-extern let _ECONNREFUSED:I32
-extern let _EHOSTDOWN:I32
-extern let _EHOSTUNREACH:I32
-extern let _EALREADY:I32
-extern let _EINPROGRESS:I32
-extern let _ESTALE:I32
-extern let _EUCLEAN:I32
-extern let _ENOTNAM:I32
-extern let _ENAVAIL:I32
-extern let _EISNAM:I32
-extern let _EREMOTEIO:I32
-extern let _EDQUOT:I32
-extern let _ENOMEDIUM:I32
-extern let _EMEDIUMTYPE:I32
-extern let _ECANCELED:I32
-extern let _ENOKEY:I32
-extern let _EKEYEXPIRED:I32
-extern let _EKEYREVOKED:I32
-extern let _EKEYREJECTED:I32
-extern let _EOWNERDEAD:I32
-extern let _ENOTRECOVERABLE:I32
-extern let _ERFKILL:I32
-extern let _EHWPOISON:I32
+-- Platform-specific types. On Linux, this always works:
+alias int = I32
+alias clockid_t = I32
+
+extern fun Strlen cs:*U8 = Uint
+
+extern let _EPERM:int
+extern let _ENOENT:int
+extern let _ESRCH:int
+extern let _EINTR:int
+extern let _EIO:int
+extern let _ENXIO:int
+extern let _E2BIG:int
+extern let _ENOEXEC:int
+extern let _EBADF:int
+extern let _ECHILD:int
+extern let _EAGAIN:int
+extern let _ENOMEM:int
+extern let _EACCES:int
+extern let _EFAULT:int
+extern let _ENOTBLK:int
+extern let _EBUSY:int
+extern let _EEXIST:int
+extern let _EXDEV:int
+extern let _ENODEV:int
+extern let _ENOTDIR:int
+extern let _EISDIR:int
+extern let _EINVAL:int
+extern let _ENFILE:int
+extern let _EMFILE:int
+extern let _ENOTTY:int
+extern let _ETXTBSY:int
+extern let _EFBIG:int
+extern let _ENOSPC:int
+extern let _ESPIPE:int
+extern let _EROFS:int
+extern let _EMLINK:int
+extern let _EPIPE:int
+extern let _EDOM:int
+extern let _ERANGE:int
+extern let _EDEADLK:int
+extern let _ENAMETOOLONG:int
+extern let _ENOLCK:int
+extern let _ENOSYS:int
+extern let _ENOTEMPTY:int
+extern let _ELOOP:int
+extern let _EWOULDBLOCK:int
+extern let _ENOMSG:int
+extern let _EIDRM:int
+extern let _ECHRNG:int
+extern let _EL2NSYNC:int
+extern let _EL3HLT:int
+extern let _EL3RST:int
+extern let _ELNRNG:int
+extern let _EUNATCH:int
+extern let _ENOCSI:int
+extern let _EL2HLT:int
+extern let _EBADE:int
+extern let _EBADR:int
+extern let _EXFULL:int
+extern let _ENOANO:int
+extern let _EBADRQC:int
+extern let _EBADSLT:int
+extern let _EDEADLOCK:int
+extern let _EBFONT:int
+extern let _ENOSTR:int
+extern let _ENODATA:int
+extern let _ETIME:int
+extern let _ENOSR:int
+extern let _ENONET:int
+extern let _ENOPKG:int
+extern let _EREMOTE:int
+extern let _ENOLINK:int
+extern let _EADV:int
+extern let _ESRMNT:int
+extern let _ECOMM:int
+extern let _EPROTO:int
+extern let _EMULTIHOP:int
+extern let _EDOTDOT:int
+extern let _EBADMSG:int
+extern let _EOVERFLOW:int
+extern let _ENOTUNIQ:int
+extern let _EBADFD:int
+extern let _EREMCHG:int
+extern let _ELIBACC:int
+extern let _ELIBBAD:int
+extern let _ELIBSCN:int
+extern let _ELIBMAX:int
+extern let _ELIBEXEC:int
+extern let _EILSEQ:int
+extern let _ERESTART:int
+extern let _ESTRPIPE:int
+extern let _EUSERS:int
+extern let _ENOTSOCK:int
+extern let _EDESTADDRREQ:int
+extern let _EMSGSIZE:int
+extern let _EPROTOTYPE:int
+extern let _ENOPROTOOPT:int
+extern let _EPROTONOSUPPORT:int
+extern let _ESOCKTNOSUPPORT:int
+extern let _EOPNOTSUPP:int
+extern let _EPFNOSUPPORT:int
+extern let _EAFNOSUPPORT:int
+extern let _EADDRINUSE:int
+extern let _EADDRNOTAVAIL:int
+extern let _ENETDOWN:int
+extern let _ENETUNREACH:int
+extern let _ENETRESET:int
+extern let _ECONNABORTED:int
+extern let _ECONNRESET:int
+extern let _ENOBUFS:int
+extern let _EISCONN:int
+extern let _ENOTCONN:int
+extern let _ESHUTDOWN:int
+extern let _ETOOMANYREFS:int
+extern let _ETIMEDOUT:int
+extern let _ECONNREFUSED:int
+extern let _EHOSTDOWN:int
+extern let _EHOSTUNREACH:int
+extern let _EALREADY:int
+extern let _EINPROGRESS:int
+extern let _ESTALE:int
+extern let _EUCLEAN:int
+extern let _ENOTNAM:int
+extern let _ENAVAIL:int
+extern let _EISNAM:int
+extern let _EREMOTEIO:int
+extern let _EDQUOT:int
+extern let _ENOMEDIUM:int
+extern let _EMEDIUMTYPE:int
+extern let _ECANCELED:int
+extern let _ENOKEY:int
+extern let _EKEYEXPIRED:int
+extern let _EKEYREVOKED:int
+extern let _EKEYREJECTED:int
+extern let _EOWNERDEAD:int
+extern let _ENOTRECOVERABLE:int
+extern let _ERFKILL:int
+extern let _EHWPOISON:int
 
 let EPERM = {Why=*"EPERM: Operation not permitted"}:Error
 let ENOENT = {Why=*"ENOENT: No such file or directory"}:Error
@@ -273,7 +279,7 @@ let ENOTRECOVERABLE = {Why=*"ENOTRECOVERABLE: State not recoverable"}:Error
 let ERFKILL = {Why=*"ERFKILL: Operation not possible due to RF-kill"}:Error
 let EHWPOISON = {Why=*"EHWPOISON: Memory page has hardware error"}:Error
 
-fun convert_error code:I32 = Error
+fun convert_error code:int = Error
 	match code
 	| 0 -> return OK
 	| _EPERM -> return EPERM
@@ -508,43 +514,42 @@ extern let MAP_ANONYMOUS:Mmap_flags
 
 extern let MAP_FAILED:?*U8
 
-extern fun errno = I32
-extern fun unlink pathname:*U8 = Int
-extern fun close fd:Int = Int
-extern fun open pathname:*U8 flags:Open_flags mode:Mode = Int
-extern fun openat dirfd:Int pathname:*U8 flags:Open_flags mode:Mode = Int
-extern fun mkfifoat dirfd:Int pathname:*U8 mode:Mode = Int
-extern fun linkat olddirfd:Int oldpath:*U8 newdirfd:Int newpath:*U8 flags:I32 = Int
-extern fun unlinkat dirfd:Int pathname:*U8 flags:I32 = Int
-extern fun mkdirat dirfd:Int pathname:*U8 mode:Mode = Int
-extern fun fchdir fd:Int = Int
-extern fun symlinkat target:*U8 newdirfd:Int linkpath:*U8 = Int
-extern fun readlinkat dirfd:Int pathname:*U8 buf:!U8 bufsiz:Uint = Int
-extern fun renameat olddirfd:Int oldpath:*U8 newdirfd:Int newpath:*U8 flags:U32 = Int
-extern fun write fd:Int buf:*U8 count:Uint = Int
-extern fun pwrite fd:Int buf:*U8 count:Uint off:Uint = Int
-extern fun read fd:Int buf:!U8 count:Uint = Int
-extern fun pread fd:Int buf:!U8 count:Uint off:Uint = Int
-extern fun lseek fd:Int off:Int whence:I32 = Int
+extern fun errno = int
+extern fun unlink pathname:*U8 = int
+extern fun close fd:int = int
+extern fun open pathname:*U8 flags:Open_flags mode:Mode = int
+extern fun openat dirfd:int pathname:*U8 flags:Open_flags mode:Mode = int
+extern fun mkfifoat dirfd:int pathname:*U8 mode:Mode = int
+extern fun linkat olddirfd:int oldpath:*U8 newdirfd:int newpath:*U8 flags:int = int
+extern fun unlinkat dirfd:int pathname:*U8 flags:int = int
+extern fun mkdirat dirfd:int pathname:*U8 mode:Mode = int
+extern fun fchdir fd:int = int
+extern fun symlinkat target:*U8 newdirfd:int linkpath:*U8 = int
+extern fun readlinkat dirfd:int pathname:*U8 buf:!U8 bufsiz:Uint = Int
+extern fun renameat olddirfd:int oldpath:*U8 newdirfd:int newpath:*U8 flags:U32 = int
+extern fun write fd:int buf:*U8 count:Uint = Int
+extern fun pwrite fd:int buf:*U8 count:Uint off:Uint = Int
+extern fun read fd:int buf:!U8 count:Uint = Int
+extern fun pread fd:int buf:!U8 count:Uint off:Uint = Int
+extern fun lseek fd:int off:Int whence:int = Int
 extern fun sysconf name:Int = Int
-extern fun fstatat dirfd:Int pathname:*U8 buf:!Stat_t flags:I32 = Int
-extern fun fdatasync fd:Int = Int
-extern fun fsync fd:Int = Int
-extern fun ftruncate fd:Int size:Uint = Int
-extern fun fchown fd:Int uid:Int gid:Int = Int
-extern fun fsetxattr fd:Int name:*U8 value:*U8 size:Uint flags:I32 = Int
-extern fun fgetxattr fd:Int name:*U8 value:!U8 size:Uint = Int
-extern fun flistxattr fd:Int list:!U8 size:Uint = Int
-extern fun clock_getres clk_id:I32 s:!Int ns:!Int = Int
-extern fun clock_gettime clk_id:I32 s:!Int ns:!Int = Int
-extern fun Strlen cs:*U8 = Uint
+extern fun fstatat dirfd:int pathname:*U8 buf:!Stat_t flags:int = int
+extern fun fdatasync fd:int = int
+extern fun fsync fd:int = int
+extern fun ftruncate fd:int size:Uint = int
+extern fun fchown fd:int uid:Int gid:Int = int
+extern fun fsetxattr fd:int name:*U8 value:*U8 size:Uint flags:int = int
+extern fun fgetxattr fd:int name:*U8 value:!U8 size:Uint = Int
+extern fun flistxattr fd:int list:!U8 size:Uint = Int
+extern fun clock_getres clk_id:clockid_t s:!Int ns:!Int = int
+extern fun clock_gettime clk_id:clockid_t s:!Int ns:!Int = int
 extern fun getenv name:*U8 = ?*U8
-extern fun setenv name:*U8 value:*U8 overwrite:I32 = Int
-extern fun mmap addr:Uintptr length:Uint prot:Mmap_prot flags:Mmap_flags fd:Int offset:Uint = ?#U8
-extern fun munmap addr:#U8 length:Uint = Int
+extern fun setenv name:*U8 value:*U8 overwrite:int = int
+extern fun mmap addr:Uintptr length:Uint prot:Mmap_prot flags:Mmap_flags fd:int offset:Uint = ?#U8
+extern fun munmap addr:#U8 length:Uint = int
 
 fun Close fd:Int = Error
-	let ret = close fd
+	let ret = close fd.Trim_i32
 	if ret == 0
 		return OK
 	else
@@ -556,59 +561,59 @@ fun Unlink pathname:String = Error
 		return OK
 	return convert_error errno
 
-fun Open pathname:String flags:Open_flags mode:Mode = Error, Int
+fun Open pathname:String flags:Open_flags mode:Mode = Error, ?Int
 	let fd = open (cstring.Mk pathname).Rawdata flags mode
 	if fd >= 0
-		return OK, fd
-	return convert_error errno, fd
+		return OK, ?fd.Int
+	return convert_error errno, nil
 
-fun Openat dirfd:Int pathname:String flags:Open_flags mode:Mode = Error, Int
-	let fd = openat dirfd (cstring.Mk pathname).Rawdata flags mode
+fun Openat dirfd:Int pathname:String flags:Open_flags mode:Mode = Error, ?Int
+	let fd = openat dirfd.Trim_i32 (cstring.Mk pathname).Rawdata flags mode
 	if fd >= 0
-		return OK, fd
-	return convert_error errno, fd
+		return OK, ?fd.Int
+	return convert_error errno, nil
 
-fun Mkfifoat dirfd:Int pathname:String mode:Mode = Error, Int
-	let fd = mkfifoat dirfd (cstring.Mk pathname).Rawdata mode
+fun Mkfifoat dirfd:Int pathname:String mode:Mode = Error, ?Int
+	let fd = mkfifoat dirfd.Trim_i32 (cstring.Mk pathname).Rawdata mode
 	if fd >= 0
-		return OK, fd
-	return convert_error errno, fd
+		return OK, ?fd.Int
+	return convert_error errno, nil
 
 fun Linkat olddirfd:Int oldpath:String newdirfd:Int newpath:String flags:I32 = Error
-	let ret = linkat olddirfd (cstring.Mk oldpath).Rawdata
-		\ newdirfd (cstring.Mk newpath).Rawdata flags
+	let ret = linkat olddirfd.Trim_i32 (cstring.Mk oldpath).Rawdata
+		\ newdirfd.Trim_i32 (cstring.Mk newpath).Rawdata flags
 	if ret >= 0
 		return OK
 	return convert_error errno
 
 fun Unlinkat dirfd:Int pathname:String flags:I32 = Error
-	let ret = unlinkat dirfd (cstring.Mk pathname).Rawdata flags
+	let ret = unlinkat dirfd.Trim_i32 (cstring.Mk pathname).Rawdata flags
 	if ret >= 0
 		return OK
 	return convert_error errno
 
 fun Fchdir fd:Int = Error
-	let ret = fchdir fd
+	let ret = fchdir fd.Trim_i32
 	if ret >= 0
 		return OK
 	return convert_error errno
 
 fun Mkdirat dirfd:Int pathname:String mode:Mode = Error
-	let ret = mkdirat dirfd (cstring.Mk pathname).Rawdata mode
+	let ret = mkdirat dirfd.Trim_i32 (cstring.Mk pathname).Rawdata mode
 	if ret >= 0
 		return OK
 	return convert_error errno
 
 fun Symlinkat target:String newdirfd:Int linkpath:String = Error
 	let ret = symlinkat (cstring.Mk target).Rawdata
-		\ newdirfd (cstring.Mk linkpath).Rawdata
+		\ newdirfd.Trim_i32 (cstring.Mk linkpath).Rawdata
 	if ret >= 0
 		return OK
 	return convert_error errno
 
 fun Readlinkat dirfd:Int pathname:String buf:[!]U8 = Error, []U8
 	let dst = buf![buf.Count .. buf.Cap]
-	let ret = readlinkat dirfd (cstring.Mk pathname).Rawdata
+	let ret = readlinkat dirfd.Trim_i32 (cstring.Mk pathname).Rawdata
 		\ dst!Unsafe_rawdata dst.Count
 	if ret >= 0
 		return OK, buf.[.. ret.Unsigned]
@@ -618,40 +623,40 @@ fun Renameat olddirfd:Int oldpath:String newdirfd:Int newpath:String flags:U32 =
 	if flags != 0
 		-- renameat2(2) isn't yet part of our minimum kernel version requirement.
 		return ENOSYS
-	let ret = renameat olddirfd (cstring.Mk oldpath).Rawdata
-		\ newdirfd (cstring.Mk newpath).Rawdata flags
+	let ret = renameat olddirfd.Trim_i32 (cstring.Mk oldpath).Rawdata
+		\ newdirfd.Trim_i32 (cstring.Mk newpath).Rawdata flags
 	if ret >= 0
 		return OK
 	return convert_error errno
 
 fun Write fd:Int b:[]U8 = []U8, Error
-	let cnt = write fd b.Unsafe_rawdata b.Count
+	let cnt = write fd.Trim_i32 b.Unsafe_rawdata b.Count
 	if cnt >= 0
 		return b.[cnt.Unsigned ..], OK
 	return b, convert_error errno
 
 fun Pwrite fd:Int b:[]U8 off:Uint = []U8, Error
-	let cnt = pwrite fd b.Unsafe_rawdata b.Count off
+	let cnt = pwrite fd.Trim_i32 b.Unsafe_rawdata b.Count off
 	if cnt >= 0
 		return b.[cnt.Unsigned ..], OK
 	return b, convert_error errno
 
 fun Read fd:Int b:[!]U8 = [!]U8, Error
 	let dst = b![b.Count .. b.Cap]
-	let cnt = read fd dst!Unsafe_rawdata dst.Count
+	let cnt = read fd.Trim_i32 dst!Unsafe_rawdata dst.Count
 	if cnt >= 0
 		return b![.. b.Count+cnt.Unsigned], OK
 	return b, convert_error errno
 
 fun Pread fd:Int b:[!]U8 off:Uint = [!]U8, Error
 	let dst = b![b.Count .. b.Cap]
-	let cnt = pread fd dst!Unsafe_rawdata dst.Count off
+	let cnt = pread fd.Trim_i32 dst!Unsafe_rawdata dst.Count off
 	if cnt >= 0
 		return b![.. b.Count+cnt.Unsigned], OK
 	return b, convert_error errno
 
 fun Lseek fd:Int off:Int whence:I32 = Error, Uint
-	let r = lseek fd off whence
+	let r = lseek fd.Trim_i32 off whence
 	if r >= 0
 		return OK, r.Unsigned
 	return convert_error errno, 0
@@ -661,49 +666,49 @@ fun Sysconf name:Int = Error, Int
 	return convert_error errno, r
 
 fun Fstatat dirfd:Int pathname:String buf:!Stat_t flags:I32 = Error
-	let r = fstatat dirfd (cstring.Mk pathname).Rawdata buf flags
+	let r = fstatat dirfd.Trim_i32 (cstring.Mk pathname).Rawdata buf flags
 	if r >= 0
 		return OK
 	return convert_error errno
 
 fun Fdatasync fd:Int = Error
-	let r = fdatasync fd
+	let r = fdatasync fd.Trim_i32
 	if r >= 0
 		return OK
 	return convert_error errno
 
 fun Fsync fd:Int = Error
-	let r = fsync fd
+	let r = fsync fd.Trim_i32
 	if r >= 0
 		return OK
 	return convert_error errno
 
 fun Ftruncate fd:Int size:Uint = Error
-	let r = ftruncate fd size
+	let r = ftruncate fd.Trim_i32 size
 	if r >= 0
 		return OK
 	return convert_error errno
 
 fun Fchown fd:Int uid:Int gid:Int = Error
-	let r = fchown fd uid gid
+	let r = fchown fd.Trim_i32 uid gid
 	if r >= 0
 		return OK
 	return convert_error errno
 
 fun Fsetxattr fd:Int name:String value:String flags:I32 = Error
-	let r = fsetxattr fd (cstring.Mk name).Rawdata (cstring.Mk value).Rawdata value.Count flags
+	let r = fsetxattr fd.Trim_i32 (cstring.Mk name).Rawdata (cstring.Mk value).Rawdata value.Count flags
 	if r >= 0
 		return OK
 	return convert_error errno
 
 fun Fgetxattr fd:Int name:String value:[!]U8 flags:I32 = Error, Int
-	let r = fgetxattr fd (cstring.Mk name).Rawdata value!Unsafe_rawdata value.Count
+	let r = fgetxattr fd.Trim_i32 (cstring.Mk name).Rawdata value!Unsafe_rawdata value.Count
 	if r >= 0
 		return OK, r
 	return convert_error errno, 0
 
 fun Flistxattr fd:Int list:[!]U8 = Error, Int
-	let r = flistxattr fd list!Unsafe_rawdata list.Count
+	let r = flistxattr fd.Trim_i32 list!Unsafe_rawdata list.Count
 	if r >= 0
 		return OK, r
 	return convert_error errno, 0
@@ -766,7 +771,7 @@ fun Setenv name:String value:String = Error
 	return convert_error errno
 
 fun Mmap addr:Uintptr length:Uint prot:Mmap_prot flags:Mmap_flags fd:Int offset:Uint = Error, #U8
-	let ret = mmap addr length prot flags fd offset
+	let ret = mmap addr length prot flags fd.Trim_i32 offset
 	if ret === MAP_FAILED
 		return convert_error errno, nil
 	return OK, ret
@@ -789,16 +794,16 @@ let EAI_NONAME = {Why=*"EAI_NONAME: The node or service is not known; or both no
 let EAI_SERVICE = {Why=*"EAI_SERVICE: The requested service is not available for the requested socket type. "}:Error
 let EAI_SOCKTYPE = {Why=*"EAI_SOCKTYPE: The requested socket type is not supported."}:Error
 
-extern let _EAI_ADDRFAMILY:Int
-extern let _EAI_AGAIN:Int
-extern let _EAI_BADFLAGS:Int
-extern let _EAI_FAIL:Int
-extern let _EAI_FAMILY:Int
-extern let _EAI_MEMORY:Int
-extern let _EAI_NODATA:Int
-extern let _EAI_NONAME:Int
-extern let _EAI_SERVICE:Int
-extern let _EAI_SOCKTYPE:Int
+extern let _EAI_ADDRFAMILY:int
+extern let _EAI_AGAIN:int
+extern let _EAI_BADFLAGS:int
+extern let _EAI_FAIL:int
+extern let _EAI_FAMILY:int
+extern let _EAI_MEMORY:int
+extern let _EAI_NODATA:int
+extern let _EAI_NONAME:int
+extern let _EAI_SERVICE:int
+extern let _EAI_SOCKTYPE:int
 
 extern let AF_INET:I32
 extern let AF_INET6:I32
@@ -844,7 +849,7 @@ Addrinfo met# Advance_next = has_next:Bool
 		return true
 	return false
 
-extern fun getaddrinfo node:*U8 service:?*U8 hints:*Addrinfo res:##U8 = Int
+extern fun getaddrinfo node:*U8 service:?*U8 hints:*Addrinfo res:##U8 = int
 extern fun freeaddrinfo res:?#U8
 
 fun Getaddrinfo node:String service:?*String hints:*Addrinfo = Error, res:?#U8
@@ -888,36 +893,36 @@ extern inline fun Ntohl netlong:U32 = U32
 extern inline fun Ntohs netshort:U16 = U16
 
 
-extern fun socket domain:I32 type:I32 protocol:I32 = Int
-extern fun bind sockfd:Int raw_addr:*U8 raw_addrlen:Uint = Int
-extern fun listen sockfd:Int backlog:Int = Int
-extern fun accept4 sockfd:Int raw_addr:#U8 raw_addrlen:#Uint flags:I32 = Int
-extern fun connect sockfd:Int raw_addr:#U8 raw_addrlen:Uint = Int
-extern fun getsockopt sockfd:Int level:I32 optname:I32 optval:#U8 optlen:#Uint = Int
-extern fun setsockopt sockfd:Int level:I32 optname:I32 optval:*U8 optlen:Uint = Int
-extern fun getsockname sockfd:Int raw_addr:#U8 raw_addrlen:#Uint = Int
+extern fun socket domain:int type:int protocol:int = int
+extern fun bind sockfd:int raw_addr:*U8 raw_addrlen:Uint = int
+extern fun listen sockfd:int backlog:Int = int
+extern fun accept4 sockfd:int raw_addr:#U8 raw_addrlen:#Uint flags:int = int
+extern fun connect sockfd:int raw_addr:#U8 raw_addrlen:Uint = int
+extern fun getsockopt sockfd:int level:int optname:int optval:#U8 optlen:#Uint = int
+extern fun setsockopt sockfd:int level:int optname:int optval:*U8 optlen:Uint = int
+extern fun getsockname sockfd:int raw_addr:#U8 raw_addrlen:#Uint = int
 
-fun Socket domain:I32 type:I32 protocol:I32 = Error, Int
+fun Socket domain:I32 type:I32 protocol:I32 = Error, ?Int
 	let sockfd = socket domain type protocol
 	if sockfd >= 0
-		return OK, sockfd
-	return (convert_error errno), sockfd
+		return OK, ?sockfd.Int
+	return (convert_error errno), nil
 
 fun Bind sockfd:Int sys_addr:[]U8 = Error
-	let ret = bind sockfd sys_addr.Unsafe_rawdata sys_addr.Bytecount
+	let ret = bind sockfd.Trim_i32 sys_addr.Unsafe_rawdata sys_addr.Bytecount
 	if ret == 0
 		return OK
 	return convert_error errno
 
 fun Listen sockfd:Int backlog:Uint = Error
-	let ret = listen sockfd backlog.Signed
+	let ret = listen sockfd.Trim_i32 backlog.Signed
 	if ret == 0
 		return OK
 	return convert_error errno
 
-fun Accept4 sockfd:Int sys_addr:#[!]U8 flags:I32 = Error, Int
+fun Accept4 sockfd:Int sys_addr:#[!]U8 flags:I32 = Error, ?Int
 	var raw_addrlen = sys_addr.Bytecap
-	let fd = accept4 sockfd sys_addr#Unsafe_rawdata #raw_addrlen flags
+	let fd = accept4 sockfd.Trim_i32 sys_addr#Unsafe_rawdata #raw_addrlen flags
 	if fd >= 0
 		if raw_addrlen > sys_addr.Bytecap
 			Log#Critical "truncated remote address (wrong address family?), need %s bytes" raw_addrlen
@@ -925,19 +930,19 @@ fun Accept4 sockfd:Int sys_addr:#[!]U8 flags:I32 = Error, Int
 			raw_addrlen = 0
 
 		sys_addr# = sys_addr![.. raw_addrlen]
-		return OK, fd
-	return convert_error errno, fd
+		return OK, ?fd.Int
+	return convert_error errno, nil
 
 fun Connect sockfd:Int sys_addr:[!]U8 = Error
 	var raw_addrlen = sys_addr.Bytecap
-	let ret = connect sockfd sys_addr#Unsafe_rawdata raw_addrlen
+	let ret = connect sockfd.Trim_i32 sys_addr#Unsafe_rawdata raw_addrlen
 	if ret == 0
 		return OK
 	return convert_error errno
 
 fun Getsockname sockfd:Int sys_addr:#[!]U8 = Error
 	var raw_addrlen = sys_addr.Bytecap
-	let ret = getsockname sockfd sys_addr#Unsafe_rawdata #raw_addrlen
+	let ret = getsockname sockfd.Trim_i32 sys_addr#Unsafe_rawdata #raw_addrlen
 	if ret == 0
 		if raw_addrlen > sys_addr.Bytecap
 			Log#Critical "truncated remote address (wrong address family?), need %s bytes" raw_addrlen
@@ -956,7 +961,7 @@ fun Getsockopt_i32 sockfd:Int level:I32 opt:I32 = Error, value:I32
 	var raw:[!]U8
 	raw#Unsafe_wrap ((unsafe.Cast #I32 #U8) #value) (sizeof value) (sizeof value)
 	var cnt = raw.Bytecount
-	let ret = getsockopt sockfd level opt raw#Unsafe_rawdata #cnt
+	let ret = getsockopt sockfd.Trim_i32 level opt raw#Unsafe_rawdata #cnt
 	if cnt != raw.Bytecount
 		return INVAL, 0
 	if ret == 0
@@ -970,7 +975,7 @@ fun Getsockopt_error sockfd:Int level:I32 = Error
 fun Setsockopt_i32 sockfd:Int level:I32 opt:I32 value:I32 = Error
 	let raw:[]U8 such
 		raw#Unsafe_wrap ((unsafe.Cast *I32 *U8) *value) (sizeof value) (sizeof value)
-	let ret = setsockopt sockfd level opt raw.Unsafe_rawdata raw.Bytecount
+	let ret = setsockopt sockfd.Trim_i32 level opt raw.Unsafe_rawdata raw.Bytecount
 	if ret == 0
 		return OK
 	return convert_error errno
@@ -979,10 +984,10 @@ extern let SHUT_RD:I32
 extern let SHUT_WR:I32
 extern let SHUT_RDWR:I32
 
-extern fun shutdown sockfd:Int how:I32 = Int
+extern fun shutdown sockfd:int how:int = int
 
 fun Shutdown sockfd:Int how:I32 = Error
-	let ret = shutdown sockfd how
+	let ret = shutdown sockfd.Trim_i32 how
 	if ret == 0
 		return OK
 	return convert_error errno
@@ -1010,18 +1015,18 @@ extern let EPOLLET:U32
 extern let EPOLLONESHOT:U32
 extern let EPOLLWAKEUP:U32
 
-extern fun epoll_create1 flags:Int = Int
-extern fun epoll_ctl epfd:Int op:I32 fd:Int raw_event:*U8 = Int
-extern fun epoll_pwait epfd:Int raw_events:#U8 maxevents:Uint timeout:Int raw_sigmask:?*U8 = Int
+extern fun epoll_create1 flags:int = int
+extern fun epoll_ctl epfd:int op:int fd:int raw_event:*U8 = int
+extern fun epoll_pwait epfd:int raw_events:#U8 maxevents:Uint timeout:Int raw_sigmask:?*U8 = int
 
-fun Epoll_create1 flags:Int = Error, Int
+fun Epoll_create1 flags:I32 = Error, ?Int
 	let ret = epoll_create1 flags
 	if ret >= 0
-		return OK, ret
-	return convert_error errno, -1
+		return OK, ?ret.Int
+	return convert_error errno, nil
 
 fun Epoll_ctl epfd:Int op:I32 fd:Int event:*Epoll_event = Error
-	let ret = epoll_ctl epfd op fd ((unsafe.Cast *Epoll_event *U8) event)
+	let ret = epoll_ctl epfd.Trim_i32 op fd.Trim_i32 ((unsafe.Cast *Epoll_event *U8) event)
 	if ret == 0
 		return OK
 	return convert_error errno
@@ -1029,9 +1034,9 @@ fun Epoll_ctl epfd:Int op:I32 fd:Int event:*Epoll_event = Error
 -- Append to the events slice in the available space.
 fun Epoll_pwait epfd:Int events:[!]Epoll_event timeout:Int raw_sigmask:?*U8 = Error, [!]Epoll_event
 	let dst = events![events.Count .. events.Cap]
-	let ret = epoll_pwait epfd dst#Unsafe_rawdata dst.Count timeout raw_sigmask
+	let ret = epoll_pwait epfd.Trim_i32 dst#Unsafe_rawdata dst.Count timeout raw_sigmask
 	if ret >= 0
-		return OK, events![events.Count .. events.Count + (Min ret.Unsigned dst.Count)]
+		return OK, events![events.Count .. events.Count + (Min ret.Unsigned.Uint dst.Count)]
 	return convert_error errno, events
 
 
@@ -1061,7 +1066,7 @@ extern let SIGTTOU:I32
 
 extern let SIGTRAP:I32
 
-extern fun sigaction signum:I32 raw_act:?*U8 raw_oldact:?#U8 = Int
+extern fun sigaction signum:int raw_act:?*U8 raw_oldact:?#U8 = int
 
 fun Signal signum:I32 raw_act:?*U8 raw_oldact:?#U8 = Error
 	let ret = sigaction signum raw_act raw_oldact
