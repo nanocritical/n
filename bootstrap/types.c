@@ -2630,6 +2630,7 @@ error typ_check_isa(const struct module *mod, const struct node *for_error,
   GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
                    "'%s' not isa intf '%s'", na, nintf);
 except:
+  ppisalist(a);
   free(nintf);
   free(na);
   return e;
