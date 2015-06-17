@@ -6,9 +6,10 @@ import n.io
 
 within logging.Log
 
--- Platform-specific types. On Linux, this always works:
-alias int = I32
+-- Platform-specific types.
+alias int = I32 -- On Linux, this always works.
 alias clockid_t = I32
+alias pid_t = I32
 
 extern fun Strlen cs:*U8 = Uint
 
@@ -1080,3 +1081,53 @@ fun Signal signum:I32 raw_act:?*U8 raw_oldact:?#U8 = Error
 	if ret >= 0
 		return OK
 	return convert_error errno
+
+extern fun execve filename:*U8 argv:**U8 envp:**U8 = int
+
+fun Execve filename:String argv:[]String envp:[]String = Error
+	let cfilename = cstring.Mk filename
+
+	let cargv:(Buf cstring.Cstring) such
+		foreach a in argv
+			cargv#Push# = cstring.Mk a
+	let pcargv:(Buf ?*U8) such
+		foreach a in cargv
+			pcargv#Push# = a.Rawdata
+		if pcargv.Count == 0
+			pcargv#Push# = nil
+
+	let cenvp:(Buf cstring.Cstring) such
+		foreach a in envp
+			cenvp#Push# = cstring.Mk a
+	let pcenvp:(Buf ?*U8) such
+		foreach a in cenvp
+			pcenvp#Push# = a.Rawdata
+		if pcenvp.Count == 0
+			pcenvp#Push# = nil
+
+	let ret = execve cfilename.Rawdata pcargv.Slice.Unsafe_data pcenvp.Slice.Unsafe_data
+	if ret >= 0
+		return OK
+	return convert_error errno
+
+extern fun pipe2 pipefd:*int flags:int = int
+
+fun Pipe2 flags:I32 = Error, rd:Int, wr:Int
+	var pipefd = {-1 -1}:[!]int
+	let ret = pipe2 pipefd.Unsafe_data flags
+	if ret == 0
+		return OK, pipefd.[0].Int, pipefd.[1].Int
+	return convert_error errno, -1, -1
+
+extern fun fork = pid_t
+
+fun Fork = Error, pid:Int
+	let ret = fork
+	if ret >= 0
+		return OK, ret.Int
+	return convert_error errno, -1
+
+extern fun _exit status:int
+
+fun Exit status:I32
+	_exit status

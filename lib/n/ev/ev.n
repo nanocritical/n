@@ -196,3 +196,21 @@ Poll met! Wait ?timeout:?time.Duration = Error, e:Event
 	let perm_e = (unsafe.Cast ?#U8 ?#Event) sys_e.Rawdata
 	e = perm_e*
 	e!Got = sys_events_to_events sys_e.Events
+
+
+fun Loop poll:#Poll ?continue_despite_handler_error:?Bool = Error
+	while poll.Has_waiters
+		let wait_err, e = poll!Wait
+		if wait_err == syscall.EAGAIN
+			continue
+		except = wait_err
+
+		let err = e.Handler#On e
+		if err == syscall.EAGAIN
+			continue
+
+		if err != OK
+			if continue_despite_handler_error else false
+				Log#Error "%s" err
+				continue
+			return err

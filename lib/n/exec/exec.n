@@ -1,0 +1,154 @@
+from n import *
+
+import n.syscall
+import n.bufio
+import n.io
+import n.fs
+import n.ev
+import n.logging
+
+within logging.Log
+
+struct Status =
+	Signal	:Uint
+	Exit	:Uint
+
+Status met Success = Bool
+	return self.Signal == 0 and self.Exit == 0
+
+struct Cmd =
+	Path	:Stringbuf
+	Args	:(Buf Stringbuf)
+	Envs	:(Buf Stringbuf)
+
+	Wd	:?!fs.File
+
+	-- You can either specify existing standard i/o streams, which will
+	-- be connected to the command, and automatically copied from/to, or
+	-- ones will be created for you to interact with.
+	Stdin	:?#io.`Reader
+	Stdout	:?#io.`Writer
+	Stderr	:?#io.`Writer
+
+	Pid	:Int
+	Status	:Status
+
+	pin_rd	:fs.File
+	pin_wr	:fs.File
+	pout_rd	:fs.File
+	pout_wr	:fs.File
+	perr_rd	:fs.File
+	perr_wr	:fs.File
+
+example cmd_nonblocking_buffers
+	var poll:ev.Poll
+	except = poll#Init
+
+	var buf:Stringbuf
+	var cmd = {Path="/bin/bash" Args={"-c" "echo" "-n" "test"} Stdout=#buf Stderr=#buf}:Cmd
+	let except = cmd!Run #poll
+
+	except = ev.Loop #poll
+
+	let except, status = cmd!Wait
+	assert status.Success
+	assert buf == "test"
+
+struct example_handler =
+	isa ev.`Handler
+	i	:#io.`Write_closer
+	o	:#io.`Read_closer
+
+-- This silly example assumes that reads and writes of 4 bytes always
+-- complete fully, or not at all.
+example_handler met# On e:ev.Event = Error
+	if WRITE in e.Got
+		_, except = self.i.Write "test".Bytes
+	if READ in e.Got
+		var buf:Stringbuf
+		buf#Reserve 4
+		let b, err = self.o.Read buf!Bytes
+		buf#Copy b
+		assert (err == OK or err == io.EOF) and buf == "test"
+
+--example cmd_nonblocking_pipes
+--	var poll:ev.Poll
+--	except = poll#Init
+--
+--	var buf:Stringbuf
+--	var cmd = {Path="bash" Args={"-c" "cat"}}
+--
+--	let input = cmd.Stdin_pipe
+--	let output = cmd.Stdout_pipe
+--	let example_handler = {i=input o=output}
+--
+--	except = poll#Register {Fd=input.Fd Ask={WRITE} Handler=example_handler}
+--	except = poll#Register {Fd=output.Fd Ask={READ} Handler=example_handler}
+--
+--	let except = cmd!Run #poll
+--	except = ev.Loop #poll
+--
+--	except, status = cmd!Wait
+--	assert status.Success
+
+Cmd met# Dtor
+	drop = self!close_pipes
+
+Cmd met! close_pipes = Error
+	except = self!pin_rd#Close
+	except = self!pin_wr#Close
+	except = self!pout_rd#Close
+	except = self!pout_wr#Close
+	except = self!perr_rd#Close
+	except = self!perr_wr#Close
+
+Cmd met! init_pipes = Error
+	if not self.pin_rd.Fd?
+		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
+		self!pin_rd = fs.File.Open_fd rd
+		self!pin_wr = fs.File.Open_fd wr
+	if not self.pout_rd.Fd?
+		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
+		self!pout_rd = fs.File.Open_fd rd
+		self!pout_wr = fs.File.Open_fd wr
+	if not self.perr_rd.Fd?
+		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
+		self!perr_rd = fs.File.Open_fd rd
+		self!perr_wr = fs.File.Open_fd wr
+
+Cmd met! Run poll:#ev.Poll = Error
+	except = self!init_pipes
+	except, self!Pid = syscall.Fork
+
+	if self.Pid != 0
+		never = self!pin_rd!Close
+		never = self!pout_wr!Close
+		never = self!perr_wr!Close
+		return OK
+
+	never = self!pin_wr!Close
+	never = self!pout_rd!Close
+	never = self!perr_rd!Close
+
+	let argv:(Buf String) such
+		foreach a in self.Args
+			argv#Push# = a.String
+	let envp:(Buf String) such
+		foreach a in self.Envs
+			envp#Push# = a.String
+
+	try
+		Eprn self.Path
+		Eprn argv.Slice
+		Eprn envp.Slice
+		except = syscall.Execve self.Path.String argv.Slice envp.Slice
+	catch err
+		Log#Error "failed to exec '%s': %s" self.Path err
+		syscall.Exit 1
+
+Cmd met! Stdin_pipe = #io.`Write_closer
+Cmd met! Stdout_pipe = #io.`Read_closer
+Cmd met! Stderr_pipe = #io.`Read_closer
+
+Cmd met! Wait = Error, Status
+	except = self!close_pipes

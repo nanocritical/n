@@ -742,6 +742,34 @@ static SY_int SY(sigaction)(NB(I32) signum, NB(U8) *raw_act, NB(U8) *raw_oldact)
   return ret;
 }
 
+static SY_int SY(execve)(NB(U8) *filename, NB(U8) **argv, NB(U8) **envp) {
+  char **a = argv;
+  while (*a) {
+    fprintf(stderr, "%p %s\n", *a, *a);
+    a++;
+  }
+
+  int ret = execve((char *) filename, (char **) argv, (char **) envp);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static SY_int SY(pipe2)(SY_int *pipefd, SY_int flags) {
+  int ret = pipe2(pipefd, flags);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static SY_int SY(fork)(void) {
+  int ret = fork();
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static void SY(_exit)(SY_int status) {
+  _exit(status);
+}
+
 #endif
 
 #undef SY
