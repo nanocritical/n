@@ -28,6 +28,10 @@ intf `Writer =
 intf `Closer =
 	met# Close = Error
 
+intf `Read_closer =
+	isa `Reader `Closer
+intf `Write_closer =
+	isa `Writer `Closer
 
 fun Read_at_least b:[!]U8 r:#`Reader min_count:Uint = [!]U8, err:Error
 	if b.Available < min_count

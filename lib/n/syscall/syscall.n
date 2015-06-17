@@ -2,6 +2,7 @@ from n import *
 import n.cstring
 import n.unsafe
 import n.logging
+import n.io
 
 within logging.Log
 
@@ -641,18 +642,24 @@ fun Pwrite fd:Int b:[]U8 off:Uint = []U8, Error
 		return b.[cnt.Unsigned ..], OK
 	return b, convert_error errno
 
-fun Read fd:Int b:[!]U8 = [!]U8, Error
+fun Read fd:Int b:[!]U8 = r:[!]U8, Error
 	let dst = b![b.Count .. b.Cap]
 	let cnt = read fd.Trim_i32 dst!Unsafe_rawdata dst.Count
 	if cnt >= 0
-		return b![.. b.Count+cnt.Unsigned], OK
+		r = b![.. b.Count+cnt.Unsigned]
+		if cnt == 0 and dst.Count != 0
+			return r, io.EOF
+		return r, OK
 	return b, convert_error errno
 
-fun Pread fd:Int b:[!]U8 off:Uint = [!]U8, Error
+fun Pread fd:Int b:[!]U8 off:Uint = r:[!]U8, Error
 	let dst = b![b.Count .. b.Cap]
 	let cnt = pread fd.Trim_i32 dst!Unsafe_rawdata dst.Count off
 	if cnt >= 0
-		return b![.. b.Count+cnt.Unsigned], OK
+		r = b![.. b.Count+cnt.Unsigned]
+		if cnt == 0 and dst.Count != 0
+			return r, io.EOF
+		return r, OK
 	return b, convert_error errno
 
 fun Lseek fd:Int off:Int whence:I32 = Error, Uint

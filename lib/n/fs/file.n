@@ -6,35 +6,64 @@
 -- before its permissions are fully set up.
 -- On older Linux, or on systems without equivalent support, such facility
 -- cannot be implemented as safely, but this module will do its best.
+
 inline struct File =
-	isa `Not_copyable io.`Reader io.`Writer -- io.`Reader_at io.`Writer_at
-	fs	:!`Fs
+	isa `Not_copyable io.`Reader io.`Writer
+		\ io.`Read_closer io.`Write_closer
+		-- io.`Reader_at io.`Writer_at
+	fs	:?!`Fs
 	fd	:?Int
 	hidden	:Bool
 	name	:path.Path
 
-File met Fd = Int
-	return self.fd else -1
+File met# Dtor
+	drop = self!Close
+
+File fun Open_fd fd:Int = this
+	assert fd >= 0
+	var buf:Stringbuf
+	fmt.F #buf "/proc/self/fd/%s" fd
+	return {fd=fd name=(path.Path.From_string buf.String)}
+
+File met Fd = ?Int
+	return self.fd
 
 File met Pathname = path.Path
 	return self.name
 
 File met! Close = Error
-	return syscall.Close self.Fd
+	if not self.fs?
+		let fd = self.fd
+		if not fd?
+			return OK
+		self!fd = nil
+		return syscall.Close fd
+	return self!fs!File_close self
 
 File met Stat = Error, Stat
+	if not self.fs?
+		-- TODO(e): need support for pipes, sockets, ...
+		return syscall.ENOSYS, {}
 	return self.fs!File_stat self
 
 File met Readlink = Error, path.Path
+	if not self.fs?
+		return syscall.ENOSYS, {}
 	return self.fs!File_readlink self
 
 File met! Datasync = Error
+	if not self.fs?
+		return syscall.ENOSYS
 	return self!fs!File_datasync self
 
 File met! Sync = Error
+	if not self.fs?
+		return syscall.ENOSYS
 	return self!fs!File_sync self
 
 File met! Truncate size:Uint = Error
+	if not self.fs?
+		return syscall.ENOSYS
 	return self.fs!File_truncate self size
 
 File met! Chown f:!File owner:Int group:Int = Error
@@ -57,13 +86,21 @@ File met! Readdir buf:#(Buf Stat) ?max:?Uint = Error
 	return syscall.ENOSYS
 
 File met! Read b:[!]U8 = [!]U8, Error
+	if not self.fs?
+		return syscall.Read (self.fd else -1) b
 	return self.fs!File_read self b
 
 File met! Read_at b:[!]U8 off:Uint = [!]U8, Error
+	if not self.fs?
+		return syscall.Pread (self.fd else -1) b off
 	return self.fs!File_read_at self b off
 
 File met! Write b:[]U8 = []U8, Error
+	if not self.fs?
+		return syscall.Write (self.fd else -1) b
 	return self.fs!File_write self b
 
 File met! Write_at b:[]U8 off:Uint = []U8, Error
+	if not self.fs?
+		return syscall.Pwrite (self.fd else -1) b off
 	return self.fs!File_write_at self b off
