@@ -3,34 +3,50 @@ from n import *
 import n.syscall
 import n.bufio
 import n.io
+import n.io.ioutil
 import n.fs
 import n.ev
 import n.logging
 
 within logging.Log
 
-struct Status =
+inline struct Status =
 	Signal	:Uint
 	Exit	:Uint
+
+Status fun From_sys code:I32 = r:this
+	if code <= 128
+		r!Exit = code.Unsigned.Uint
+	else
+		r!Signal = code.Unsigned.Uint - 128
 
 Status met Success = Bool
 	return self.Signal == 0 and self.Exit == 0
 
-struct Cmd =
+
+inline struct Cmd =
+	isa ev.`Handler
+
 	Path	:Stringbuf
 	Args	:(Buf Stringbuf)
 	Envs	:(Buf Stringbuf)
 
 	Wd	:?!fs.File
 
-	-- You can either specify existing standard i/o streams, which will
-	-- be connected to the command, and automatically copied from/to, or
-	-- ones will be created for you to interact with.
 	Stdin	:?#io.`Reader
 	Stdout	:?#io.`Writer
 	Stderr	:?#io.`Writer
 
-	Pid	:Int
+	stdin_empty	:bufio.Bytes_reader
+	stdout_discard	:ioutil.Discard
+	stderr_discard	:ioutil.Discard
+
+	stdin_copier	:io.Copier
+	stdout_copier	:io.Copier
+	stderr_copier	:io.Copier
+
+	poll	:#ev.Poll
+	Pid	:Uint
 	Status	:Status
 
 	pin_rd	:fs.File
@@ -40,17 +56,30 @@ struct Cmd =
 	perr_rd	:fs.File
 	perr_wr	:fs.File
 
+example cmd_failure
+	var poll:ev.Poll
+	except = poll#Init
+
+	var cmd = {Path="/bin/bash" Args={"bash" "-c" "exit 1"}}:Cmd
+	let except = cmd#Run #poll
+
+	except = ev.Loop #poll
+
+	let status = cmd!Status
+	assert not status.Success
+	assert status.Exit == 1
+
 example cmd_nonblocking_buffers
 	var poll:ev.Poll
 	except = poll#Init
 
 	var buf:Stringbuf
-	var cmd = {Path="/bin/bash" Args={"-c" "echo" "-n" "test"} Stdout=#buf Stderr=#buf}:Cmd
-	let except = cmd!Run #poll
+	var cmd = {Path="/bin/bash" Args={"bash" "-c" "echo -n test"} Stdout=#buf Stderr=#buf}:Cmd
+	let except = cmd#Run #poll
 
 	except = ev.Loop #poll
 
-	let except, status = cmd!Wait
+	let status = cmd!Status
 	assert status.Success
 	assert buf == "test"
 
@@ -85,50 +114,69 @@ example_handler met# On e:ev.Event = Error
 --	except = poll#Register {Fd=input.Fd Ask={WRITE} Handler=example_handler}
 --	except = poll#Register {Fd=output.Fd Ask={READ} Handler=example_handler}
 --
---	let except = cmd!Run #poll
+--	let except = cmd#Run #poll
 --	except = ev.Loop #poll
 --
 --	except, status = cmd!Wait
 --	assert status.Success
 
-Cmd met# Dtor
-	drop = self!close_pipes
+Cmd met# init_pipes = Error
+	-- We check if Stdin_pipe et al. have already setup the pipes.
 
-Cmd met! close_pipes = Error
-	except = self!pin_rd#Close
-	except = self!pin_wr#Close
-	except = self!pout_rd#Close
-	except = self!pout_wr#Close
-	except = self!perr_rd#Close
-	except = self!perr_wr#Close
-
-Cmd met! init_pipes = Error
-	if not self.pin_rd.Fd?
+	if not self.pin_wr.Fd?
 		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
-		self!pin_rd = fs.File.Open_fd rd
-		self!pin_wr = fs.File.Open_fd wr
+		self#pin_rd = fs.File.Open_fd rd
+		self#pin_wr = fs.File.Open_fd wr
+
 	if not self.pout_rd.Fd?
 		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
-		self!pout_rd = fs.File.Open_fd rd
-		self!pout_wr = fs.File.Open_fd wr
+		self#pout_rd = fs.File.Open_fd rd
+		self#pout_wr = fs.File.Open_fd wr
+
 	if not self.perr_rd.Fd?
 		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
-		self!perr_rd = fs.File.Open_fd rd
-		self!perr_wr = fs.File.Open_fd wr
+		self#perr_rd = fs.File.Open_fd rd
+		self#perr_wr = fs.File.Open_fd wr
 
-Cmd met! Run poll:#ev.Poll = Error
-	except = self!init_pipes
-	except, self!Pid = syscall.Fork
+	if not self.Stdin?
+		self#Stdin = #self#stdin_empty
+	self#stdin_copier#Reset #self#pin_wr self.Stdin
+
+	if not self.Stdout?
+		self#Stdout = #self#stdout_discard
+	self#stdout_copier#Reset self.Stdout #self#pout_rd
+
+	if not self.Stderr?
+		self#Stderr = #self#stderr_discard
+	self#stderr_copier#Reset self.Stderr #self#perr_rd
+
+
+Cmd met# Run poll:#ev.Poll = Error within the_nanny
+	install_nanny
+
+	self#poll = poll
+	except = self#init_pipes
+	except, self#Pid = syscall.Fork
 
 	if self.Pid != 0
-		never = self!pin_rd!Close
-		never = self!pout_wr!Close
-		never = self!perr_wr!Close
+		never = self#pin_rd!Close
+		never = self#pout_wr!Close
+		never = self#perr_wr!Close
+
+		never = self#poll#Register {Fd=self.pin_wr.Fd Ask={WRITE} Handler=self}
+		never = self#poll#Register {Fd=self.pout_rd.Fd Ask={READ} Handler=self}
+		never = self#poll#Register {Fd=self.perr_rd.Fd Ask={READ} Handler=self}
+
+		except = the_nanny#Wait_for self
 		return OK
 
-	never = self!pin_wr!Close
-	never = self!pout_rd!Close
-	never = self!perr_rd!Close
+	never = self#pin_wr!Close
+	never = self#pout_rd!Close
+	never = self#perr_rd!Close
+
+	except, _ = syscall.Dup3 self.pin_rd.Fd 0 0
+	except, _ = syscall.Dup3 self.pout_wr.Fd 1 0
+	except, _ = syscall.Dup3 self.perr_wr.Fd 2 0
 
 	let argv:(Buf String) such
 		foreach a in self.Args
@@ -138,17 +186,117 @@ Cmd met! Run poll:#ev.Poll = Error
 			envp#Push# = a.String
 
 	try
-		Eprn self.Path
-		Eprn argv.Slice
-		Eprn envp.Slice
 		except = syscall.Execve self.Path.String argv.Slice envp.Slice
 	catch err
 		Log#Error "failed to exec '%s': %s" self.Path err
 		syscall.Exit 1
 
-Cmd met! Stdin_pipe = #io.`Write_closer
-Cmd met! Stdout_pipe = #io.`Read_closer
-Cmd met! Stderr_pipe = #io.`Read_closer
+Cmd met# On e:ev.Event = Error
+	Log#Debug "%s" e
+	if not ERROR in e.Got and WRITE in e.Got and e.Fd == self.pin_wr.Fd
+		let _, err = self!stdin_copier#Copy
+		if err != OK and err != io.EOF and err != syscall.EAGAIN
+			return err
+	if READ in e.Got and e.Fd == self.pout_rd.Fd
+		let _, err = self!stdout_copier#Copy
+		if err != OK and err != io.EOF and err != syscall.EAGAIN
+			return err
+	if READ in e.Got and e.Fd == self.perr_rd.Fd
+		let _, err = self!stderr_copier#Copy
+		if err != OK and err != io.EOF and err != syscall.EAGAIN
+			return err
 
-Cmd met! Wait = Error, Status
-	except = self!close_pipes
+
+Cmd met# Stdin_pipe = Error, #io.`Write_closer
+	let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
+	self#pin_rd = fs.File.Open_fd rd
+	self#pin_wr = fs.File.Open_fd wr
+	return OK, #self#pin_wr
+
+Cmd met# Stdout_pipe = Error, #io.`Read_closer
+	let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
+	self#pout_rd = fs.File.Open_fd rd
+	self#pout_wr = fs.File.Open_fd wr
+	return OK, #self#pout_rd
+
+Cmd met# Stderr_pipe = Error, #io.`Read_closer
+	let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
+	self#perr_rd = fs.File.Open_fd rd
+	self#perr_wr = fs.File.Open_fd wr
+	return OK, #self#perr_rd
+
+Cmd met! on_status status:Status
+	self!Status = status
+
+	-- TODO(e): report when there is not yet written content for stdin
+
+	never = self!poll#Register {Fd=self.pin_wr.Fd Ask={CLOSE}}
+	never = self!poll#Register {Fd=self.pout_rd.Fd Ask={CLOSE}}
+	never = self!poll#Register {Fd=self.perr_rd.Fd Ask={CLOSE}}
+
+
+globalenv the_nanny:#nanny
+
+fun install_nanny within the_nanny
+	if Globalenv_installed the_nanny
+		return
+	let header = Alloc (Envheader #nanny)
+	header#Env = Alloc nanny
+	Globalenv_install the_nanny header
+
+
+-- We are assuming that the kernel is not racy in its reuse of PIDs. I.e. that
+-- until we read the Signalfd_siginfo struct from the signalfd, the PID will
+-- not be reused.
+
+inline struct nanny =
+	isa ev.`Handler
+	signalfd	:?Int
+	pids		:(Map Uint ?!Cmd)
+	poll_usecnt	:(Map (Ref_as_key ?#ev.Poll) Uint)
+
+nanny met# Wait_for cmd:!Cmd = Error
+	if not self.signalfd?
+		let except, mask = syscall.Sigset.Mk syscall.SIGCHLD
+		except = syscall.Sigprocmask syscall.SIG_BLOCK mask nil
+		except, self!signalfd = syscall.Signalfd -1 mask syscall.SFD_CLOEXEC|syscall.SFD_NONBLOCK
+
+	except = cmd!poll#Register {Fd=self.signalfd Ask={READ} Handler=self}
+
+	let added, pcmd = self!pids#Try_store cmd.Pid
+	if not added
+		Log#Critical "nanny: trying to wait for two processes with the same PID '%s'" cmd.Pid
+	pcmd# = cmd
+
+	(self!poll_usecnt#Store {Ref=cmd.poll})# += 1
+
+nanny met# On e:ev.Event = Error
+	Log#Debug "%s" e
+	if not READ in e.Got
+		return OK
+
+	while true
+		var si:syscall.Signalfd_siginfo
+		let left, err = syscall.Read self.signalfd si#Raw
+		if err == syscall.EAGAIN
+			break
+		if err != OK or left.Available != 0
+			Log#Critical "nanny: failed to read Signalfd_siginfo with: %s" err
+			break
+
+		let pcmd = self.pids.[si.Pid.Uint]
+		if not pcmd?
+			Log#Warning "nanny: we don't know about PID '%s'" si.Pid
+			continue
+
+		let cmd = pcmd*
+		_ = self!pids#Delete si.Pid.Uint
+
+		cmd!on_status <- Status.From_sys si.Status
+
+		let usecnt = self.poll_usecnt.[{Ref=cmd.poll}]
+		assert usecnt?
+		if usecnt* == 1
+			Log#Debug "remove signalfd from poll"
+			_ = self!poll_usecnt#Delete {Ref=cmd.poll}
+			except = cmd.poll#Unregister_all {Fd=self.signalfd}

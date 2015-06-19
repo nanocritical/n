@@ -446,6 +446,12 @@ static SY_int SY(munmap)(NB(U8) *addr, NB(Uint) length) {
   return ret;
 }
 
+static SY_int SY(dup3)(SY_int oldfd, SY_int newfd, SY_int flags) {
+  int ret = dup3(oldfd, newfd, flags);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
 SY_int SY(_EAI_ADDRFAMILY) = EAI_ADDRFAMILY;
 SY_int SY(_EAI_AGAIN) = EAI_AGAIN;
 SY_int SY(_EAI_BADFLAGS) = EAI_BADFLAGS;
@@ -700,7 +706,6 @@ static SY_int SY(epoll_pwait)(SY_int epfd, NB(U8) *raw_events, NB(Uint) maxevent
   return ret;
 }
 
-
 NB(I32) SY(SIGHUP) = SIGHUP;
 NB(I32) SY(SIGINT) = SIGINT;
 NB(I32) SY(SIGQUIT) = SIGQUIT;
@@ -724,6 +729,26 @@ NB(I32) SY(SIGTTOU) = SIGTTOU;
 
 NB(I32) SY(SIGTRAP) = SIGTRAP;
 
+static void SY(sigemptyset)(NB(U8) *raw_set) {
+  sigemptyset((sigset_t *)raw_set);
+}
+
+static SY_int SY(sigaddset)(NB(U8) *raw_set, SY_int signum) {
+  int ret = sigaddset((sigset_t *)raw_set, signum);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+NB(I32) SY(SFD_CLOEXEC) = SFD_CLOEXEC;
+NB(I32) SY(SFD_NONBLOCK) = SFD_NONBLOCK;
+
+static SY_int SY(signalfd)(SY_int fd, NB(U8) *raw_mask, SY_int flags) {
+  int ret = signalfd(fd, (const sigset_t *)raw_mask, flags);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+
 NB(U8) *n$syscall$SIGACTION_DFL(void) {
   static __thread struct n$syscall$Sigaction act = { 0 };
   act.act.sa_handler = SIG_DFL;
@@ -742,13 +767,17 @@ static SY_int SY(sigaction)(NB(I32) signum, NB(U8) *raw_act, NB(U8) *raw_oldact)
   return ret;
 }
 
-static SY_int SY(execve)(NB(U8) *filename, NB(U8) **argv, NB(U8) **envp) {
-  char **a = argv;
-  while (*a) {
-    fprintf(stderr, "%p %s\n", *a, *a);
-    a++;
-  }
+NB(I32) SY(SIG_BLOCK) = SIG_BLOCK;
+NB(I32) SY(SIG_UNBLOCK) = SIG_UNBLOCK;
+NB(I32) SY(SIG_SETMASK) = SIG_SETMASK;
 
+static SY_int SY(sigprocmask)(SY_int how, NB(U8) *raw_set, NB(U8) *raw_oldset) {
+  int ret = sigprocmask(how, (const sigset_t *)raw_set, (sigset_t *)raw_oldset);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static SY_int SY(execve)(NB(U8) *filename, NB(U8) **argv, NB(U8) **envp) {
   int ret = execve((char *) filename, (char **) argv, (char **) envp);
   _$Nlatestsyscallerrno = errno;
   return ret;

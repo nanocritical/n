@@ -549,6 +549,7 @@ extern fun getenv name:*U8 = ?*U8
 extern fun setenv name:*U8 value:*U8 overwrite:int = int
 extern fun mmap addr:Uintptr length:Uint prot:Mmap_prot flags:Mmap_flags fd:int offset:Uint = ?#U8
 extern fun munmap addr:#U8 length:Uint = int
+extern fun dup3 oldfd:int newfd:int flags:int = int
 
 fun Close fd:Int = Error
 	let ret = close fd.Trim_i32
@@ -790,6 +791,12 @@ fun Munmap addr:#U8 length:Uint = Error
 		return OK
 	return convert_error errno
 
+fun Dup3 oldfd:Int newfd:Int flags:I32 = Error, ?Int
+	let ret = dup3 oldfd.Trim_i32 newfd.Trim_i32 flags
+	if ret >= 0
+		return OK, ?ret.Int
+	return convert_error errno, nil
+
 
 let EAI_ADDRFAMILY = {Why=*"EAI_ADDRFAMILY: The specified network host does not have any network addresses in the requested address family."}:Error
 let EAI_AGAIN = {Why=*"EAI_AGAIN: The name server returned a temporary failure indication. Try again later."}:Error
@@ -835,7 +842,7 @@ extern fun Sockaddr_ip_port family:I32 raw_addr:*U8 raw_addrlen:Uint = Uint
 extern fun Sockaddr_ip_sizeof family:I32 = Uint
 extern fun Sockaddr_ip buf:#[]U8 family:I32 ip6:[]U8 port:Uint
 
-struct Addrinfo =
+inline struct Addrinfo =
 	Flags		:I32
 	Family		:I32
 	Socktype	:I32
@@ -1048,9 +1055,6 @@ fun Epoll_pwait epfd:Int events:[!]Epoll_event timeout:Int raw_sigmask:?*U8 = Er
 	return convert_error errno, events
 
 
-extern fun SIGACTION_DFL = act:?*U8
-extern fun SIGACTION_IGN = act:?*U8
-
 extern let SIGHUP:I32
 extern let SIGINT:I32
 extern let SIGQUIT:I32
@@ -1074,6 +1078,80 @@ extern let SIGTTOU:I32
 
 extern let SIGTRAP:I32
 
+
+extern inline struct Sigset =
+	isa `Trivial_copy
+Sigset met# Unsafe_raw = #U8
+	return (unsafe.Cast #this #U8) self
+
+extern fun sigemptyset raw_set:#U8
+extern fun sigaddset raw_set:#U8 signum:int = int
+
+Sigset fun Mk ...signums:(Vararg *I32) = Error, r:this
+	let raw = r#Unsafe_raw
+	sigemptyset raw
+	for signum in signums
+		let ret = sigaddset raw signum
+		if ret < 0
+			return convert_error errno, {}
+	return OK, r
+
+
+extern let SIG_BLOCK:I32
+extern let SIG_UNBLOCK:I32
+extern let SIG_SETMASK:I32
+extern fun sigprocmask how:int raw_set:*U8 raw_oldset:?#U8 = int
+
+fun Sigprocmask how:I32 set:*Sigset oldset:?#Sigset = Error
+	let old = nil such
+		if oldset?
+			old = oldset!Unsafe_raw
+	let set_cpy = set*
+	let ret = sigprocmask how set_cpy#Unsafe_raw old
+	if ret >= 0
+		return OK
+	return convert_error errno
+
+
+extern inline struct Signalfd_siginfo =
+	isa `Trivial_copy
+extern inline Signalfd_siginfo met Signo = U32
+extern inline Signalfd_siginfo met Errno = I32
+extern inline Signalfd_siginfo met Code = I32
+extern inline Signalfd_siginfo met Pid = U32
+extern inline Signalfd_siginfo met Uid = U32
+extern inline Signalfd_siginfo met Fd = I32
+extern inline Signalfd_siginfo met Tid = U32
+extern inline Signalfd_siginfo met Band = U32
+extern inline Signalfd_siginfo met Overrun = U32
+extern inline Signalfd_siginfo met Trapno = U32
+extern inline Signalfd_siginfo met Status = I32
+extern inline Signalfd_siginfo met Int = I32
+extern inline Signalfd_siginfo met Ptr = U64
+extern inline Signalfd_siginfo met Utime = U64
+extern inline Signalfd_siginfo met Stime = U64
+extern inline Signalfd_siginfo met Addr = U64
+
+Signalfd_siginfo met# Raw = ret:[!]U8
+	let r = (unsafe.Cast #this #U8) self
+	ret#Unsafe_wrap r 0 (sizeof this)
+
+
+extern let SFD_CLOEXEC:I32
+extern let SFD_NONBLOCK:I32
+
+extern fun signalfd fd:int raw_mask:*U8 flags:int = int
+
+fun Signalfd fd:Int mask:*Sigset flags:I32 = Error, ?Int
+	var mask_cpy = mask*
+	let ret = signalfd fd.Trim_i32 mask_cpy#Unsafe_raw flags
+	if ret >= 0
+		return OK, ?ret.Int
+	return convert_error errno, nil
+
+
+extern fun SIGACTION_DFL = act:?*U8
+extern fun SIGACTION_IGN = act:?*U8
 extern fun sigaction signum:int raw_act:?*U8 raw_oldact:?#U8 = int
 
 fun Signal signum:I32 raw_act:?*U8 raw_oldact:?#U8 = Error
@@ -1121,10 +1199,10 @@ fun Pipe2 flags:I32 = Error, rd:Int, wr:Int
 
 extern fun fork = pid_t
 
-fun Fork = Error, pid:Int
+fun Fork = Error, pid:Uint
 	let ret = fork
 	if ret >= 0
-		return OK, ret.Int
+		return OK, ret.Unsigned.Uint
 	return convert_error errno, -1
 
 extern fun _exit status:int

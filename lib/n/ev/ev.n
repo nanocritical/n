@@ -128,7 +128,7 @@ Poll met! Unregister_all e:Event = Error
 		return INVAL
 
 	Free perm_e*
-	self!fds#Delete e.Fd
+	_ = self!fds#Delete e.Fd
 
 	-- Old Linux does not accept a nil event.
 	let sys_event = syscall.Epoll_event.Mk 0 nil
@@ -138,7 +138,7 @@ Poll met! process_closes = closed_some:Bool
 	for fd in self.hups.Iter
 		let pe = self.fds.[fd]
 		if not pe?
-			Log#Warning "spurious fd on hups list: %s" fd
+			Log#Warning "spurious fd on close list: %s" fd
 			continue
 
 		let e = pe*
@@ -152,6 +152,7 @@ Poll met! process_closes = closed_some:Bool
 			if err != OK
 				Log#Warning "%s" err
 		else
+			drop = syscall.Close e.Fd
 			drop = self!Unregister_all e
 
 		closed_some = true

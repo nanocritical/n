@@ -20,7 +20,7 @@ example hashmap_basic
 	assert m.["42"] == 43
 	var n = m
 
-	m#Delete "42"
+	_ = m#Delete "42"
 	assert not m#Try_delete "42"
 
 	let added2, _ = m#Try_store "42"
