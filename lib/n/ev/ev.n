@@ -128,7 +128,7 @@ Poll met! Unregister_all e:Event = Error
 		return INVAL
 
 	Free perm_e*
-	self!fds#Delete e.Fd
+	_ = self!fds#Delete e.Fd
 
 	-- Old Linux does not accept a nil event.
 	let sys_event = syscall.Epoll_event.Mk 0 nil

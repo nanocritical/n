@@ -297,7 +297,7 @@ Map met# Ingest other:*this = ingested_all:Bool
 		loc# = u.val
 	return ingested_all
 
-Map met# Try_delete key:*K = deleted:Bool
+Map met# Delete key:*K = deleted:Bool
 	if self.Count == 0
 		return false
 
@@ -310,9 +310,6 @@ Map met# Try_delete key:*K = deleted:Bool
 		return true
 
 	return false
-
-Map met# Delete key:*K
-	assert self#Try_delete key
 
 Map shallow met$ Iter = (Map_iter this $T)
 	-- To avoid this cast, we would have to make sptable_iter more complex.
@@ -422,7 +419,7 @@ Set met# Add_all other:*this = added_all:Bool
 		added_all = self!Add x and added_all
 
 Set met# Remove x:*T = removed:Bool
-	return self#map#Try_delete x
+	return self#map#Delete x
 
 Set met# Remove_all other:*this = removed_all:Bool
 	removed_all = true
@@ -572,7 +569,7 @@ Multiset met# Remove x:*T ?multiple:?Uint = prev_multiplicity:Uint
 
 	let decr_by = multiple else 1
 	if decr_by >= prev_multiplicity
-		self!map#Delete x
+		_ = self!map#Delete x
 		return prev_multiplicity
 
 	p# -= decr_by

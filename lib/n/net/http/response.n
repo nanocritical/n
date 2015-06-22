@@ -45,7 +45,7 @@ fun should_close header:#Header proto_version:Uint = Bool
 		-- TODO: Should split on commas, toss surrouding white space,
 		-- and check each field.
 		if connection == "close"
-			header#Map#Delete "Connection"
+			_ = header#Map#Delete "Connection"
 			return true
 	return false
 
