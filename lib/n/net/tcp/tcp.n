@@ -172,7 +172,6 @@ Socket met# Listen addr:*Addr ?backlog:?Uint = Error
 	if not self.sockfd?
 		except = self#create addr.Needs_protocol
 
-	Eprn addr.Needs_protocol
 	var sys_addr = to_sys_addr self.protocol addr
 	except = syscall.Bind self.sockfd sys_addr.[..]
 
