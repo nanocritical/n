@@ -21,7 +21,7 @@ example hashmap_basic
 	var n = m
 
 	_ = m#Delete "42"
-	assert not m#Try_delete "42"
+	assert not m#Delete "42"
 
 	let added2, _ = m#Try_store "42"
 	assert added2

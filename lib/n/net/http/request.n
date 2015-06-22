@@ -73,7 +73,7 @@ fun read_request_header req:#Request b:!bufio.Reader remote_addr:*tcp.Addr = Err
 	req#Host = req.Url.Host
 	if req#Host == ""
 		req#Host#Set <- (req.Header.Get "Host")?.String else ""
-	_ = req#Header#Map#Try_delete "Host"
+	_ = req#Header#Map#Delete "Host"
 
 	fix_pragma_cache_control #req#Header
 

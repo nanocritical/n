@@ -67,7 +67,7 @@ Header met# Add key:String = #Stringbuf
 -- Del deletes the values associated with key.
 Header met# Del key:String
 	let normkey = key.To_lower
-	let _ = self#Map#Try_delete normkey
+	_ = self#Map#Delete normkey
 
 
 fun no_newlines tmp:#Stringbuf s:String = String

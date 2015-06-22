@@ -373,7 +373,7 @@ Values met Add key:String value:String
 
 -- Del deletes the values associated with key.
 Values met Del key:String
-	let _ = self#Map#Try_delete key.Buf
+	_ = self#Map#Delete key.Buf
 
 -- Parse_query parses the URL-encoded query string and returns
 -- a map listing the values specified for each key.

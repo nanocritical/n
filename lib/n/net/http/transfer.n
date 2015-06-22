@@ -109,7 +109,7 @@ fun fix_transfer_encoding header:#Header method:*Stringbuf = Error, te:(Buf Stri
 		-- Chunked encoding trumps Content-Length. See RFC 2616
 		-- Section 4.4. Currently te.Count > 0 implies chunked
 		-- encoding.
-		_ = header#Map#Try_delete "Content-Length"
+		_ = header#Map#Delete "Content-Length"
 
 -- Determine the expected body length, using RFC 2616 Section 4.4.
 fun fix_length header:#Header is_response:Bool status:Uint method:*Stringbuf
@@ -132,7 +132,7 @@ fun fix_length header:#Header is_response:Bool status:Uint method:*Stringbuf
 			return err, nil
 		return OK, n
 	else
-		_ = header#Map#Try_delete "Content-Length"
+		_ = header#Map#Delete "Content-Length"
 
 	if not is_response and method == "GET"
 		-- RFC 2616 doesn't explicitly permit nor forbid an
@@ -149,7 +149,7 @@ fun fix_trailer header:#Header te:(Buf Stringbuf) = Error, trailer:Header
 	if raw == ""
 		return OK, {}
 
-	_ = header#Map#Try_delete "Trailer"
+	_ = header#Map#Delete "Trailer"
 
 	let keys = raw.Split ","
 	foreach key in keys
@@ -157,7 +157,7 @@ fun fix_trailer header:#Header te:(Buf Stringbuf) = Error, trailer:Header
 		mime_canonical_header_key normkey!Bytes
 		if normkey == "Transfer-Encoding" or normkey == "Trailer" or normkey == "Content-Length"
 			return ERR_BAD_TRAILER_KEY, {}
-		_ = trailer#Map#Try_delete normkey
+		_ = trailer#Map#Delete normkey
 
 	if trailer.Map.Count == 0
 		return OK, {}
