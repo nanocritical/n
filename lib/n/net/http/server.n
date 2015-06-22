@@ -294,7 +294,9 @@ server_conn_handler met# Close = err:Error
 			if err == io.EOF
 				break
 			if err == syscall.EAGAIN
-				-- We're not going to wait.
+				-- We'll get a HUP when the client closes:
+				-- so we will eventually get back in this
+				-- function.
 				self.debug "waiting on client to close"
 				return err
 			drop = err
