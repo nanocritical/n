@@ -50,7 +50,7 @@ Event met Show st:#fmt.`State
 
 inline struct Poll =
 	fds		:(Map Int ?#Event)
-	hups		:(Set Int)
+	closes		:(Set Int)
 	epfd		:Int
 	buf		:(Buf syscall.Epoll_event)
 	pending		:[!]syscall.Epoll_event
@@ -94,7 +94,7 @@ Poll met! Register e:Event = Error
 		return OK
 
 	if CLOSE in e.Ask
-		_ = self!hups#Add e.Fd
+		_ = self!closes#Add e.Fd
 
 		let just_close = e.Ask.Count == 1
 		if just_close
@@ -135,10 +135,10 @@ Poll met! Unregister_all e:Event = Error
 	drop = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_DEL e.Fd sys_event
 
 Poll met! process_closes = closed_some:Bool
-	for fd in self.hups.Iter
+	for fd in self.closes.Iter
 		let pe = self.fds.[fd]
 		if not pe?
-			Log#Warning "spurious fd on hups list: %s" fd
+			Log#Warning "spurious fd on close list: %s" fd
 			continue
 
 		let e = pe*
@@ -150,13 +150,14 @@ Poll met! process_closes = closed_some:Bool
 			if err == syscall.EWOULDBLOCK or err == syscall.EAGAIN
 				continue
 			if err != OK
-				Log#Warning "%s" err
+				Log#Warning "Handler error on CLOSE: %s" err
 		else
+			drop = syscall.Close e.Fd
 			drop = self!Unregister_all e
 
 		closed_some = true
 
-	self!hups#Clear
+	self!closes#Clear
 
 Poll met! sys_wait timeout:?time.Duration = Error
 	Log#Debug ""
