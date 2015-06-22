@@ -1,0 +1,5 @@
+from n import *
+import n.exec
+
+fun Main = I32
+	return 0

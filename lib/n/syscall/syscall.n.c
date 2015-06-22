@@ -3,6 +3,7 @@
 #include <sys/xattr.h>
 #include <sys/syscall.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 #include <sys/socket.h>
 #include <sys/epoll.h>
 #include <netdb.h>
@@ -254,6 +255,30 @@ static SY_int SY(openat)(SY_int dirfd, NB(U8) *pathname, NB(I32) flags, NB(U32) 
   return ret;
 }
 
+NB(I32) SY(F_DUPFD) = F_DUPFD;
+NB(I32) SY(F_GETFD) = F_GETFD;
+NB(I32) SY(F_SETFD) = F_SETFD;
+NB(I32) SY(F_GETFL) = F_GETFL;
+NB(I32) SY(F_SETFL) = F_SETFL;
+
+static SY_int SY(fcntl_void)(SY_int fd, SY_int cmd) {
+  int ret = fcntl(fd, cmd);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static SY_int SY(fcntl_i32)(SY_int fd, SY_int cmd, SY_int arg) {
+  int ret = fcntl(fd, cmd, arg);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static SY_int SY(fcntl_ref)(SY_int fd, SY_int cmd, NB(U8) *arg) {
+  int ret = fcntl(fd, cmd, arg);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
 static SY_int SY(mkfifoat)(SY_int dirfd, NB(U8) *pathname, NB(U32) mode) {
   int ret = mkfifoat(dirfd, (char *) pathname, mode);
   _$Nlatestsyscallerrno = errno;
@@ -442,6 +467,12 @@ static NB(U8) *SY(mmap)(NB(Uintptr) addr, NB(Uint) length, NB(I32) prot, NB(I32)
 
 static SY_int SY(munmap)(NB(U8) *addr, NB(Uint) length) {
   int ret = munmap((void *) addr, length);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static SY_int SY(dup3)(SY_int oldfd, SY_int newfd, SY_int flags) {
+  int ret = dup3(oldfd, newfd, flags);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
@@ -700,7 +731,6 @@ static SY_int SY(epoll_pwait)(SY_int epfd, NB(U8) *raw_events, NB(Uint) maxevent
   return ret;
 }
 
-
 NB(I32) SY(SIGHUP) = SIGHUP;
 NB(I32) SY(SIGINT) = SIGINT;
 NB(I32) SY(SIGQUIT) = SIGQUIT;
@@ -724,6 +754,26 @@ NB(I32) SY(SIGTTOU) = SIGTTOU;
 
 NB(I32) SY(SIGTRAP) = SIGTRAP;
 
+static void SY(sigemptyset)(NB(U8) *raw_set) {
+  sigemptyset((sigset_t *)raw_set);
+}
+
+static SY_int SY(sigaddset)(NB(U8) *raw_set, SY_int signum) {
+  int ret = sigaddset((sigset_t *)raw_set, signum);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+NB(I32) SY(SFD_CLOEXEC) = SFD_CLOEXEC;
+NB(I32) SY(SFD_NONBLOCK) = SFD_NONBLOCK;
+
+static SY_int SY(signalfd)(SY_int fd, NB(U8) *raw_mask, SY_int flags) {
+  int ret = signalfd(fd, (const sigset_t *)raw_mask, flags);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+
 NB(U8) *n$syscall$SIGACTION_DFL(void) {
   static __thread struct n$syscall$Sigaction act = { 0 };
   act.act.sa_handler = SIG_DFL;
@@ -738,6 +788,48 @@ NB(U8) *n$syscall$SIGACTION_IGN(void) {
 
 static SY_int SY(sigaction)(NB(I32) signum, NB(U8) *raw_act, NB(U8) *raw_oldact) {
   int ret = sigaction(signum, (const struct sigaction *)raw_act, (struct sigaction *)raw_oldact);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+NB(I32) SY(SIG_BLOCK) = SIG_BLOCK;
+NB(I32) SY(SIG_UNBLOCK) = SIG_UNBLOCK;
+NB(I32) SY(SIG_SETMASK) = SIG_SETMASK;
+
+static SY_int SY(sigprocmask)(SY_int how, NB(U8) *raw_set, NB(U8) *raw_oldset) {
+  int ret = sigprocmask(how, (const sigset_t *)raw_set, (sigset_t *)raw_oldset);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static SY_int SY(execve)(NB(U8) *filename, NB(U8) **argv, NB(U8) **envp) {
+  int ret = execve((char *) filename, (char **) argv, (char **) envp);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static SY_int SY(pipe2)(SY_int *pipefd, SY_int flags) {
+  int ret = pipe2(pipefd, flags);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static SY_int SY(fork)(void) {
+  int ret = fork();
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static void SY(_exit)(SY_int status) {
+  _exit(status);
+}
+
+NB(I32) SY(WNOHANG) = WNOHANG;
+NB(I32) SY(WUNTRACED) = WUNTRACED;
+NB(I32) SY(WCONTINUED) = WCONTINUED;
+
+static SY_int SY(waitpid)(SY_int pid, SY_int *status, SY_int options) {
+  int ret = waitpid(pid, status, options);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
