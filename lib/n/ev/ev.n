@@ -19,6 +19,7 @@ enum Events =
 	-- of connection. There may be more data to read.
 	| RDHUP
 	| CLOSE
+	| MANUAL
 
 intf `Handler =
 	met# On ev:Event = Error
@@ -50,10 +51,12 @@ Event met Show st:#fmt.`State
 
 inline struct Poll =
 	fds		:(Map Int ?#Event)
+	manuals		:(Buf ?#`Handler)
 	closes		:(Set Int)
 	epfd		:Int
 	buf		:(Buf syscall.Epoll_event)
 	pending		:[!]syscall.Epoll_event
+	sleeping	:Bool
 
 Poll met# Init = Error
 	assert self.buf.Count == 0
@@ -93,12 +96,15 @@ Poll met! Register e:Event = Error
 	if e.Ask.Count == 0
 		return OK
 
+	if MANUAL in e.Ask
+		self!manuals#Push# = e.Handler
+
 	if CLOSE in e.Ask
 		_ = self!closes#Add e.Fd
 
-		let just_close = e.Ask.Count == 1
-		if just_close
-			return OK
+	let just_pseudo = e.Ask <= {MANUAL CLOSE}
+	if just_pseudo
+		return OK
 
 	let added, perm_e = self!fds#Try_store e.Fd
 	and op = syscall.EPOLL_CTL_MOD such
@@ -134,6 +140,24 @@ Poll met! Unregister_all e:Event = Error
 	let sys_event = syscall.Epoll_event.Mk 0 nil
 	drop = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_DEL e.Fd sys_event
 
+Poll met! Schedule_manually h:#`Handler = Error
+	assert not self.sleeping -- FIXME(e): multithread or multi loop: use an eventfd in the pool
+	return self!Register {Ask={MANUAL} Handler=h}
+
+Poll met! process_manuals = Error
+	var keep:(Buf ?#`Handler)
+	foreach ph in self.manuals
+		let h = ph*
+		if not h?
+			continue
+		let err = h#On {Got={MANUAL} Handler=h}
+		if err == syscall.EAGAIN or err == syscall.EWOULDBLOCK
+			keep#Push# = h
+		else
+			except = err
+
+	self#manuals = keep#Move
+
 Poll met! process_closes = closed_some:Bool
 	for fd in self.closes.Iter
 		let pe = self.fds.[fd]
@@ -161,18 +185,12 @@ Poll met! process_closes = closed_some:Bool
 
 Poll met! sys_wait timeout:?time.Duration = Error
 	Log#Debug ""
-	let closed_some = self!process_closes
-
-	if closed_some and not self.Has_waiters and self.Pending_events_count == 0
-		-- Give the caller a chance to notice that there are no
-		-- waiters anymore. If we're called again, then we'll block
-		-- on the syscall.
-		-- This is a "spurious" wakeup, we don't return OK.
-		return syscall.EAGAIN
 
 	assert self.pending.Count == 0
+	self#sleeping = true
 	let err, res = syscall.Epoll_pwait self.epfd self!buf![..]
 		\ (timeout?.Millisec else -1) nil
+	self#sleeping = false
 	if err == syscall.EINTR
 		return syscall.EAGAIN
 
@@ -182,6 +200,19 @@ Poll met! sys_wait timeout:?time.Duration = Error
 
 Poll met! Wait ?timeout:?time.Duration = Error, e:Event
 	if self.pending.Count == 0
+		var closed_some
+		while self.manuals.Count + self.closes.Count != 0
+			except = self!process_manuals
+
+			closed_some = self!process_closes or closed_some
+
+		if closed_some and not self.Has_waiters and self.Pending_events_count == 0
+			-- Give the caller a chance to notice that there are no
+			-- waiters anymore. If we're called again, then we'll block
+			-- on the syscall.
+			-- This is a "spurious" wakeup, we don't return OK.
+			return syscall.EAGAIN, NONE
+
 		let err = self!sys_wait timeout
 		if err == syscall.EAGAIN
 			return err, NONE
