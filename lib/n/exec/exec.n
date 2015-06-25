@@ -22,6 +22,10 @@ Status met Success = Bool
 	return self.Signal == 0 and self.Exit == 0
 
 
+intf `Completion_handler =
+	met# On_completion cmd:!Cmd
+
+
 inline struct Cmd =
 	isa ev.`Handler
 
@@ -34,6 +38,8 @@ inline struct Cmd =
 	Stdin	:?#io.`Reader
 	Stdout	:?#io.`Writer
 	Stderr	:?#io.`Writer
+
+	Completion	:?#`Completion_handler
 
 	using_pin	:Bool
 	using_pout	:Bool
@@ -49,7 +55,7 @@ inline struct Cmd =
 
 	poll	:#ev.Poll
 	Pid	:Uint
-	Status	:Status
+	Status	:?Status
 
 	pin_rd	:fs.File
 	pin_wr	:fs.File
@@ -62,7 +68,7 @@ example cmd_failure
 	var poll:ev.Poll
 	except = poll#Init
 
-	var cmd = {Path="/bin/bash" Args={"bash" "-c" "exit 1"}}:Cmd
+	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "exit 1"}}:Cmd
 	let except = cmd#Run #poll
 
 	except = ev.Loop #poll
@@ -75,7 +81,7 @@ example cmd_nonblocking_buffers
 	except = poll#Init
 
 	var buf:Stringbuf
-	var cmd = {Path="/bin/bash" Args={"bash" "-c" "echo -n test"} Stdout=#buf Stderr=#buf}:Cmd
+	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo -n test"} Stdout=#buf Stderr=#buf}:Cmd
 	let except = cmd#Run #poll
 
 	except = ev.Loop #poll
@@ -111,7 +117,7 @@ example cmd_nonblocking_pipes
 	var poll:ev.Poll
 	except = poll#Init
 
-	var cmd = {Path="/bin/bash" Args={"bash" "-c" "cat"}}:Cmd
+	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "cat"}}:Cmd
 
 	let except, input = cmd#Stdin_pipe
 	let except, output = cmd#Stdout_pipe
@@ -263,6 +269,9 @@ Cmd met! on_status status:Status
 		never = self!poll!Register {Fd=self.pout_rd.Fd Ask={CLOSE}}
 	if not self.using_perr
 		never = self!poll!Register {Fd=self.perr_rd.Fd Ask={CLOSE}}
+
+	if self.Completion?
+		self.Completion#On_completion self
 
 
 globalenv the_nanny:#nanny
