@@ -90,7 +90,8 @@ fun unescape s:String mode:encoding = Error, ret:Stringbuf
 	-- Count %, check that they're well-formed.
 	var n = 0
 	var has_plus = false
-	foreach i in s.All
+	var i
+	while i < s.Count
 		if s.[i] == '%'
 			n += 1
 			if i+2 >= s.Count or not ishex s.[i+1] or not ishex s.[i+2]
@@ -110,8 +111,9 @@ fun unescape s:String mode:encoding = Error, ret:Stringbuf
 		return OK, ret
 
 	ret#Resize s.Count - 2*n
-	var j = 0
-	foreach i in s.All
+	var j
+	i = 0
+	while i < s.Count
 		if s.[i] == '%'
 			ret![j]! = ((unhex s.[i+1])ov<<4) | (unhex s.[i+2])
 			j += 1
@@ -161,7 +163,7 @@ fun escape s:String mode:encoding = ret:Stringbuf
 			ret![j+2]! = "0123456789ABCDEF".[c.Uint & 15]
 			j += 3
 		else
-			ret![j]! = s.[i]
+			ret![j]! = c
 			j += 1
 	return ret
 
@@ -416,10 +418,10 @@ fun Parse_query query:String = m:Values, first_err:Error
 	return m, first_err
 
 example parse_query
-	let m, first_err = Parse_query "a=12&test=3&a=2"
+	let m, first_err = Parse_query "a=12&test=3&a=2%204"
 	assert first_err == OK
 	assert m.Map.["a"].[0] == "12"
-	assert m.Map.["a"].[1] == "2"
+	assert m.Map.["a"].[1] == "2 4"
 	assert m.Map.["test"].[0] == "3"
 
 -- Encode encodes the values into ``URL encoded'' form
