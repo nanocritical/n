@@ -323,8 +323,8 @@ server_conn_handler met# Close = err:Error
 server_conn_handler met can_progress e:ev.Event = Bool
 	match self.state
 	| WAITING_HEADER -> return READ in e.Got
-	| HANDLING -> return READ in e.Got or WRITE in e.Got
-	| FLUSH -> return WRITE in e.Got
+	| HANDLING -> return READ in e.Got or WRITE in e.Got or MANUAL in e.Got
+	| FLUSH -> return WRITE in e.Got or MANUAL in e.Got
 	| RECYCLE -> return true
 	| CLOSE -> return true
 
@@ -427,6 +427,10 @@ server_conn_handler met# handling = Error
 	self.debug self.state
 
 	let handler_err = self.handler#On #self#response #self#request
+
+	if handler_err == syscall.EAGAIN or handler_err == syscall.EWOULDBLOCK
+		return handler_err
+
 	if handler_err != OK
 		Log#Error "will close connection because of handler error: %s" handler_err
 		self#state = CLOSE
@@ -462,6 +466,16 @@ server_conn_handler met# handling_buffered = Error
 	return OK
 
 
+struct on_done_handler =
+	isa ev.`Handler
+	server_handler	:#`Server
+	handler		:#`Server_handler
+
+on_done_handler met# On e:ev.Event = Error
+	Log#Debug "%s" e
+	self.server_handler#On_done self.handler
+
+
 server_conn_handler met# flush = Error
 	self.debug self.state
 
@@ -472,7 +486,8 @@ server_conn_handler met# flush = Error
 		return err
 	except = err
 
-	self#server_handler#On_done self.handler
+	never = self.server.poll!Schedule_manually
+		\ #{server_handler=self.server_handler handler=self.handler}:on_done_handler
 
 	if self.response.wants_close
 		self#state = CLOSE

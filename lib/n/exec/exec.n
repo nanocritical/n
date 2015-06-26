@@ -224,7 +224,9 @@ Cmd met# On e:ev.Event = Error
 	Log#Debug "%s" e
 	if not ERROR in e.Got and WRITE in e.Got and e.Fd == self.pin_wr.Fd
 		let _, err = self!stdin_copier#Copy
-		if err != OK and err != io.EOF and err != syscall.EAGAIN
+		if err == io.EOF
+			never = self!poll!Register {Fd=self.pin_wr.Fd Ask={CLOSE}}
+		elif err != OK and err != syscall.EAGAIN
 			return err
 	if READ in e.Got and e.Fd == self.pout_rd.Fd
 		let _, err = self!stdout_copier#Copy
@@ -234,6 +236,13 @@ Cmd met# On e:ev.Event = Error
 		let _, err = self!stderr_copier#Copy
 		if err != OK and err != io.EOF and err != syscall.EAGAIN
 			return err
+
+	if CLOSE in e.Got and e.Fd == self.pin_wr.Fd
+		never = self!pin_wr!Close
+	if CLOSE in e.Got and e.Fd == self.pout_rd.Fd
+		never = self!pout_rd!Close
+	if CLOSE in e.Got and e.Fd == self.perr_rd.Fd
+		never = self!perr_rd!Close
 
 	-- TODO(e): on CLOSE, report when there is not yet written content for
 	-- stdin.
@@ -263,11 +272,11 @@ Cmd met# Stderr_pipe = Error, #fs.File
 Cmd met! on_status status:Status
 	self!Status = status
 
-	if not self.using_pin
+	if self.pin_wr.Fd?
 		never = self!poll!Register {Fd=self.pin_wr.Fd Ask={CLOSE}}
-	if not self.using_pout
+	if self.pout_rd.Fd?
 		never = self!poll!Register {Fd=self.pout_rd.Fd Ask={CLOSE}}
-	if not self.using_perr
+	if self.perr_rd.Fd?
 		never = self!poll!Register {Fd=self.perr_rd.Fd Ask={CLOSE}}
 
 	if self.Completion?

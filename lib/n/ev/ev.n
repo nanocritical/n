@@ -57,6 +57,7 @@ inline struct Poll =
 	buf		:(Buf syscall.Epoll_event)
 	pending		:[!]syscall.Epoll_event
 	sleeping	:Bool
+	Current_handler	:?#`Handler
 
 Poll met# Init = Error
 	assert self.buf.Count == 0
@@ -138,25 +139,31 @@ Poll met! Unregister_all e:Event = Error
 
 	-- Old Linux does not accept a nil event.
 	let sys_event = syscall.Epoll_event.Mk 0 nil
-	drop = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_DEL e.Fd sys_event
+	never = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_DEL e.Fd sys_event
 
 Poll met! Schedule_manually h:#`Handler = Error
 	assert not self.sleeping -- FIXME(e): multithread or multi loop: use an eventfd in the pool
-	return self!Register {Ask={MANUAL} Handler=h}
+	let err = self!Register {Ask={MANUAL} Handler=h}
+	return err
 
 Poll met! process_manuals = Error
+	-- Processing manual handlers may add more to manuals, so we steal it:
+	let manuals = self!manuals#Move
 	var keep:(Buf ?#`Handler)
-	foreach ph in self.manuals
+	foreach ph in manuals
 		let h = ph*
 		if not h?
 			continue
+		self#Current_handler = h
 		let err = h#On {Got={MANUAL} Handler=h}
-		if err == syscall.EAGAIN or err == syscall.EWOULDBLOCK
+		self#Current_handler = nil
+		if err == syscall.EWOULDBLOCK or err == syscall.EAGAIN
 			keep#Push# = h
-		else
-			except = err
+			continue
+		if err != OK
+			Log#Warning "Handler error on CLOSE: %s" err
 
-	self#manuals = keep#Move
+	self!manuals#Append keep.Slice
 
 Poll met! process_closes = closed_some:Bool
 	for fd in self.closes.Iter
@@ -170,7 +177,9 @@ Poll met! process_closes = closed_some:Bool
 			let e_close = {Fd=e.Fd Got={CLOSE} Handler=e.Handler}:Event
 			drop = self!Unregister_all e_close
 
+			self#Current_handler = e_close.Handler
 			let err = e_close.Handler#On e_close
+			self#Current_handler = nil
 			if err == syscall.EWOULDBLOCK or err == syscall.EAGAIN
 				continue
 			if err != OK
@@ -237,7 +246,9 @@ fun Loop poll:#Poll ?continue_despite_handler_error:?Bool = Error
 			continue
 		except = wait_err
 
+		poll#Current_handler = e.Handler
 		let err = e.Handler#On e
+		poll#Current_handler = nil
 		if err == syscall.EAGAIN
 			continue
 
