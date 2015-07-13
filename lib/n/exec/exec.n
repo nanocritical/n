@@ -134,17 +134,17 @@ example cmd_nonblocking_pipes
 Cmd met# init_pipes = Error
 	-- We check if Stdin_pipe et al. have already setup the pipes.
 
-	if not self.pin_wr.Fd?
+	if not self.pin_wr.Fd.Is_valid
 		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
 		self#pin_rd = fs.File.Open_fd rd
 		self#pin_wr = fs.File.Open_fd wr
 
-	if not self.pout_rd.Fd?
+	if not self.pout_rd.Fd.Is_valid
 		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
 		self#pout_rd = fs.File.Open_fd rd
 		self#pout_wr = fs.File.Open_fd wr
 
-	if not self.perr_rd.Fd?
+	if not self.perr_rd.Fd.Is_valid
 		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
 		self#perr_rd = fs.File.Open_fd rd
 		self#perr_wr = fs.File.Open_fd wr
@@ -191,21 +191,24 @@ Cmd met# Run poll:#ev.Poll = Error within the_nanny
 	never = self#pout_rd!Close
 	never = self#perr_rd!Close
 
-	except, _ = syscall.Dup3 self.pin_rd.Fd 0 0
-	except, _ = syscall.Dup3 self.pout_wr.Fd 1 0
-	except, _ = syscall.Dup3 self.perr_wr.Fd 2 0
+	let d0 = syscall.Fd.Mk 0
+	and d1 = syscall.Fd.Mk 1
+	and d2 = syscall.Fd.Mk 2
+	except, _ = syscall.Dup3 self.pin_rd.Fd d0 0
+	except, _ = syscall.Dup3 self.pout_wr.Fd d1 0
+	except, _ = syscall.Dup3 self.perr_wr.Fd d2 0
 
 	never = self#pin_rd!Close
 	never = self#pout_wr!Close
 	never = self#perr_wr!Close
 
 	-- We don't want the command to inherit the non-blocking behavior.
-	let except, f0 = syscall.Fcntl_void 0 syscall.F_GETFL
-	except, _ = syscall.Fcntl_i32 0 syscall.F_SETFL f0 & ~syscall.O_NONBLOCK
-	let except, f1 = syscall.Fcntl_void 1 syscall.F_GETFL
-	except, _ = syscall.Fcntl_i32 1 syscall.F_SETFL f1 & ~syscall.O_NONBLOCK
-	let except, f2 = syscall.Fcntl_void 2 syscall.F_GETFL
-	except, _ = syscall.Fcntl_i32 2 syscall.F_SETFL f2 & ~syscall.O_NONBLOCK
+	let except, f0 = syscall.Fcntl_void d0 syscall.F_GETFL
+	except, _ = syscall.Fcntl_i32 d0 syscall.F_SETFL f0 & ~syscall.O_NONBLOCK
+	let except, f1 = syscall.Fcntl_void d1 syscall.F_GETFL
+	except, _ = syscall.Fcntl_i32 d1 syscall.F_SETFL f1 & ~syscall.O_NONBLOCK
+	let except, f2 = syscall.Fcntl_void d2 syscall.F_GETFL
+	except, _ = syscall.Fcntl_i32 d2 syscall.F_SETFL f2 & ~syscall.O_NONBLOCK
 
 	let argv:(Buf String) such
 		foreach a in self.Args
@@ -272,11 +275,11 @@ Cmd met# Stderr_pipe = Error, #fs.File
 Cmd met! on_status status:Status
 	self!Status = status
 
-	if self.pin_wr.Fd?
+	if self.pin_wr.Fd.Is_valid
 		never = self!poll!Register {Fd=self.pin_wr.Fd Ask={CLOSE}}
-	if self.pout_rd.Fd?
+	if self.pout_rd.Fd.Is_valid
 		never = self!poll!Register {Fd=self.pout_rd.Fd Ask={CLOSE}}
-	if self.perr_rd.Fd?
+	if self.perr_rd.Fd.Is_valid
 		never = self!poll!Register {Fd=self.perr_rd.Fd Ask={CLOSE}}
 
 	if self.Completion?
@@ -299,15 +302,16 @@ fun install_nanny within the_nanny
 
 inline struct nanny =
 	isa ev.`Handler
-	signalfd	:?Int
+	signalfd	:syscall.Fd
 	pids		:(Map Uint ?!Cmd)
 	poll_usecnt	:(Map (Ref_as_key ?#ev.Poll) Uint)
 
 nanny met# Wait_for cmd:!Cmd = Error
-	if not self.signalfd?
+	if not self.signalfd.Is_valid
 		let except, mask = syscall.Sigset.Mk syscall.SIGCHLD
 		except = syscall.Sigprocmask syscall.SIG_BLOCK mask nil
-		except, self!signalfd = syscall.Signalfd -1 mask syscall.SFD_CLOEXEC|syscall.SFD_NONBLOCK
+		except, self!signalfd = syscall.Signalfd (syscall.Fd.Mk -1)
+			\ mask syscall.SFD_CLOEXEC|syscall.SFD_NONBLOCK
 
 	except = cmd!poll!Register {Fd=self.signalfd Ask={READ} Handler=self}
 

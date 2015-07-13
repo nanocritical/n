@@ -239,7 +239,7 @@ linux met! Init = Error
 	assert not self.init
 	self!init = true
 	try
-		let except, fd = syscall.Openat syscall.AT_FDCWD "." syscall.O_PATH 0
+		let except, fd = syscall.Openat (syscall.Fd.Mk syscall.AT_FDCWD) "." syscall.O_PATH 0
 		let cwd = Alloc File such
 			cwd!fs = self
 			cwd!fd = fd
@@ -303,7 +303,7 @@ linux met! Open_file name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openatt
 			mode = 0600
 	let sys_flags = sys_open_flags flags
 	let atfd = at?.Fd else self.Wd.Fd
-	var fd = -1
+	var fd
 	try
 		if allows_immediate flags attr
 			except OPEN, fd = syscall.Openat atfd name.String sys_flags mode
@@ -322,13 +322,13 @@ linux met! Open_file name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openatt
 
 			let fdpath = {}:path.Path such
 				fdpath#Join "/proc/self/fd" fd
-			except CLOSE = syscall.Linkat -1 fdpath.String
+			except CLOSE = syscall.Linkat (syscall.Fd.Mk -1) fdpath.String
 				\ atfd name.String
 				\ syscall.AT_SYMLINK_FOLLOW
 	catch OPEN err
 		return err, nil
 	catch CLOSE err
-		Drop <- syscall.Close fd
+		drop = syscall.Close fd
 		return err, nil
 
 	let file = Alloc File such
@@ -342,9 +342,8 @@ linux met! Open_file name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openatt
 	return OK, file
 
 linux met! File_close f:!File = Error
-	let fd = f.Fd
+	let fd = f!Fd#Move
 	except = syscall.Close fd
-	f!fd = nil
 	self!stats!Current!Closed += 1
 	self!stats!Current!Maintain
 	return OK

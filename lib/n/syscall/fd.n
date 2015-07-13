@@ -1,0 +1,138 @@
+-- Hide fd integers and refcount them to control the subtle lifecycle issues of
+-- numerical file descriptors.
+--
+-- As fd numbers are immediately reused by the kernel, it's very easy to
+-- continue using a fd number after the application has called the system's
+-- close(fd) and gotten the same number through a subsequent open: while the
+-- operations may succeed, they logically operate on a different file. Unlike
+-- with pointers, such programming mistakes do not result in crashes, and
+-- cannot be tracked with tools like Valgrind.  Therefore, it is worth paying
+-- the overhead of refcounting to detect them.
+--
+-- syscall.Close should be used explicitly to manage a syscall.Fd struct.
+-- 'syscall.Close fd' closes the file no matter what the count is, but it also
+-- sets the shared fd to -1 to ensure that no dangling reference the closed
+-- file is used later than it should, i.e. we're using file descriptors
+-- "properly". It's a form of counted weak reference.
+--
+-- Fd.Dtor will close the underlying file descriptor when the count goes down
+-- to 0, but will emit a warning. This modules considers it a programming error
+-- to rely on such automatic closing (as in general, errors reported by the
+-- system on close may be lost).
+-- 
+-- Code sitting at a higher level may choose different semantics: for instance,
+-- the struct fs.File automatically closes its syscall.Fd in its Dtor, as on
+-- regular files, close(fd) generally does not produce actionable errors.
+
+fun Close fd:Fd = Error
+	if not fd.refc?
+		return OK
+	if fd.fd < 0
+		return OK
+	let sys_fd = fd.Sys_number
+	fd.fd# = -1
+	return sys_close sys_fd
+
+
+-- FIXME(e): use Gref to get MT-safe counting.
+struct Fd =
+	isa `Has_equality `Show `Hashable32
+	fd	:?#I32
+	refc	:?#U32
+
+Fd fun Mk fd:I32 = r:this
+	r#refc = Alloc U32
+	r#fd = Alloc I32
+	r#refc# = 1
+	r#fd# = fd
+
+-- Closes the underlying fd if count goes down to 0, but this is considered a
+-- programming error. Use syscall.Close.
+Fd met# Dtor
+	if not self.refc?
+		return
+
+	self#refc# -= 1
+
+	if self.refc == 0
+		let sys_fd = self.Sys_number
+
+		Free self.fd
+		Free self.refc
+
+		if sys_fd >= 0
+			let err = sys_close sys_fd
+			if err != OK
+				Log#Warning "syscall.Fd '%s' was not explicitly closed with syscall.Close; closed with droped error '%s'" sys_fd err
+				drop = err
+			else
+				Log#Warning "syscall.Fd '%s' was not explicitly closed with syscall.Close" sys_fd
+
+Fd met# Copy_ctor other:*this
+	self#fd = other.fd
+	self#refc = other.refc
+	if not self.refc?
+		return
+	self#refc# += 1
+
+Fd met# Move = ret:this
+	ret#fd = self.fd
+	ret#refc = self.refc
+	self#fd = nil
+	self#refc = nil
+
+-- Get the underlying system integer for the fd.
+-- Use with care, as this method allows you to silently break the contract.
+Fd met Sys_number = I32
+	if not self.fd?
+		return -1
+	return self.fd*
+
+Fd met Is_valid = Bool
+	return self.fd? and self.fd >= 0
+
+Fd met Hash32 = U32
+	if not self.fd?
+		return (-1:I32).Hash32
+	return self.fd.Hash32
+
+Fd met Operator_eq other:*this = Bool
+	return self.fd? and other.fd? and self.fd == other.fd
+
+Fd met Operator_ne other:*this = Bool
+	return not self == other
+
+Fd met Show st:#fmt.`State
+	self.Sys_number.Show st
+
+example fd_refc
+	var a = Fd.Mk 0
+	let b:Fd
+	assert a != b
+	assert a.Is_valid
+	assert not b.Is_valid
+
+	block
+		let a2 = a
+		assert a2.refc === a.refc
+		assert a2.refc == 2
+		assert a2.refc == a.refc
+		assert a2 == a
+
+	assert a.refc == 1
+
+	var a3 = a#Move
+	assert not a.refc?
+	assert a3.refc == 1
+	a = a3#Move
+	assert not a3.refc?
+	assert a.refc == 1
+
+	-- Prevent closing of 0: destroy by hand.
+	Free a.fd
+	Free a.refc
+	a#fd = nil
+	a#refc = nil
+
+	-- noop:
+	except = Close #a

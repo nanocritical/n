@@ -266,7 +266,7 @@ client_conn_handler met# recycle
 	self.coh!i_am_recycled self
 
 client_conn_handler met# Close = err:Error
-	if not self.conn.Fd?
+	if not self.conn.Fd.Is_valid
 		return OK
 
 	self.debug

@@ -36,7 +36,7 @@ let BUFFER_SIZE = 8192
 
 struct stdr =
 	isa io.`Reader
-	fd	:Int
+	fd	:syscall.Fd
 	out	:#bufio.Writer
 
 -- Reads on stdin flush stdout, as per traditional C stdio behavior.
@@ -48,7 +48,7 @@ stdr met# Read b:[!]U8 = r:[!]U8, err:Error
 
 struct stdw =
 	isa io.`Writer
-	fd	:Int
+	fd	:syscall.Fd
 
 stdw met# Write b:[]U8 = []U8, Error
 	return syscall.Write self.fd b
@@ -67,16 +67,16 @@ struct stdio =
 	outabuf	:bufio.Auto_writer
 
 stdio met# init
-	self#rin#fd = 0
+	self#rin#fd = syscall.Fd.Mk 0
 	self#din = #self#rin
 
-	self#wout#fd = 1
+	self#wout#fd = syscall.Fd.Mk 1
 	self#outbuf = bufio.Writer.Mk #self#wout
 	self#outabuf = {W=#self#outbuf Mode=FULLY_BUFFERED Max=BUFFER_SIZE}
 	self#dout = #self#outabuf
 	self#rin#out = #self#outbuf
 
-	self#werr#fd = 2
+	self#werr#fd = syscall.Fd.Mk 2
 	self#derr = #self#werr
 
 stdio met In = #io.`Reader

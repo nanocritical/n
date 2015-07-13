@@ -26,7 +26,7 @@ intf `Handler =
 
 inline struct Event =
 	isa `Show `Has_equality
-	Fd	:?Int
+	Fd	:syscall.Fd
 	-- If HUP is in Ask, the Fd will be placed on a closing list, and
 	-- closed after all polled events are done processing. In the meantime
 	-- further events on the Fd will be ignored.
@@ -50,10 +50,10 @@ Event met Show st:#fmt.`State
 
 
 inline struct Poll =
-	fds		:(Map Int ?#Event)
+	fds		:(Map syscall.Fd ?#Event)
 	manuals		:(Buf ?#`Handler)
-	closes		:(Set Int)
-	epfd		:Int
+	closes		:(Set syscall.Fd)
+	epfd		:syscall.Fd
 	buf		:(Buf syscall.Epoll_event)
 	pending		:[!]syscall.Epoll_event
 	sleeping	:Bool
@@ -185,8 +185,8 @@ Poll met! process_closes = closed_some:Bool
 			if err != OK
 				Log#Warning "Handler error on CLOSE: %s" err
 		else
-			drop = syscall.Close e.Fd
 			drop = self!Unregister_all e
+			drop = syscall.Close fd
 
 		closed_some = true
 

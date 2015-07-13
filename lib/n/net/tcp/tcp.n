@@ -96,21 +96,21 @@ fun from_sys_addr protocol:Protocol sys_addr:[]U8 = addr:Addr
 inline struct Conn =
 	isa io.`Reader io.`Writer --ev.`Pollable
 	protocol	:Protocol
-	fd		:?Int
+	fd		:syscall.Fd
 	remote_addr	:Addr
 
-Conn met Fd = ?Int
+Conn met Fd = syscall.Fd
 	return self.fd
 
 Conn met# Close = Error
-	if self.fd?
-		let err = syscall.Close self.fd
+	if self.fd.Is_valid
+		let err = syscall.Close self#fd
 		if err == syscall.EWOULDBLOCK
 			return err
-		self#fd = nil
+		self#fd = {}
 		return err
 
-fun do_getsockname addr:#Addr protocol:Protocol sockfd:Int = Error
+fun do_getsockname addr:#Addr protocol:Protocol sockfd:syscall.Fd = Error
 	var sys_addr = prepare_sys_addr protocol
 	var sys_addr_bytes = sys_addr![..]
 	except = syscall.Getsockname sockfd #sys_addr_bytes
@@ -138,22 +138,22 @@ Conn met! Clear_pending_error = Error
 struct Socket =
 	protocol:Protocol
 	addr	:Addr
-	sockfd	:?Int
+	sockfd	:syscall.Fd
 
-Socket met Fd = ?Int
+Socket met Fd = syscall.Fd
 	return self.sockfd
 
 Socket met Addr = Addr
 	return self.addr
 
 Socket met# Close = Error
-	if self.sockfd?
-		let err = syscall.Close self.sockfd
+	if self.sockfd.Is_valid
+		let err = syscall.Close self#sockfd
 		-- In case SO_LINGER is used on a non-blocking socket. But you
 		-- probably shouldn't be doing that, right?
 		if err == syscall.EWOULDBLOCK
 			return err
-		self#sockfd = nil
+		self#sockfd = {}
 		return err
 
 Socket met! Clear_pending_error = Error
@@ -169,7 +169,7 @@ Socket met# create protocol:Protocol = Error
 	self#protocol = protocol
 
 Socket met# Listen addr:*Addr ?backlog:?Uint = Error
-	if not self.sockfd?
+	if not self.sockfd.Is_valid
 		except = self#create addr.Needs_protocol
 
 	var sys_addr = to_sys_addr self.protocol addr
@@ -197,7 +197,7 @@ Socket met Accept = Error, conn:Conn
 -- conn!Complete_connection must be called once the connection has completed
 -- (once we get ev.WRITE).
 Socket met# Connect addr:*Addr = err:Error, conn:Conn
-	if not self.sockfd?
+	if not self.sockfd.Is_valid
 		except = self#create addr.Needs_protocol
 
 	var sys_addr = to_sys_addr self.protocol addr
@@ -206,11 +206,10 @@ Socket met# Connect addr:*Addr = err:Error, conn:Conn
 		drop = self#Close
 		return err, {}
 
-	conn!fd = self.sockfd
+	-- Transfer ownership
+	conn!fd = self.sockfd#Move
 	conn!remote_addr = addr
 	conn!protocol = self.protocol
-
-	-- Transfer ownership
-	self#sockfd = nil
 	self#Dtor
+
 	return err, conn

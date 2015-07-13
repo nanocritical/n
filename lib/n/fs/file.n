@@ -12,20 +12,19 @@ inline struct File =
 		\ io.`Read_closer io.`Write_closer
 		-- io.`Reader_at io.`Writer_at
 	fs	:?!`Fs
-	fd	:?Int
+	fd	:syscall.Fd
 	hidden	:Bool
 	name	:path.Path
 
 File met# Dtor
 	drop = self!Close
 
-File fun Open_fd fd:Int = this
-	assert fd >= 0
+File fun Open_fd fd:syscall.Fd = this
 	var buf:Stringbuf
 	fmt.F #buf "/proc/self/fd/%s" fd
 	return {fd=fd name=(path.Path.From_string buf.String)}
 
-File met Fd = ?Int
+File met Fd = syscall.Fd
 	return self.fd
 
 File met Pathname = path.Path
@@ -33,10 +32,9 @@ File met Pathname = path.Path
 
 File met! Close = Error
 	if not self.fs?
-		let fd = self.fd
-		if not fd?
+		let fd = self!fd#Move
+		if not fd.Is_valid
 			return OK
-		self!fd = nil
 		return syscall.Close fd
 	return self!fs!File_close self
 
@@ -87,20 +85,20 @@ File met! Readdir buf:#(Buf Stat) ?max:?Uint = Error
 
 File met! Read b:[!]U8 = [!]U8, Error
 	if not self.fs?
-		return syscall.Read (self.fd else -1) b
+		return syscall.Read self.fd b
 	return self.fs!File_read self b
 
 File met! Read_at b:[!]U8 off:Uint = [!]U8, Error
 	if not self.fs?
-		return syscall.Pread (self.fd else -1) b off
+		return syscall.Pread self.fd b off
 	return self.fs!File_read_at self b off
 
 File met! Write b:[]U8 = []U8, Error
 	if not self.fs?
-		return syscall.Write (self.fd else -1) b
+		return syscall.Write self.fd b
 	return self.fs!File_write self b
 
 File met! Write_at b:[]U8 off:Uint = []U8, Error
 	if not self.fs?
-		return syscall.Pwrite (self.fd else -1) b off
+		return syscall.Pwrite self.fd b off
 	return self.fs!File_write_at self b off

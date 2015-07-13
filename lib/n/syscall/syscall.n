@@ -3,6 +3,7 @@ import n.cstring
 import n.unsafe
 import n.logging
 import n.io
+import n.fmt
 
 within logging.Log
 
@@ -10,6 +11,7 @@ within logging.Log
 alias int = I32 -- On Linux, this always works.
 alias clockid_t = I32
 alias pid_t = I32
+
 
 extern fun Strlen cs:*U8 = Uint
 
@@ -467,7 +469,7 @@ let S_IROTH = 00004:Mode
 let S_IWOTH = 00002:Mode
 let S_IXOTH = 00001:Mode
 
-extern let AT_FDCWD:Int
+extern let AT_FDCWD:I32
 extern let AT_SYMLINK_FOLLOW:I32
 extern let AT_SYMLINK_NOFOLLOW:I32
 extern let AT_EMPTY_PATH:I32
@@ -551,8 +553,8 @@ extern fun mmap addr:Uintptr length:Uint prot:Mmap_prot flags:Mmap_flags fd:int 
 extern fun munmap addr:#U8 length:Uint = int
 extern fun dup3 oldfd:int newfd:int flags:int = int
 
-fun Close fd:Int = Error
-	let ret = close fd.Trim_i32
+fun sys_close fd:I32 = Error
+	let ret = close fd
 	if ret == 0
 		return OK
 	else
@@ -564,17 +566,17 @@ fun Unlink pathname:String = Error
 		return OK
 	return convert_error errno
 
-fun Open pathname:String flags:Open_flags mode:Mode = Error, ?Int
+fun Open pathname:String flags:Open_flags mode:Mode = Error, Fd
 	let fd = open (cstring.Mk pathname).Rawdata flags mode
 	if fd >= 0
-		return OK, ?fd.Int
-	return convert_error errno, nil
+		return OK, Fd.Mk fd
+	return convert_error errno, {}
 
-fun Openat dirfd:Int pathname:String flags:Open_flags mode:Mode = Error, ?Int
-	let fd = openat dirfd.Trim_i32 (cstring.Mk pathname).Rawdata flags mode
+fun Openat dirfd:Fd pathname:String flags:Open_flags mode:Mode = Error, Fd
+	let fd = openat dirfd.Sys_number (cstring.Mk pathname).Rawdata flags mode
 	if fd >= 0
-		return OK, ?fd.Int
-	return convert_error errno, nil
+		return OK, Fd.Mk fd
+	return convert_error errno, {}
 
 extern let F_DUPFD:I32
 extern let F_GETFD:I32
@@ -586,95 +588,95 @@ extern fun fcntl_void fd:int cmd:int = int
 extern fun fcntl_i32 fd:int cmd:int arg:int = int
 extern fun fcntl_ref fd:int cmd:int arg:#U8 = int
 
-fun Fcntl_void fd:Int cmd:I32 = Error, I32
-	let ret = fcntl_void fd.Trim_i32 cmd
+fun Fcntl_void fd:Fd cmd:I32 = Error, I32
+	let ret = fcntl_void fd.Sys_number cmd
 	if ret >= 0
 		return OK, ret
 	return convert_error errno, 0
 
-fun Fcntl_i32 fd:Int cmd:I32 arg:int = Error, I32
-	let ret = fcntl_i32 fd.Trim_i32 cmd arg
+fun Fcntl_i32 fd:Fd cmd:I32 arg:int = Error, I32
+	let ret = fcntl_i32 fd.Sys_number cmd arg
 	if ret >= 0
 		return OK, ret
 	return convert_error errno, 0
 
-fun Fcntl_ref fd:Int cmd:I32 arg:#U8 = Error, I32
-	let ret = fcntl_ref fd.Trim_i32 cmd arg
+fun Fcntl_ref fd:Fd cmd:I32 arg:#U8 = Error, I32
+	let ret = fcntl_ref fd.Sys_number cmd arg
 	if ret >= 0
 		return OK, ret
 	return convert_error errno, 0
 
-fun Mkfifoat dirfd:Int pathname:String mode:Mode = Error, ?Int
-	let fd = mkfifoat dirfd.Trim_i32 (cstring.Mk pathname).Rawdata mode
+fun Mkfifoat dirfd:Fd pathname:String mode:Mode = Error, Fd
+	let fd = mkfifoat dirfd.Sys_number (cstring.Mk pathname).Rawdata mode
 	if fd >= 0
-		return OK, ?fd.Int
-	return convert_error errno, nil
+		return OK, Fd.Mk fd
+	return convert_error errno, {}
 
-fun Linkat olddirfd:Int oldpath:String newdirfd:Int newpath:String flags:I32 = Error
-	let ret = linkat olddirfd.Trim_i32 (cstring.Mk oldpath).Rawdata
-		\ newdirfd.Trim_i32 (cstring.Mk newpath).Rawdata flags
+fun Linkat olddirfd:Fd oldpath:String newdirfd:Fd newpath:String flags:I32 = Error
+	let ret = linkat olddirfd.Sys_number (cstring.Mk oldpath).Rawdata
+		\ newdirfd.Sys_number (cstring.Mk newpath).Rawdata flags
 	if ret >= 0
 		return OK
 	return convert_error errno
 
-fun Unlinkat dirfd:Int pathname:String flags:I32 = Error
-	let ret = unlinkat dirfd.Trim_i32 (cstring.Mk pathname).Rawdata flags
+fun Unlinkat dirfd:Fd pathname:String flags:I32 = Error
+	let ret = unlinkat dirfd.Sys_number (cstring.Mk pathname).Rawdata flags
 	if ret >= 0
 		return OK
 	return convert_error errno
 
-fun Fchdir fd:Int = Error
-	let ret = fchdir fd.Trim_i32
+fun Fchdir fd:Fd = Error
+	let ret = fchdir fd.Sys_number
 	if ret >= 0
 		return OK
 	return convert_error errno
 
-fun Mkdirat dirfd:Int pathname:String mode:Mode = Error
-	let ret = mkdirat dirfd.Trim_i32 (cstring.Mk pathname).Rawdata mode
+fun Mkdirat dirfd:Fd pathname:String mode:Mode = Error
+	let ret = mkdirat dirfd.Sys_number (cstring.Mk pathname).Rawdata mode
 	if ret >= 0
 		return OK
 	return convert_error errno
 
-fun Symlinkat target:String newdirfd:Int linkpath:String = Error
+fun Symlinkat target:String newdirfd:Fd linkpath:String = Error
 	let ret = symlinkat (cstring.Mk target).Rawdata
-		\ newdirfd.Trim_i32 (cstring.Mk linkpath).Rawdata
+		\ newdirfd.Sys_number (cstring.Mk linkpath).Rawdata
 	if ret >= 0
 		return OK
 	return convert_error errno
 
-fun Readlinkat dirfd:Int pathname:String buf:[!]U8 = Error, []U8
+fun Readlinkat dirfd:Fd pathname:String buf:[!]U8 = Error, []U8
 	let dst = buf![buf.Count .. buf.Cap]
-	let ret = readlinkat dirfd.Trim_i32 (cstring.Mk pathname).Rawdata
+	let ret = readlinkat dirfd.Sys_number (cstring.Mk pathname).Rawdata
 		\ dst!Unsafe_rawdata dst.Count
 	if ret >= 0
 		return OK, buf.[.. ret.Unsigned]
 	return convert_error errno, {}
 
-fun Renameat olddirfd:Int oldpath:String newdirfd:Int newpath:String flags:U32 = Error
+fun Renameat olddirfd:Fd oldpath:String newdirfd:Fd newpath:String flags:U32 = Error
 	if flags != 0
 		-- renameat2(2) isn't yet part of our minimum kernel version requirement.
 		return ENOSYS
-	let ret = renameat olddirfd.Trim_i32 (cstring.Mk oldpath).Rawdata
-		\ newdirfd.Trim_i32 (cstring.Mk newpath).Rawdata flags
+	let ret = renameat olddirfd.Sys_number (cstring.Mk oldpath).Rawdata
+		\ newdirfd.Sys_number (cstring.Mk newpath).Rawdata flags
 	if ret >= 0
 		return OK
 	return convert_error errno
 
-fun Write fd:Int b:[]U8 = []U8, Error
-	let cnt = write fd.Trim_i32 b.Unsafe_rawdata b.Count
+fun Write fd:Fd b:[]U8 = []U8, Error
+	let cnt = write fd.Sys_number b.Unsafe_rawdata b.Count
 	if cnt >= 0
 		return b.[cnt.Unsigned ..], OK
 	return b, convert_error errno
 
-fun Pwrite fd:Int b:[]U8 off:Uint = []U8, Error
-	let cnt = pwrite fd.Trim_i32 b.Unsafe_rawdata b.Count off
+fun Pwrite fd:Fd b:[]U8 off:Uint = []U8, Error
+	let cnt = pwrite fd.Sys_number b.Unsafe_rawdata b.Count off
 	if cnt >= 0
 		return b.[cnt.Unsigned ..], OK
 	return b, convert_error errno
 
-fun Read fd:Int b:[!]U8 = r:[!]U8, Error
+fun Read fd:Fd b:[!]U8 = r:[!]U8, Error
 	let dst = b![b.Count .. b.Cap]
-	let cnt = read fd.Trim_i32 dst!Unsafe_rawdata dst.Count
+	let cnt = read fd.Sys_number dst!Unsafe_rawdata dst.Count
 	if cnt >= 0
 		r = b![.. b.Count+cnt.Unsigned]
 		if cnt == 0 and dst.Count != 0
@@ -682,9 +684,9 @@ fun Read fd:Int b:[!]U8 = r:[!]U8, Error
 		return r, OK
 	return b, convert_error errno
 
-fun Pread fd:Int b:[!]U8 off:Uint = r:[!]U8, Error
+fun Pread fd:Fd b:[!]U8 off:Uint = r:[!]U8, Error
 	let dst = b![b.Count .. b.Cap]
-	let cnt = pread fd.Trim_i32 dst!Unsafe_rawdata dst.Count off
+	let cnt = pread fd.Sys_number dst!Unsafe_rawdata dst.Count off
 	if cnt >= 0
 		r = b![.. b.Count+cnt.Unsigned]
 		if cnt == 0 and dst.Count != 0
@@ -692,8 +694,8 @@ fun Pread fd:Int b:[!]U8 off:Uint = r:[!]U8, Error
 		return r, OK
 	return b, convert_error errno
 
-fun Lseek fd:Int off:Int whence:I32 = Error, Uint
-	let r = lseek fd.Trim_i32 off whence
+fun Lseek fd:Fd off:Int whence:I32 = Error, Uint
+	let r = lseek fd.Sys_number off whence
 	if r >= 0
 		return OK, r.Unsigned
 	return convert_error errno, 0
@@ -702,50 +704,50 @@ fun Sysconf name:Int = Error, Int
 	let r = sysconf name
 	return convert_error errno, r
 
-fun Fstatat dirfd:Int pathname:String buf:!Stat_t flags:I32 = Error
-	let r = fstatat dirfd.Trim_i32 (cstring.Mk pathname).Rawdata buf flags
+fun Fstatat dirfd:Fd pathname:String buf:!Stat_t flags:I32 = Error
+	let r = fstatat dirfd.Sys_number (cstring.Mk pathname).Rawdata buf flags
 	if r >= 0
 		return OK
 	return convert_error errno
 
-fun Fdatasync fd:Int = Error
-	let r = fdatasync fd.Trim_i32
+fun Fdatasync fd:Fd = Error
+	let r = fdatasync fd.Sys_number
 	if r >= 0
 		return OK
 	return convert_error errno
 
-fun Fsync fd:Int = Error
-	let r = fsync fd.Trim_i32
+fun Fsync fd:Fd = Error
+	let r = fsync fd.Sys_number
 	if r >= 0
 		return OK
 	return convert_error errno
 
-fun Ftruncate fd:Int size:Uint = Error
-	let r = ftruncate fd.Trim_i32 size
+fun Ftruncate fd:Fd size:Uint = Error
+	let r = ftruncate fd.Sys_number size
 	if r >= 0
 		return OK
 	return convert_error errno
 
-fun Fchown fd:Int uid:Int gid:Int = Error
-	let r = fchown fd.Trim_i32 uid gid
+fun Fchown fd:Fd uid:Int gid:Int = Error
+	let r = fchown fd.Sys_number uid gid
 	if r >= 0
 		return OK
 	return convert_error errno
 
-fun Fsetxattr fd:Int name:String value:String flags:I32 = Error
-	let r = fsetxattr fd.Trim_i32 (cstring.Mk name).Rawdata (cstring.Mk value).Rawdata value.Count flags
+fun Fsetxattr fd:Fd name:String value:String flags:I32 = Error
+	let r = fsetxattr fd.Sys_number (cstring.Mk name).Rawdata (cstring.Mk value).Rawdata value.Count flags
 	if r >= 0
 		return OK
 	return convert_error errno
 
-fun Fgetxattr fd:Int name:String value:[!]U8 flags:I32 = Error, Int
-	let r = fgetxattr fd.Trim_i32 (cstring.Mk name).Rawdata value!Unsafe_rawdata value.Count
+fun Fgetxattr fd:Fd name:String value:[!]U8 flags:I32 = Error, Int
+	let r = fgetxattr fd.Sys_number (cstring.Mk name).Rawdata value!Unsafe_rawdata value.Count
 	if r >= 0
 		return OK, r
 	return convert_error errno, 0
 
-fun Flistxattr fd:Int list:[!]U8 = Error, Int
-	let r = flistxattr fd.Trim_i32 list!Unsafe_rawdata list.Count
+fun Flistxattr fd:Fd list:[!]U8 = Error, Int
+	let r = flistxattr fd.Sys_number list!Unsafe_rawdata list.Count
 	if r >= 0
 		return OK, r
 	return convert_error errno, 0
@@ -754,7 +756,7 @@ example
 	let fn = ".test_syscall"
 	let e, fd = Open fn (O_CREAT | O_RDWR) 0666
 	assert e == OK
-	assert fd >= 0
+	assert fd.Sys_number >= 0
 
 	let e5 = Unlink fn
 	assert e5 == OK
@@ -778,6 +780,8 @@ example
 		assert srd == s
 
 	let e4 = Close fd
+	assert fd.Sys_number < 0
+	assert not fd.Is_valid
 	assert e4 == OK
 
 fun Clock_getres clk_id:I32 = Error, Int, Int
@@ -807,8 +811,8 @@ fun Setenv name:String value:String = Error
 		return OK
 	return convert_error errno
 
-fun Mmap addr:Uintptr length:Uint prot:Mmap_prot flags:Mmap_flags fd:Int offset:Uint = Error, #U8
-	let ret = mmap addr length prot flags fd.Trim_i32 offset
+fun Mmap addr:Uintptr length:Uint prot:Mmap_prot flags:Mmap_flags fd:Fd offset:Uint = Error, #U8
+	let ret = mmap addr length prot flags fd.Sys_number offset
 	if ret === MAP_FAILED
 		return convert_error errno, nil
 	return OK, ret
@@ -819,11 +823,11 @@ fun Munmap addr:#U8 length:Uint = Error
 		return OK
 	return convert_error errno
 
-fun Dup3 oldfd:Int newfd:Int flags:I32 = Error, ?Int
-	let ret = dup3 oldfd.Trim_i32 newfd.Trim_i32 flags
+fun Dup3 oldfd:Fd newfd:Fd flags:I32 = Error, Fd
+	let ret = dup3 oldfd.Sys_number newfd.Sys_number flags
 	if ret >= 0
-		return OK, ?ret.Int
-	return convert_error errno, nil
+		return OK, Fd.Mk ret
+	return convert_error errno, {}
 
 
 let EAI_ADDRFAMILY = {Why=*"EAI_ADDRFAMILY: The specified network host does not have any network addresses in the requested address family."}:Error
@@ -945,27 +949,27 @@ extern fun getsockopt sockfd:int level:int optname:int optval:#U8 optlen:#Uint =
 extern fun setsockopt sockfd:int level:int optname:int optval:*U8 optlen:Uint = int
 extern fun getsockname sockfd:int raw_addr:#U8 raw_addrlen:#Uint = int
 
-fun Socket domain:I32 type:I32 protocol:I32 = Error, ?Int
+fun Socket domain:I32 type:I32 protocol:I32 = Error, Fd
 	let sockfd = socket domain type protocol
 	if sockfd >= 0
-		return OK, ?sockfd.Int
-	return (convert_error errno), nil
+		return OK, Fd.Mk sockfd
+	return (convert_error errno), {}
 
-fun Bind sockfd:Int sys_addr:[]U8 = Error
-	let ret = bind sockfd.Trim_i32 sys_addr.Unsafe_rawdata sys_addr.Bytecount
+fun Bind sockfd:Fd sys_addr:[]U8 = Error
+	let ret = bind sockfd.Sys_number sys_addr.Unsafe_rawdata sys_addr.Bytecount
 	if ret == 0
 		return OK
 	return convert_error errno
 
-fun Listen sockfd:Int backlog:Uint = Error
-	let ret = listen sockfd.Trim_i32 backlog.Signed
+fun Listen sockfd:Fd backlog:Uint = Error
+	let ret = listen sockfd.Sys_number backlog.Signed
 	if ret == 0
 		return OK
 	return convert_error errno
 
-fun Accept4 sockfd:Int sys_addr:#[!]U8 flags:I32 = Error, ?Int
+fun Accept4 sockfd:Fd sys_addr:#[!]U8 flags:I32 = Error, Fd
 	var raw_addrlen = sys_addr.Bytecap
-	let fd = accept4 sockfd.Trim_i32 sys_addr#Unsafe_rawdata #raw_addrlen flags
+	let fd = accept4 sockfd.Sys_number sys_addr#Unsafe_rawdata #raw_addrlen flags
 	if fd >= 0
 		if raw_addrlen > sys_addr.Bytecap
 			Log#Critical "truncated remote address (wrong address family?), need %s bytes" raw_addrlen
@@ -973,19 +977,19 @@ fun Accept4 sockfd:Int sys_addr:#[!]U8 flags:I32 = Error, ?Int
 			raw_addrlen = 0
 
 		sys_addr# = sys_addr![.. raw_addrlen]
-		return OK, ?fd.Int
-	return convert_error errno, nil
+		return OK, Fd.Mk fd
+	return convert_error errno, {}
 
-fun Connect sockfd:Int sys_addr:[!]U8 = Error
+fun Connect sockfd:Fd sys_addr:[!]U8 = Error
 	var raw_addrlen = sys_addr.Bytecap
-	let ret = connect sockfd.Trim_i32 sys_addr#Unsafe_rawdata raw_addrlen
+	let ret = connect sockfd.Sys_number sys_addr#Unsafe_rawdata raw_addrlen
 	if ret == 0
 		return OK
 	return convert_error errno
 
-fun Getsockname sockfd:Int sys_addr:#[!]U8 = Error
+fun Getsockname sockfd:Fd sys_addr:#[!]U8 = Error
 	var raw_addrlen = sys_addr.Bytecap
-	let ret = getsockname sockfd.Trim_i32 sys_addr#Unsafe_rawdata #raw_addrlen
+	let ret = getsockname sockfd.Sys_number sys_addr#Unsafe_rawdata #raw_addrlen
 	if ret == 0
 		if raw_addrlen > sys_addr.Bytecap
 			Log#Critical "truncated remote address (wrong address family?), need %s bytes" raw_addrlen
@@ -1000,25 +1004,25 @@ extern let SOL_SOCKET:I32
 extern let SO_REUSEADDR:I32
 extern let SO_ERROR:I32
 
-fun Getsockopt_i32 sockfd:Int level:I32 opt:I32 = Error, value:I32
+fun Getsockopt_i32 sockfd:Fd level:I32 opt:I32 = Error, value:I32
 	var raw:[!]U8
 	raw#Unsafe_wrap ((unsafe.Cast #I32 #U8) #value) (sizeof value) (sizeof value)
 	var cnt = raw.Bytecount
-	let ret = getsockopt sockfd.Trim_i32 level opt raw#Unsafe_rawdata #cnt
+	let ret = getsockopt sockfd.Sys_number level opt raw#Unsafe_rawdata #cnt
 	if cnt != raw.Bytecount
 		return INVAL, 0
 	if ret == 0
 		return OK, value
 	return convert_error errno, 0
 
-fun Getsockopt_error sockfd:Int level:I32 = Error
+fun Getsockopt_error sockfd:Fd level:I32 = Error
 	let except, val = Getsockopt_i32 sockfd level SO_ERROR
 	return convert_error val
 
-fun Setsockopt_i32 sockfd:Int level:I32 opt:I32 value:I32 = Error
+fun Setsockopt_i32 sockfd:Fd level:I32 opt:I32 value:I32 = Error
 	let raw:[]U8 such
 		raw#Unsafe_wrap ((unsafe.Cast *I32 *U8) *value) (sizeof value) (sizeof value)
-	let ret = setsockopt sockfd.Trim_i32 level opt raw.Unsafe_rawdata raw.Bytecount
+	let ret = setsockopt sockfd.Sys_number level opt raw.Unsafe_rawdata raw.Bytecount
 	if ret == 0
 		return OK
 	return convert_error errno
@@ -1029,8 +1033,8 @@ extern let SHUT_RDWR:I32
 
 extern fun shutdown sockfd:int how:int = int
 
-fun Shutdown sockfd:Int how:I32 = Error
-	let ret = shutdown sockfd.Trim_i32 how
+fun Shutdown sockfd:Fd how:I32 = Error
+	let ret = shutdown sockfd.Sys_number how
 	if ret == 0
 		return OK
 	return convert_error errno
@@ -1062,22 +1066,22 @@ extern fun epoll_create1 flags:int = int
 extern fun epoll_ctl epfd:int op:int fd:int raw_event:*U8 = int
 extern fun epoll_pwait epfd:int raw_events:#U8 maxevents:Uint timeout:Int raw_sigmask:?*U8 = int
 
-fun Epoll_create1 flags:I32 = Error, ?Int
+fun Epoll_create1 flags:I32 = Error, Fd
 	let ret = epoll_create1 flags
 	if ret >= 0
-		return OK, ?ret.Int
-	return convert_error errno, nil
+		return OK, Fd.Mk ret
+	return convert_error errno, {}
 
-fun Epoll_ctl epfd:Int op:I32 fd:Int event:*Epoll_event = Error
-	let ret = epoll_ctl epfd.Trim_i32 op fd.Trim_i32 ((unsafe.Cast *Epoll_event *U8) event)
+fun Epoll_ctl epfd:Fd op:I32 fd:Fd event:*Epoll_event = Error
+	let ret = epoll_ctl epfd.Sys_number op fd.Sys_number ((unsafe.Cast *Epoll_event *U8) event)
 	if ret == 0
 		return OK
 	return convert_error errno
 
 -- Append to the events slice in the available space.
-fun Epoll_pwait epfd:Int events:[!]Epoll_event timeout:Int raw_sigmask:?*U8 = Error, [!]Epoll_event
+fun Epoll_pwait epfd:Fd events:[!]Epoll_event timeout:Int raw_sigmask:?*U8 = Error, [!]Epoll_event
 	let dst = events![events.Count .. events.Cap]
-	let ret = epoll_pwait epfd.Trim_i32 dst#Unsafe_rawdata dst.Count timeout raw_sigmask
+	let ret = epoll_pwait epfd.Sys_number dst#Unsafe_rawdata dst.Count timeout raw_sigmask
 	if ret >= 0
 		return OK, events![events.Count .. events.Count + (Min ret.Unsigned.Uint dst.Count)]
 	return convert_error errno, events
@@ -1170,12 +1174,12 @@ extern let SFD_NONBLOCK:I32
 
 extern fun signalfd fd:int raw_mask:*U8 flags:int = int
 
-fun Signalfd fd:Int mask:*Sigset flags:I32 = Error, ?Int
+fun Signalfd fd:Fd mask:*Sigset flags:I32 = Error, Fd
 	var mask_cpy = mask*
-	let ret = signalfd fd.Trim_i32 mask_cpy#Unsafe_raw flags
+	let ret = signalfd fd.Sys_number mask_cpy#Unsafe_raw flags
 	if ret >= 0
-		return OK, ?ret.Int
-	return convert_error errno, nil
+		return OK, Fd.Mk ret
+	return convert_error errno, {}
 
 
 extern fun SIGACTION_DFL = act:?*U8
@@ -1218,12 +1222,12 @@ fun Execve filename:String argv:[]String envp:[]String = Error
 
 extern fun pipe2 pipefd:*int flags:int = int
 
-fun Pipe2 flags:I32 = Error, rd:Int, wr:Int
+fun Pipe2 flags:I32 = Error, rd:Fd, wr:Fd
 	var pipefd = {-1 -1}:[!]int
 	let ret = pipe2 pipefd.Unsafe_data flags
 	if ret == 0
-		return OK, pipefd.[0].Int, pipefd.[1].Int
-	return convert_error errno, -1, -1
+		return OK, Fd.Mk pipefd.[0], Fd.Mk pipefd.[1]
+	return convert_error errno, {}, {}
 
 extern fun fork = pid_t
 
