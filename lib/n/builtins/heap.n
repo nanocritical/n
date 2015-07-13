@@ -65,8 +65,6 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 		let raw = Heap!Realloc_raw old_raw old_bytecap bytecap
 		s# = {dat=((Cast #U8 #t) raw) cnt=cnt cap=cap}
 
-		-- Nothing to ctor, cnt cannot increase.
-
 	elif t isa `Moveable
 		if t isa `Trivial_dtor
 			noop
@@ -77,14 +75,25 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 		else
 			assert false
 
-		let old = s!
-		let raw = Heap!Realloc_raw nil 0 bytecap
-		s# = {dat=((Cast #U8 #t) raw) cnt=s.cnt cap=cap}
-		foreach i in old.All
-			s![i]# = old![i]#Move
-		let _ = Heap!Realloc_raw old_raw old_bytecap 0
+		-- We allocate a new slice, move the elements to it, and
+		-- free the old one.
+		-- We cannot use realloc(3) to try to get a resized slice at
+		-- the same memory location. We would need a realloc that fails
+		-- if it cannot grow without moving the array, so we can fall
+		-- back to the current approach only if needed. Another reason
+		-- to have our own (tweaked) allocator some day.
 
-		-- Nothing to ctor, cnt cannot increase.
+		if bytecap == 0
+			s# = {}
+			let _ = Heap!Realloc_raw old_raw old_bytecap 0
+
+		else
+			let old = s*
+			let raw = Heap!Realloc_raw nil 0 bytecap
+			s# = {dat=((Cast #U8 #t) raw) cnt=cnt cap=cap}
+			foreach i in s.All
+				s![i]# = old![i]#Move
+			let _ = Heap!Realloc_raw old_raw old_bytecap 0
 
 	else
 		if bytecap == 0
@@ -103,7 +112,6 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 		elif old_bytecap == 0
 			let raw = Heap!Realloc_raw old_raw 0 cap
 			s# = {dat=raw cnt=0 cap=cap}
-			-- Nothing to ctor, cnt is 0.
 		else
 			assert false
 
