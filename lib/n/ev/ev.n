@@ -180,7 +180,8 @@ Poll met! process_closes = closed_some:Bool
 		let e = pe*
 		if e.Handler?
 			let e_close = {Fd=e.Fd Got={CLOSE} Handler=e.Handler}:Event
-			drop = self!Unregister_all e_close
+			drop = self!Unregister_all e
+			-- Do not use e, it was just freed.
 
 			self#Current_handler = e_close.Handler
 			let err = e_close.Handler#On e_close
