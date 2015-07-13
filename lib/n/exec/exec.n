@@ -110,7 +110,7 @@ example_handler met# On e:ev.Event = Error
 		var buf:Stringbuf
 		buf#Reserve 4
 		let b, err = self.o!Read buf!Bytes
-		buf#Copy b
+		buf#Copy_from b
 		assert (err == OK or err == io.EOF) and buf == "test"
 
 example cmd_nonblocking_pipes

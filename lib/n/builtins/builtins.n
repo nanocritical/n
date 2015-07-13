@@ -232,7 +232,7 @@ intf `Any_slice t:`Any =
 
 intf `Any_mutable_slice t:`Any =
 	isa (`Any_slice t)
-	met! Copy other:[]t = final
+	met! Copy_from other:[]t = final
 
 -- The body of the methods for Slice and Mutable_slice are actually not used, as
 -- Slice_impl is used in codegen for both Slice and Mutable_slice* The code in
@@ -400,10 +400,10 @@ inline Mutable_slice met! Full_copy other:[]t = this
 	such
 		let _ = s!Full_copy s
 		return {}
-inline Mutable_slice met! Copy other:[]t = this
+inline Mutable_slice met! Copy_from other:[]t = this
 	let s = this.create_impl_instance
 	such
-		let _ = s!Copy s
+		let _ = s!Copy_from s
 		return {}
 inline Mutable_slice met! Exact_copy other:[]t
 	let s = this.create_impl_instance
@@ -414,10 +414,10 @@ inline Mutable_slice met! Full_move other:[!]t = this
 	such
 		let _ = s!Full_move s
 		return {}
-inline Mutable_slice met! Move other:[!]t = this
+inline Mutable_slice met! Move_from other:[!]t = this
 	let s = this.create_impl_instance
 	such
-		let _ = s!Copy s
+		let _ = s!Move_from s
 		return {}
 inline Mutable_slice met! Exact_move other:[!]t
 	let s = this.create_impl_instance
@@ -626,7 +626,7 @@ inline Slice_impl met! Full_copy other:this = r:this
 	return r
 
 -- Copy what it can, and return a slice to the result.
-inline Slice_impl met! Copy other:this = this
+inline Slice_impl met! Copy_from other:this = this
 	let cnt = Min self.cap other.cnt
 	return self!Full_copy other.[.. cnt]
 
@@ -706,7 +706,7 @@ inline Slice_impl met! Full_move other:this = r:this
 		return r
 
 -- Move what it can, and return a slice to the result.
-inline Slice_impl met! Move other:this = this
+inline Slice_impl met! Move_from other:this = this
 	let cnt = Min self.cap other.cnt
 	return self!Full_move other.[.. cnt]
 
@@ -716,7 +716,7 @@ inline Slice_impl met! Exact_move other:this
 
 -- Append what it can, and return a slice to the result.
 inline Slice_impl met! Append other:this = this
-	let r = self!Available_elements!Copy other
+	let r = self!Available_elements!Copy_from other
 	return {dat=self.dat cnt=self.cnt+r.cnt cap=self.cap}
 
 -- Append all, and return a slice to the result.
@@ -839,12 +839,12 @@ example
 
 	let e = { 8 8 8 8 8 8 8 8 }:[!]Uint such
 		let f = e![4 ..] such
-			let g = f!Copy ref.[4 ..]
+			let g = f!Copy_from ref.[4 ..]
 			assert g.Count == 4
 			foreach i in g.All
 				assert g.[i] == ref.[4 + i]
 		let h = e![.. 4] such
-			let m = h!Copy ref
+			let m = h!Copy_from ref
 			assert m.Count > h.Count
 			assert m.Count == ref.Count
 			foreach i in m.All
@@ -854,7 +854,7 @@ example
 			let n = h!Full_copy ref
 			assert n.Count == m.Count
 	let o = { 8 8 8 8 8 8 8 8 }:[!]Uint such
-		o = o#Copy ref
+		o = o#Copy_from ref
 	let p = o.[0 .. 0]
 	assert p.Count == 0
 	let q = p.[0 .. 8]

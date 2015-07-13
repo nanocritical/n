@@ -16,7 +16,7 @@ Bytes_reader met# Read b:[!]U8 = []U8, Error
 	let left = self.b.[self.pos ..]
 	let r = b![.. Min b.Cap left.Count]
 	such
-		r = r!Copy left
+		r = r!Copy_from left
 	self!pos += r.Count
 
 	if self.pos == b.Count

@@ -122,7 +122,7 @@ Reader met# Fill ?max:?Uint = Error
 		self#fill_err = io.EOF
 		return self.fill_err
 
-	self#buf#Copy self.pending.Bytes
+	self#buf#Copy_from self.pending.Bytes
 	_, self#fill_err = self!copier#Copy max=max
 	self#pending = self.buf.String
 	return self.fill_err
@@ -282,7 +282,7 @@ Writer met# Flush ?max:?Uint = Error
 	let left, wr_err = io.Write_full self#W self.pending.[.. len]
 	let copied = len - left.Count
 	self!pending = self!pending![copied ..]
-	self#buf#Copy self!pending
+	self#buf#Copy_from self!pending
 	self!pending = self!buf!Bytes
 	return wr_err
 

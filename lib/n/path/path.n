@@ -94,8 +94,8 @@ Path met# Pop = U8
 Path met# Append b:[]U8
 	self#buf#Append b
 
-Path met# Copy b:[]U8
-	self#buf#Copy b
+Path met# Copy_from b:[]U8
+	self#buf#Copy_from b
 
 Path met# Reserve atleast:Uint
 	self#buf#Reserve atleast

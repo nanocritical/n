@@ -15,7 +15,7 @@ inline Buf met# Dtor
 	Realloc #self#s 0
 
 inline Buf met# Copy_ctor other:*this
-	self#Copy other.Slice
+	self#Copy_from other.Slice
 
 inline Buf met Cap = Uint
 	return self.s.cap
@@ -75,10 +75,10 @@ inline Buf met# Append s:[]t
 	self#auto_grow self.s.Count + s.Count
 	self#s = self!s!Append s
 
-inline Buf met# Copy s:[]t
+inline Buf met# Copy_from s:[]t
 	assert t isa `Copyable
 	self#Reserve s.Count
-	self#s = self.s!Copy s
+	self#s = self.s!Copy_from s
 	self#auto_shrink
 
 -- The automatic growth of Buf et al* slows down when the buffer is large.

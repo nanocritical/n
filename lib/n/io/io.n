@@ -92,7 +92,7 @@ Copier met! Copy ?max:?Uint = written:Uint, err:Error
 	if self.buf.Count > 0
 		let left, wr_err = self!Dst#Write self.buf.Bytes
 		written += self.buf.Count - left.Count
-		self!buf#Copy left
+		self!buf#Copy_from left
 		if wr_err != OK
 			self!total_written += written
 			return written, wr_err
@@ -116,7 +116,7 @@ Copier met! Copy ?max:?Uint = written:Uint, err:Error
 		written += b.Count - left.Count
 
 		-- Automatically takes into account partial reads and partial writes.
-		self!buf#Copy left
+		self!buf#Copy_from left
 
 		if rd_err == EOF and wr_err != OK
 			err = wr_err

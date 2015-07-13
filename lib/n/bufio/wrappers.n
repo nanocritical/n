@@ -39,7 +39,7 @@ Bytes_reader met! Read b:[!]U8 = [!]U8, Error
 	if self.cur.Count == 0
 		return b, io.EOF
 
-	let copied = b!Available_elements!Copy self.cur
+	let copied = b!Available_elements!Copy_from self.cur
 	self!cur = self.cur.[copied.Count ..]
 	return b.[.. b.Count+copied.Count], OK
 
@@ -78,7 +78,7 @@ Bytes_writer met! Write b:[]U8 = []U8, err:Error
 	if self.B.Available == 0
 		return b, io.SHORT_BUFFER
 
-	let copied = self!B!Available_elements!Copy b
+	let copied = self!B!Available_elements!Copy_from b
 	self!B = self!B![.. self.B.Count + copied.Count]
 
 	if copied.Count < b.Count
@@ -143,7 +143,7 @@ Stringbuf_reader met# Read b:[!]U8 = [!]U8, err:Error
 	if self.Pos >= self.S.Count
 		return {}, io.EOF
 
-	let copied = b!Available_elements!Copy self.S.Bytes.[self.Pos ..]
+	let copied = b!Available_elements!Copy_from self.S.Bytes.[self.Pos ..]
 	self#Pos += copied.Count
 
 	if self.Pos == self.S.Count

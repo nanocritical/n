@@ -31,7 +31,7 @@ intf `Stringbuf =
 	met# Push c:U8
 	met# Pop = U8
 	met# Append b:[]U8
-	met# Copy b:[]U8
+	met# Copy_from b:[]U8
 
 -- Show is autointf generated method in many types* Therefore the prototype of
 -- Show must use type names visibile to everybody, and others may not have
@@ -574,12 +574,12 @@ inline Stringbuf met# Dtor
 	Realloc #self#bytes 0
 
 inline Stringbuf met# Copy_ctor other:*this
-	self#Copy other.bytes
+	self#Copy_from other.bytes
 
 inline Stringbuf fun From_bytes s:[]U8 = this
 	let r = {}:this such
 		r#Reserve s.Count
-		r#bytes = r!bytes!Copy s
+		r#bytes = r!bytes!Copy_from s
 	return r
 
 inline Stringbuf met$ Bytes = [$]U8
@@ -672,15 +672,15 @@ inline Stringbuf met# Append b:[]U8
 	self#Reserve self.bytes.Count + b.Count
 	self#bytes = self!bytes!Append b
 
-inline Stringbuf met# Copy b:[]U8
+inline Stringbuf met# Copy_from b:[]U8
 	self#Reserve b.Count
-	self#bytes = self.bytes!Copy b
+	self#bytes = self.bytes!Copy_from b
 
 example stringbuf_copy_empty
 	var buf:Stringbuf
 	buf#Cat "test"
 	assert buf.Count > 0
-	buf#Copy {}:[]U8
+	buf#Copy_from {}:[]U8
 	assert buf.Count == 0
 
 inline Stringbuf met# Reserve atleast:Uint

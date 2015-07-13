@@ -102,7 +102,7 @@ Ip fun From_bytes b:[]U8 = r:this
 	if b.Count == 4
 		r = this.V4 b.[0] b.[1] b.[2] b.[3]
 	else
-		r#bytes#Copy b
+		r#bytes#Copy_from b
 
 Ip fun V4 a:U8 b:U8 c:U8 d:U8 = r:this
 	let p = v4_prefix.Bytes

@@ -78,7 +78,7 @@ fun to_sys_addr protocol:Protocol addr:*Addr = sys_addr:(Buf U8)
 	sys_addr = prepare_sys_addr protocol
 	var sys_addr_bytes = sys_addr![..]
 	syscall.Sockaddr_ip #sys_addr_bytes protocol.sys_family addr.Ip.Bytes addr.Port
-	sys_addr#Copy sys_addr_bytes -- May only have shrunk.
+	sys_addr#Copy_from sys_addr_bytes -- May only have shrunk.
 
 fun from_sys_addr protocol:Protocol sys_addr:[]U8 = addr:Addr
 	let remote_ip_bytes = syscall.Sockaddr_ip_bytes protocol.sys_family
