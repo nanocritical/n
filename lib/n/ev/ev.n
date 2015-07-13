@@ -101,6 +101,7 @@ Poll met! Register e:Event = Error
 		self!manuals#Push# = e.Handler
 
 	if CLOSE in e.Ask
+		assert self.fds.[e.Fd]?
 		_ = self!closes#Add e.Fd
 
 	let just_pseudo = e.Ask <= {MANUAL CLOSE}
@@ -116,7 +117,9 @@ Poll met! Register e:Event = Error
 	let pe = perm_e#
 	pe!Fd = e.Fd
 	_ = pe#Ask#Add_all e.Ask
-	pe#Handler = e.Handler -- FIXME(e): only one perm_handler.
+
+	assert not pe.Handler? or pe.Handler === e.Handler -- FIXME(e): only one Handler supported.
+	pe#Handler = e.Handler
 
 	let sys_events_defaults = syscall.EPOLLERR | syscall.EPOLLHUP | syscall.EPOLLET
 	let events = sys_events_defaults such
@@ -182,10 +185,15 @@ Poll met! process_closes = closed_some:Bool
 			self#Current_handler = e_close.Handler
 			let err = e_close.Handler#On e_close
 			self#Current_handler = nil
+
 			if err == syscall.EWOULDBLOCK or err == syscall.EAGAIN
 				continue
 			if err != OK
 				Log#Warning "Handler error on CLOSE: %s" err
+
+			if e_close.Fd.Is_valid
+				-- Handler did not close it, so we do it.
+				drop = syscall.Close #e_close#Fd
 		else
 			drop = self!Unregister_all e
 			drop = syscall.Close fd
