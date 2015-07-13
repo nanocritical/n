@@ -2,7 +2,7 @@ intf `Response_writer =
 	-- TODO(e): bufio.`Writer
 	isa io.`Writer
 	met# Header = #Header
-	met# Write_header status:Int
+	met# Write_header status:Uint
 	met# Flush ?max:?Uint = Error
 	met# Done
 
@@ -219,6 +219,8 @@ struct server_conn_handler =
 	handler			:?#`Server_handler
 	handler_buffered	:?#`Server_handler_buffered
 	buffered_filled	:Bool
+
+	on_done_handler		:on_done_handler
 
 	ev_readwrite	:ev.Event
 	ev_close	:ev.Event
@@ -468,12 +470,13 @@ server_conn_handler met# handling_buffered = Error
 
 struct on_done_handler =
 	isa ev.`Handler
-	server_handler	:#`Server
-	handler		:#`Server_handler
+	server_handler	:?#`Server
+	handler		:?#`Server_handler
 
 on_done_handler met# On e:ev.Event = Error
 	Log#Debug "%s" e
 	self.server_handler#On_done self.handler
+	self# = {}
 
 
 server_conn_handler met# flush = Error
@@ -486,8 +489,8 @@ server_conn_handler met# flush = Error
 		return err
 	except = err
 
-	never = self.server.poll!Schedule_manually
-		\ #{server_handler=self.server_handler handler=self.handler}:on_done_handler
+	self#on_done_handler = {server_handler=self.server_handler handler=self.handler}
+	never = self.server.poll!Schedule_manually #self#on_done_handler
 
 	if self.response.wants_close
 		self#state = CLOSE
