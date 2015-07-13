@@ -166,7 +166,9 @@ Poll met! process_manuals = Error
 	self!manuals#Append keep.Slice
 
 Poll met! process_closes = closed_some:Bool
-	for fd in self.closes.Iter
+	-- Processing close handlers may add more to closes, so we steal it:
+	let closes = self!closes#Move
+	for fd in closes.Iter
 		let pe = self.fds.[fd]
 		if not pe?
 			Log#Warning "spurious fd on close list: %s" fd
@@ -189,8 +191,6 @@ Poll met! process_closes = closed_some:Bool
 			drop = syscall.Close fd
 
 		closed_some = true
-
-	self!closes#Clear
 
 Poll met! sys_wait timeout:?time.Duration = Error
 	Log#Debug ""
