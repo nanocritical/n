@@ -91,7 +91,7 @@ example cmd_nonblocking_buffers
 
 struct example_handler =
 	isa ev.`Handler
-	i	:#io.`Write_closer
+	i	:!fs.File
 	o	:#io.`Read_closer
 	poll	:#ev.Poll
 
@@ -101,10 +101,11 @@ example_handler met# On e:ev.Event = Error
 	Log#Debug "%s" e
 	if HUP in e.Got or ERROR in e.Got
 		never = self.poll!Register {Fd=e.Fd Ask={CLOSE}}
-	if CLOSE in e.Got
+	if CLOSE in e.Got and e.Fd == self.i.Fd
 		never = self.i!Close
 	if WRITE in e.Got
 		_, except = self.i!Write "test".Bytes
+		-- Close to let command exit.
 		never = self.poll!Register {Fd=e.Fd Ask={CLOSE}}
 	if READ in e.Got
 		var buf:Stringbuf
