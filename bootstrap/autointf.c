@@ -166,6 +166,7 @@ static void like_arg(struct module *mod, struct node *par,
   } else {
     G0(b, par, BIN,
        b->as.BIN.operator = arg_ref_accessor(arg);
+       b->as.BIN.is_generated = true; // Maybe we're generating a method of Tuple_x
        G(base, IDENT,
          base->as.IDENT.name = node_ident(arg));
        G(a, IDENT,
@@ -189,7 +190,7 @@ static void gen_on_field(struct module *mod, struct node *m,
   if (node_ident(m) == ID_COPY_CTOR || node_ident(m) == ID_MOVE) {
     const struct node *arg_other = next_const(arg_self);
 
-    if (typ_is_optional(ftyp)) {
+    if (typ_is_optional(ftyp) && node_ident(m) != ID_MOVE) {
       G0(xif, body, IF,
          G(checkother, UN,
            checkother->as.BIN.operator = TPOSTQMARK;
@@ -200,18 +201,38 @@ static void gen_on_field(struct module *mod, struct node *m,
       body = block;
     }
 
-    G0(assign, body, BIN,
-       assign->as.BIN.operator = TASSIGN;
-       like_arg(mod, assign, arg_self, f);
-       like_arg(mod, assign, arg_other, f));
-
-    if (node_ident(m) == ID_MOVE && !typ_is_reference(ftyp)) {
-      struct node *rhs = subs_last(assign);
-      node_subs_remove(assign, rhs);
-      G0(move, assign, BIN,
-         move->as.BIN.operator = TSHARP;
-         node_subs_append(move, rhs);
-         G_IDENT(movename, "Move"));
+    if (node_ident(m) == ID_MOVE) {
+      if (typ_is_reference(ftyp)) {
+        G0(assign, body, BIN,
+           assign->as.BIN.operator = TASSIGN;
+           G(rf, BIN,
+             rf->as.BIN.operator = TSHARP;
+             rf->as.BIN.is_generated = true; // Maybe we're generating a method of Tuple_x
+             G(r, IDENT,
+               r->as.IDENT.name = node_ident(arg_other));
+             G(rfn, IDENT,
+               rfn->as.IDENT.name = node_ident(f)));
+           like_arg(mod, assign, arg_self, f));
+      } else {
+        G0(assign, body, BIN,
+           assign->as.BIN.operator = TASSIGN;
+           G(rf, BIN,
+             rf->as.BIN.operator = TSHARP;
+             rf->as.BIN.is_generated = true; // Maybe we're generating a method of Tuple_x
+             G(r, IDENT,
+               r->as.IDENT.name = node_ident(arg_other));
+             G(rfn, IDENT,
+               rfn->as.IDENT.name = node_ident(f)));
+           G(move, BIN,
+             move->as.BIN.operator = TSHARP;
+             like_arg(mod, move, arg_self, f);
+             G_IDENT(movename, "Move")));
+      }
+    } else {
+      G0(assign, body, BIN,
+         assign->as.BIN.operator = TASSIGN;
+         like_arg(mod, assign, arg_self, f);
+         like_arg(mod, assign, arg_other, f));
     }
     return;
   }
