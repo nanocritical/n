@@ -227,8 +227,8 @@ intf `Any_slice t:`Any =
 	met Cap = Uint
 	met Bytecap = Uint
 	met All = Range
-	shallow met$ Unsafe_rawdata = $U8
-	shallow met$ Unsafe_data = $t
+	shallow met$ Unsafe_rawdata = ?$U8
+	shallow met$ Unsafe_data = ?$t
 	shallow met$ Operator_at n:Uint = $t
 	shallow met$ Operator_sub r:Range = [$]t
 
@@ -289,10 +289,10 @@ inline Slice met Rawbytes = []U8
 
 -- These are shallow wildcard methods because their prototype must match
 -- exactly those found in Slice_impl.
-inline Slice shallow met$ Unsafe_rawdata = *U8
+inline Slice shallow met$ Unsafe_rawdata = ?*U8
 	let s = this.create_impl_instance
 	return s.Unsafe_rawdata
-inline Slice shallow met$ Unsafe_data = *t
+inline Slice shallow met$ Unsafe_data = ?*t
 	let s = this.create_impl_instance
 	return s.Unsafe_data
 inline Slice shallow met$ Operator_at n:Uint = *t
@@ -366,14 +366,14 @@ inline Mutable_slice met All = Range
 inline Mutable_slice met$ Rawbytes = [$]U8
 	let s = this.create_impl_instance
 	return s$Rawbytes
-inline Mutable_slice shallow met$ Unsafe_rawdata = $U8
+inline Mutable_slice shallow met$ Unsafe_rawdata = ?$U8
 	let s = this.create_impl_instance
 	such
 		let _ = s.Unsafe_rawdata
 		let _ = s!Unsafe_rawdata
 		let _ = s#Unsafe_rawdata
 		return s$Unsafe_rawdata
-inline Mutable_slice shallow met$ Unsafe_data = $t
+inline Mutable_slice shallow met$ Unsafe_data = ?$t
 	let s = this.create_impl_instance
 	such
 		let _ = s.Unsafe_data
@@ -536,11 +536,11 @@ inline Slice_impl met All = Range
 inline Slice_impl met$ Rawbytes = [$]U8
 	return {dat=((Cast ?$t #U8) self$dat) cnt=self.Bytecount cap=self.Bytecap}
 
-inline Slice_impl shallow met$ Unsafe_rawdata = $U8
-	return (Cast ?$t $U8) self$dat
+inline Slice_impl shallow met$ Unsafe_rawdata = ?$U8
+	return (Cast ?$t ?$U8) self$dat
 
-inline Slice_impl shallow met$ Unsafe_data = $t
-	return Nonnull_cast self$dat
+inline Slice_impl shallow met$ Unsafe_data = ?$t
+	return self$dat
 
 inline Slice_impl shallow met$ Operator_at n:Uint = r:$t
 	assert n < self.cnt
@@ -795,7 +795,7 @@ example
 	let a = { 0:Uint 1 2 3 4 5 6 7 }
 	assert a.Count == 8
 	assert a.All == 0 .. 8
-	assert a.Unsafe_rawdata === (Cast *Uint *U8) a.Unsafe_data
+	assert a.Unsafe_rawdata === (Cast *Uint ?*U8) a.Unsafe_data
 	foreach i in a.All
 		assert a.[i] == i
 	assert a.First == 0
