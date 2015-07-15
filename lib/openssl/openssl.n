@@ -1,5 +1,6 @@
 from n import *
 import n.unsafe
+import n.cstring
 import n.encoding.hex
 
 build ldflags += "-lcrypto -lssl"
@@ -10,13 +11,19 @@ build ldflags += "-lcrypto -lssl"
 
 -- TODO(e): once n.builtins.Error support recording more complex errors, do it.
 
+-- FIXME(e): platform
 alias int = I32
 alias uint = U32
+alias sizet = U64
 
 extern let EVP_MAX_MD_SIZE:Uint
 
 extern inline struct EVP_MD =
+	isa `Trivial_dtor
+extern inline struct EVP_MD_CTX =
+	isa `Trivial_dtor
 extern inline struct HMAC_CTX =
+	isa `Trivial_dtor
 extern struct ENGINE =
 
 extern fun EVP_md_null = *EVP_MD
@@ -35,11 +42,122 @@ extern fun EVP_sha512 = *EVP_MD
 extern fun EVP_mdc2 = *EVP_MD
 extern fun EVP_ripemd160 = *EVP_MD
 extern fun EVP_whirlpool = *EVP_MD
+extern fun _EVP_get_digestbyname name:*U8 = *EVP_MD
+
+fun EVP_get_digestbyname name:String = *EVP_MD
+	return _EVP_get_digestbyname (cstring.Mk name).Rawdata
+
+extern fun EVP_MD_CTX_init ctx:#EVP_MD_CTX
+extern fun EVP_MD_CTX_create = #EVP_MD_CTX
+extern fun _EVP_DigestInit_ex ctx:#EVP_MD_CTX type:*EVP_MD impl:?*ENGINE = int
+extern fun _EVP_DigestUpdate ctx:#EVP_MD_CTX d:unsafe.Voidref cnt:sizet = int
+extern fun _EVP_DigestFinal_ex ctx:#EVP_MD_CTX md:#U8 s:#uint = int
+extern fun _EVP_MD_CTX_cleanup ctx:#EVP_MD_CTX = int
+extern fun EVP_MD_CTX_destroy ctx:#EVP_MD_CTX
+extern fun _EVP_MD_CTX_copy_ex out:#EVP_MD_CTX inp:*EVP_MD_CTX = int
+extern fun _EVP_DigestInit ctx:#EVP_MD_CTX type:*EVP_MD = int
+extern fun _EVP_DigestFinal ctx:#EVP_MD_CTX md:#U8 s:#uint = int
+extern fun _EVP_MD_CTX_copy out:#EVP_MD_CTX inp:#EVP_MD_CTX = int
+extern fun EVP_MD_type md:*EVP_MD = I32
+extern fun EVP_MD_pkey_type md:*EVP_MD = I32
+extern fun _EVP_MD_size md:*EVP_MD = int
+extern fun _EVP_MD_block_size md:*EVP_MD = int
+extern fun EVP_MD_CTX_md ctx:*EVP_MD_CTX = *EVP_MD
+extern fun _EVP_MD_CTX_size md:*EVP_MD_CTX = int
+extern fun _EVP_MD_CTX_block_size md:*EVP_MD_CTX = int
+extern fun EVP_MD_CTX_type md:*EVP_MD_CTX = I32
+
+fun EVP_DigestInit_ex ctx:#EVP_MD_CTX type:*EVP_MD impl:?*ENGINE = Error
+	let r = _EVP_DigestInit_ex ctx type impl
+	if r == 0
+		return UNKNOWN
+	return OK
+
+fun EVP_DigestUpdate ctx:#EVP_MD_CTX d:[]U8 = Error
+	-- Won't happen, but ensuring that sizet is the expected U64.
+	if not d.Bytecount.U64 <= sizet.MAX
+		return INVAL
+	let d_len = d.Bytecount.U64
+	let r = _EVP_DigestUpdate ctx (unsafe.Voidref.From_ptr d.Unsafe_data) d_len
+	if r == 0
+		return UNKNOWN
+	return OK
+fun EVP_DigestFinal_ex ctx:#EVP_MD_CTX md_buf:[!]U8 = Error, md:[!]U8
+	if md_buf.Bytecount > uint.MAX.Uint
+		return INVAL, {}
+	var md_len = md_buf.Bytecap.Trim_u32
+	let r = _EVP_DigestFinal_ex ctx md_buf#Unsafe_data #md_len
+	if r == 0
+		return UNKNOWN, {}
+	return OK, md_buf![.. md_len.Uint]
+fun EVP_MD_CTX_cleanup ctx:#EVP_MD_CTX = Error
+	let r = _EVP_MD_CTX_cleanup ctx
+	if r == 0
+		return UNKNOWN
+	return OK
+fun EVP_MD_CTX_copy_ex out:#EVP_MD_CTX inp:*EVP_MD_CTX = Error
+	let r = _EVP_MD_CTX_copy_ex out inp
+	if r == 0
+		return UNKNOWN
+	return OK
+fun EVP_DigestInit ctx:#EVP_MD_CTX type:*EVP_MD = Error
+	let r = _EVP_DigestInit ctx type
+	if r == 0
+		return UNKNOWN
+	return OK
+fun EVP_DigestFinal ctx:#EVP_MD_CTX md_buf:[!]U8 = Error, md:[!]U8
+	if md_buf.Bytecount > uint.MAX.Uint
+		return INVAL, {}
+	var md_len = md_buf.Bytecap.Trim_u32
+	let r = _EVP_DigestFinal ctx md_buf#Unsafe_data #md_len
+	if r == 0
+		return UNKNOWN, {}
+	return OK, md_buf![.. md_len.Uint]
+fun EVP_MD_CTX_copy out:#EVP_MD_CTX inp:#EVP_MD_CTX = Error
+	let r = _EVP_MD_CTX_copy out inp
+	if r == 0
+		return UNKNOWN
+	return OK
+fun EVP_MD_size md:*EVP_MD = Uint
+	let r = _EVP_MD_size md
+	return r.Uint
+fun EVP_MD_block_size md:*EVP_MD = Uint
+	let r = _EVP_MD_block_size md
+	return r.Uint
+fun EVP_MD_CTX_size md:*EVP_MD_CTX = Uint
+	let r = _EVP_MD_CTX_size md
+	return r.Uint
+fun EVP_MD_CTX_block_size md:*EVP_MD_CTX = Uint
+	let r = _EVP_MD_CTX_block_size md
+	return r.Uint
+
+
+example md_sha1
+	let msg = "def"
+	var md:Stringbuf
+	md#Resize 20
+
+	var ctx
+	EVP_MD_CTX_init #ctx
+	except = EVP_DigestInit_ex #ctx EVP_sha1 nil
+	except = EVP_DigestUpdate #ctx msg.[.. 1].Bytes
+	except = EVP_DigestUpdate #ctx msg.[1 ..].Bytes
+	let except, mdr = EVP_DigestFinal_ex #ctx md!Bytes![.. 0]
+	assert mdr.Count == md.Count
+	except = EVP_MD_CTX_cleanup #ctx
+
+	var hexmd:Stringbuf
+	hexmd#Resize 40
+	let except, hexlen = hex.Encode hexmd!Bytes md.Bytes
+	assert hexlen == 40
+	-- echo -n def |openssl dgst -sha1
+	assert hexmd == "589c22335a381f122d129225f5c0ba3056ed5811"
+
 
 extern fun _HMAC evp_md:*EVP_MD key:unsafe.Voidref key_len:int
-	\ d:*U8 n:int md:*U8 md_len:#uint = ?#U8
+	\ d:?*U8 n:int md:*U8 md_len:#uint = ?#U8
 extern fun _HMAC_CTX_init ctx:#HMAC_CTX
-extern fun _HMAC_Init_ex ctx:#HMAC_CTX key:unsafe.Voidref key_len:int md:*EVP_MD impl:*ENGINE = int
+extern fun _HMAC_Init_ex ctx:#HMAC_CTX key:unsafe.Voidref key_len:int md:*EVP_MD impl:?*ENGINE = int
 extern fun _HMAC_Update ctx:#HMAC_CTX data:*U8 len:int = int
 extern fun _HMAC_Final ctx:#HMAC_CTX md:#U8 len:#uint = int
 extern fun _HMAC_CTX_cleanup ctx:#HMAC_CTX
@@ -63,7 +181,7 @@ fun HMAC evp_md:*EVP_MD key:[]U8 d:[]U8 md_buf:[!]U8 = Error, md:[!]U8
 fun HMAC_CTX_init ctx:#HMAC_CTX
 	_HMAC_CTX_init ctx
 
-fun HMAC_Init_ex ctx:#HMAC_CTX key:[]U8 md:*EVP_MD impl:*ENGINE = Error
+fun HMAC_Init_ex ctx:#HMAC_CTX key:[]U8 md:*EVP_MD impl:?*ENGINE = Error
 	if key.Bytecount > int.MAX.Unsigned.Uint
 		return INVAL
 	let key_len = key.Bytecount.Signed.Trim_i32
@@ -85,7 +203,7 @@ fun HMAC_Final ctx:#HMAC_CTX md_buf:[!]U8 = Error, md:[!]U8
 	if md_buf.Bytecount > uint.MAX.Uint
 		return INVAL, {}
 	var md_len = md_buf.Bytecap.Trim_u32
-	let r = _HMAC_Final ctx md#Unsafe_data #md_len
+	let r = _HMAC_Final ctx md_buf#Unsafe_data #md_len
 	if r == 0
 		return UNKNOWN, {}
 	return OK, md_buf![.. md_len.Uint]
@@ -95,8 +213,8 @@ fun HMAC_CTX_cleanup ctx:#HMAC_CTX
 
 
 example hmac_sha1
-	let key = ""
-	let msg = ""
+	let key = "abc"
+	let msg = "def"
 	var md:Stringbuf
 	md#Resize 20
 
@@ -107,5 +225,14 @@ example hmac_sha1
 	hexmd#Resize 40
 	let except, hexlen = hex.Encode hexmd!Bytes md.Bytes
 	assert hexlen == 40
-	-- cat /dev/null |openssl dgst -sha1 -hmac ""
-	assert hexmd == "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d"
+	-- echo -n def |openssl dgst -sha1 -hmac "abc"
+	assert hexmd == "12554eabbaf7e8e12e4737020f987ca7901016e5"
+
+	var ctx:HMAC_CTX
+	HMAC_CTX_init #ctx
+	except = HMAC_Init_ex #ctx key.Bytes EVP_sha1 nil
+	except = HMAC_Update #ctx msg.[.. 1].Bytes
+	except = HMAC_Update #ctx msg.[1 ..].Bytes
+	let except, mdr2 = HMAC_Final #ctx md!Bytes![.. 0]
+	assert mdr == mdr2
+	HMAC_CTX_cleanup #ctx

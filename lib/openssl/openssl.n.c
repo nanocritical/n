@@ -69,6 +69,40 @@ struct openssl$EVP_MD *openssl$EVP_whirlpool(void) { return (EVP_MD *) EVP_whirl
 struct openssl$EVP_MD *openssl$EVP_ripemd160(void) { return NULL; }
 #endif
 
+static struct openssl$EVP_MD *openssl$_EVP_get_digestbyname(n$builtins$U8 *name) {
+  return (EVP_MD *) EVP_get_digestbyname((char *) name);
+}
+
+// defines can only be used for non-exported N declarations (directly mapped
+// to openssl definitions), which in practice is when we need to write a N
+// wrapper. For exported symbols that need no wrapper, we still need a
+// openssl$xxx symbol to be emitted (for outside modules that wish to link
+// with this module), so we define it here.
+
+void openssl$EVP_MD_CTX_init(EVP_MD_CTX *ctx) { EVP_MD_CTX_init(ctx); }
+EVP_MD_CTX *openssl$EVP_MD_CTX_create(void) { return EVP_MD_CTX_create(); }
+#define openssl$_EVP_DigestInit_ex EVP_DigestInit_ex
+#define openssl$_EVP_DigestUpdate EVP_DigestUpdate
+#define openssl$_EVP_DigestFinal_ex EVP_DigestFinal_ex
+#define openssl$_EVP_MD_CTX_cleanup EVP_MD_CTX_cleanup
+void openssl$EVP_MD_CTX_destroy(EVP_MD_CTX *ctx) { EVP_MD_CTX_destroy(ctx); }
+#define openssl$_EVP_MD_CTX_copy_ex EVP_MD_CTX_copy_ex
+#define openssl$_EVP_DigestInit EVP_DigestInit
+#define openssl$_EVP_DigestFinal EVP_DigestFinal
+#define openssl$_EVP_MD_CTX_copy EVP_MD_CTX_copy
+int openssl$EVP_MD_type(EVP_MD *md) { return EVP_MD_type(md); }
+int openssl$EVP_MD_pkey_type(EVP_MD *md) { return EVP_MD_pkey_type(md); }
+#define openssl$_EVP_MD_size EVP_MD_size
+#define openssl$_EVP_MD_block_size EVP_MD_block_size
+
+struct openssl$EVP_MD *openssl$EVP_MD_CTX_md(EVP_MD_CTX *md) {
+  return (EVP_MD *) EVP_MD_CTX_md(md);
+}
+
+static int openssl$_EVP_MD_CTX_size(EVP_MD_CTX *ctx) { return EVP_MD_CTX_size(ctx); }
+static int openssl$_EVP_MD_CTX_block_size(EVP_MD_CTX *ctx) { return EVP_MD_CTX_block_size(ctx); }
+int openssl$EVP_MD_CTX_type(EVP_MD_CTX *ctx) { return EVP_MD_CTX_type(ctx); }
+
 #define openssl$_HMAC HMAC
 #define openssl$_HMAC_CTX_init HMAC_CTX_init
 #define openssl$_HMAC_Init_ex HMAC_Init_ex
