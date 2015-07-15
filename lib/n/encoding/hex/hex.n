@@ -1,0 +1,64 @@
+from n import *
+import n.fmt
+import n.io
+
+let hextable = "0123456789abcdef"
+
+fun Encoded_length n:Uint = Uint
+	return 2 * n
+
+fun Encode dst:[!]U8 src:[]U8 = Error, Uint
+	let elen = Encoded_length src.Count
+	if dst.Count < elen
+		return INVAL, 0
+
+	foreach i in src.All
+		let v = src.[i]
+		dst![2*i]# = hextable.[(v >> 4).Uint]
+		dst![2*i+1]# = hextable.[(v & 0x0f).Uint]
+	return OK, elen
+
+fun Decoded_length n:Uint = Uint
+	return n / 2
+
+fun Decode dst:[!]U8 src:[]U8 = Error, Uint
+	if src.Count % 2 == 1
+		return INVAL, 0
+
+	let dlen = Decoded_length src.Count
+	foreach i in 0 .. dlen
+		let except, a = from_hex_char src.[2*i]
+		let except, b = from_hex_char src.[2*i+1]
+		dst![i]# = (a ov<< 4) | b
+	return OK, dlen
+
+fun from_hex_char c:U8 = Error, U8
+	if '0' <= c and c <= '9'
+		return OK, c - '0'
+	if 'a' <= c and c <= 'f'
+		return OK, c - 'a' + 10
+	if 'A' <= c and c <= 'F'
+		return OK, c - 'A' + 10
+	return INVAL, 0
+
+
+example enc_dec
+	let tests = {
+		\ ("0001020304050607", "\x0\x1\x2\x3\x4\x5\x6\x7")
+		\ ("08090a0b0c0d0e0f", "\x8\x9\xa\xb\xc\xd\xe\xf")
+		\ ("f0f1f2f3f4f5f6f7", "\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7")
+		\ ("f8f9fafbfcfdfeff", "\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff")
+		\ ("67", "g")
+		\ ("e3a1", "\xe3\xa1") }:[](String, String)
+	foreach e, d in tests
+		var buf:Stringbuf
+		buf#Resize <- Encoded_length d.Count
+		let except, elen = Encode buf!Bytes d.Bytes
+		assert elen == e.Count
+		assert buf.String == e
+
+		buf#Resize <- Decoded_length e.Count
+		let except, dlen = Decode buf!Bytes e.Bytes
+		assert dlen == d.Count
+		assert buf.String == d
+
