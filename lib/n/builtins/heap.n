@@ -26,7 +26,9 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 	Heap!Free_raw ((Cast #t #U8) p) (sizeof t)
 
 (fun t:`Any) Alloc_opaque = #t within Heap
-	return (Cast #U8 #t) <- Heap!Alloc_raw t.Sizeof
+	let s = t.Sizeof
+	assert s?
+	return (Cast #U8 #t) <- Heap!Alloc_raw s
 
 (fun t:`Any) Free_opaque p:?#t within Heap
 	if not p?
@@ -38,7 +40,9 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 		p#Dtor
 	else
 		assert false
-	Heap!Free_raw ((Cast #t #U8) p) t.Sizeof
+	let s = t.Sizeof
+	assert s?
+	Heap!Free_raw ((Cast #t #U8) p) s
 
 -- If t isn't `Moveable, only two cases are supported:
 --	s.Cap == 0 or cap == 0

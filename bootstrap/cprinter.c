@@ -2030,10 +2030,18 @@ static void print_deffun_builtingen(struct out *out, const struct module *mod, c
     }
     break;
   case BG_SIZEOF:
-    pf(out, "return sizeof(THIS());\n");
+    if (node_is_export(par) && node_is_inline(par)) {
+      pf(out, "return (n$builtins$optuint){ .X = sizeof(THIS()), .Nonnil = 1 };\n");
+    } else {
+      pf(out, "return (n$builtins$optuint){ 0 };\n");
+    }
     break;
   case BG_ALIGNOF:
-    pf(out, "return __alignof__(THIS());\n");
+    if (node_is_export(par) && node_is_inline(par)) {
+      pf(out, "return (n$builtins$optuint){ .X = __alignof__(THIS()), .Nonnil = 1 };\n");
+    } else {
+      pf(out, "return (n$builtins$optuint){ 0 };\n");
+    }
     break;
   case BG_MOVE:
     print_rtr_name(out, mod, node);

@@ -11,6 +11,7 @@ struct n$builtins$cleaner {
 };
 
 typedef struct _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ NB(byteslice);
+typedef struct _$Ngen_n$builtins$Optional$$n$builtins$Uint_genN$_ NB(optuint);
 
 union NB(Varargintunion) {
   struct NB(Varargint) *ref;

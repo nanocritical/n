@@ -31,8 +31,10 @@ extern struct __mutable__ =
 extern struct __mercurial__ =
 
 intf `Any =
-	fun Sizeof = Uint
-	fun Alignof = Uint
+	-- While all types implement these 2, they return nil if the types
+	-- are not exported inline.
+	fun Sizeof = ?Uint
+	fun Alignof = ?Uint
 
 -- `Prevent_dyn stops the compiler from generating a dyntable for the rest of
 -- the isa list.
