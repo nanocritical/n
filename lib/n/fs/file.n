@@ -24,6 +24,9 @@ File fun Open_fd fd:syscall.Fd = this
 	fmt.F #buf "/proc/self/fd/%s" fd
 	return {fd=fd name=(path.Path.From_string buf.String)}
 
+File met Is_open = Bool
+	return self.fd.Is_valid
+
 File met Fd = syscall.Fd
 	return self.fd
 
