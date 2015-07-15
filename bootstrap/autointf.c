@@ -545,7 +545,7 @@ static void add_auto_member(struct module *mod,
                             const struct typ *inferred_intf,
                             const struct typ *intf,
                             const struct tit *mi) {
-  if (node_is_extern(deft) && !node_is_inline(deft)) {
+  if (typ_is_reference(deft->typ)) {
     return;
   }
 
