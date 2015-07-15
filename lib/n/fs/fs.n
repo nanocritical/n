@@ -55,6 +55,7 @@ inline enum Openbits =
 	| HIDDEN
 	| DIRECTORY
 	| NOFOLLOW
+	| NONBLOCK
 
 alias Openflags = (Enumset Openbits)
 
@@ -83,6 +84,9 @@ fun sys_open_flags flags:?Openflags = r:syscall.Open_flags
 		r |= syscall.O_DIRECTORY
 	if NOFOLLOW in flags
 		r |= syscall.O_NOFOLLOW
+
+	if NONBLOCK in flags
+		r |= syscall.O_NONBLOCK
 
 inline struct Openattr =
 	Access	:Accessmask
