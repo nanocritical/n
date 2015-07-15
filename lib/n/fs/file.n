@@ -86,6 +86,11 @@ File met! Remove_xattr f:!File name:String = Error
 File met! Readdir buf:#(Buf Stat) ?max:?Uint = Error
 	return syscall.ENOSYS
 
+File met! Seek offset:Int whence:Whence = Error, Uint
+	if not self.fs?
+		return syscall.Lseek self.fd offset whence.sys
+	return self.fs!File_seek self offset whence
+
 File met! Read b:[!]U8 = [!]U8, Error
 	if not self.fs?
 		return syscall.Read self.fd b

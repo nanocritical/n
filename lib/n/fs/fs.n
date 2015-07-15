@@ -97,6 +97,16 @@ inline struct Openattr =
 Openattr met sys_open_mode = syscall.Mode
 	return sys_mode_from_accessmask self.Access
 
+
+inline enum Whence =
+	| SET = 0
+	| CUR
+	| END
+
+inline Whence met sys = I32
+	return self.Tag.Signed
+
+
 fun Path_handle name:path.Path ?at:?*File = Error, #File within Fs
 	return Fs!Open_file name at=at flags={PATH}
 
@@ -217,6 +227,7 @@ intf `Fs =
 	met! File_set_xattr f:!File name:String value:[]U8 ?create_only:?Bool = Error
 	met! File_remove_xattr f:!File name:String = Error
 
+	met! File_seek f:!File offset:Int whence:Whence = Error, Uint
 	met! File_read f:!File b:[!]U8 = [!]U8, Error
 	met! File_read_at f:!File b:[!]U8 off:Uint = [!]U8, Error
 	met! File_write f:!File b:[]U8 = []U8, Error
@@ -399,6 +410,9 @@ linux met! File_set_xattr f:!File name:String value:[]U8 ?create_only:?Bool = Er
 
 linux met! File_remove_xattr f:!File name:String = Error
 	return syscall.ENOSYS
+
+linux met! File_seek f:!File offset:Int whence:Whence = Error, Uint
+	return syscall.Lseek f.Fd offset whence.sys
 
 linux met! File_read f:!File b:[!]U8 = [!]U8, Error
 	return syscall.Read f.Fd b
