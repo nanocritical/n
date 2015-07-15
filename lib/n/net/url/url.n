@@ -356,7 +356,7 @@ inline struct Values =
 -- directly.
 Values met Get key:String = Stringbuf
 	let vs = self.Map.[key.Buf]
-	if vs.Count == 0
+	if not vs? or vs.Count == 0
 		return ""
 	return vs.[0]*
 
