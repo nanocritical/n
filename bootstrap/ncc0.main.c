@@ -10,6 +10,28 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+static const char *collect_module_flag(const struct module *mod, ident flag) {
+  char **r = ident2str_get(&CONST_CAST(mod)->build.flags, flag);
+  return r == NULL ? "" : *r;
+}
+
+static char *collect_stage_flag(const struct stage *stage, ident flag) {
+  char *r = calloc(1, sizeof(char));
+  size_t len = 0;
+
+  for (size_t n = 0; n < stage->sorted_count; ++n) {
+    const struct module *mod = stage->sorted[n];
+    const char *s = collect_module_flag(mod, flag);
+    size_t slen = strlen(s);
+    r = realloc(r, len + 1 + slen + 1);
+    strcpy(r + len, " ");
+    strcpy(r + len + 1, s);
+    len += 1 + slen;
+  }
+
+  return r;
+}
+
 struct opt {
   bool verbose;
   bool compile;
@@ -47,12 +69,15 @@ static char *o_filename(const char *filename) {
   return o_fn;
 }
 
-static ERROR cc(FILE *script, const char *o_fn, const char *c_fn) {
-  static const char *fmt = "%s %s " CFLAGS " %s %s -c -o %s";
+static ERROR cc(FILE *script, const struct module *mod, const char *o_fn, const char *c_fn) {
+  static const char *fmt = "%s %s " CFLAGS " %s %s %s -c -o %s";
+
+  const char *user_cflags = collect_module_flag(mod, ID_CFLAGS);
+
   char *cmd = calloc(strlen(fmt) + strlen(g_opt.ccache)
-                     + strlen(g_opt.compiler) + strlen(g_opt.cflags)
+                     + strlen(g_opt.compiler) + strlen(g_opt.cflags) + strlen(user_cflags)
                      + strlen(c_fn) + strlen(o_fn) + 1, sizeof(char));
-  sprintf(cmd, fmt, g_opt.ccache, g_opt.compiler, g_opt.cflags, c_fn, o_fn);
+  sprintf(cmd, fmt, g_opt.ccache, g_opt.compiler, g_opt.cflags, user_cflags, c_fn, o_fn);
 
   fprintf(script, "%s\n", cmd);
 
@@ -83,18 +108,25 @@ static char *file_list(const struct module **modules, size_t count,
   return list;
 }
 
-static ERROR clink(const char *out_fn, const char *inputs, const char *extra) {
-  static const char fmt[] = "%s %s " LDFLAGS " %s %s %s -o %s%s";
+static ERROR clink(const struct stage *stage,
+                   const char *out_fn, const char *inputs, const char *extra) {
+  static const char fmt[] = "%s %s " LDFLAGS " %s %s %s -o %s%s %s";
   const char *ext = "";
   if (strcmp(g_opt.compiler, "emcc") == 0) {
     ext = ".js";
   }
+
+  char *user_ldflags = collect_stage_flag(stage, ID_LDFLAGS);
+
   size_t len = strlen(fmt) + strlen(g_opt.ccache)
     + strlen(g_opt.compiler) + strlen(g_opt.cflags)
-    + strlen(inputs) + strlen(extra) + strlen(out_fn) + strlen(ext);
+    + strlen(inputs) + strlen(extra) + strlen(out_fn) + strlen(ext)
+    + strlen(user_ldflags);
   char *cmd = calloc(len + 1, sizeof(char));
   sprintf(cmd, fmt, g_opt.ccache, g_opt.compiler,
-          g_opt.cflags, inputs, extra, out_fn, ext);
+          g_opt.cflags, inputs, extra, out_fn, ext, user_ldflags);
+
+  free(user_ldflags);
 
   error e = sh(cmd);
   free(cmd);
@@ -192,7 +224,7 @@ static ERROR compile(FILE *script, struct node *node) {
   sprintf(c_fn, "%s.o.c", fn);
 
   char *o_fn = o_filename(mod->filename);
-  e = cc(script, o_fn, c_fn);
+  e = cc(script, mod, o_fn, c_fn);
   EXCEPT(e);
 
   free(o_fn);
@@ -234,7 +266,7 @@ static ERROR run_examples(const struct stage *stage) {
 
   char *inputs = file_list((const struct module **)stage->sorted,
                            stage->sorted_count, o_filename);
-  error e = clink(out_fn, inputs, main_fn);
+  error e = clink(stage, out_fn, inputs, main_fn);
   free(inputs);
   EXCEPT(e);
 
@@ -275,7 +307,7 @@ static ERROR program_link(const struct stage *stage) {
 
   char *inputs = file_list((const struct module **)stage->sorted,
                            stage->sorted_count, o_filename);
-  error e = clink(out_fn, inputs, main_fn);
+  error e = clink(stage, out_fn, inputs, main_fn);
   free(inputs);
   EXCEPT(e);
 

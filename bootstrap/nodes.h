@@ -93,6 +93,7 @@ enum node_which {
   MODULE_BODY,
   ROOT_OF_ALL,
   DIRECTDEF,
+  BUILD,
   NODE__NUM,
 };
 
@@ -1206,11 +1207,13 @@ enum predefined_idents {
   ID_INTERNAL_GLOBALENV_INSTALL,
   ID_INTERNAL_GLOBALENV_UNINSTALL,
 
+  ID_CFLAGS,
+  ID_LDFLAGS,
+
   ID__NUM,
 };
 
 HTABLE_SPARSE(idents_map, ident, struct token);
-struct idents_map;
 DECLARE_HTABLE_SPARSE(idents_map, ident, struct token);
 
 struct idents {
@@ -1221,6 +1224,9 @@ struct idents {
   struct idents_map *map;
 };
 
+HTABLE_SPARSE(ident2str, char *, ident);
+DECLARE_HTABLE_SPARSE(ident2str, char *, ident);
+
 struct globalctx {
   struct idents idents;
   // This node hierarchy is used to park loaded modules using their
@@ -1229,6 +1235,9 @@ struct globalctx {
 
   struct typ *builtin_typs_by_name[ID__NUM];
   struct typ *builtin_typs_for_refop[TOKEN__NUM];
+
+  // Definitions for: os, arch
+  struct ident2str build_target;
 };
 
 struct stage_state {
@@ -1269,6 +1278,11 @@ struct mempool {
 HTABLE_SPARSE(importmap, struct node *, struct module *);
 DECLARE_HTABLE_SPARSE(importmap, struct node *, struct module *);
 
+struct module_build {
+  // Module specific flags: e.g. cflags, ldflags.
+  struct ident2str flags;
+};
+
 struct module {
   struct globalctx *gctx;
   struct stage *stage;
@@ -1277,6 +1291,7 @@ struct module {
   bool has_single_file;
   struct vecstr components;
   struct vecsize components_first_pos;
+  struct module_build build;
 
   ident path[MODULE_PATH_MAXLEN];
   size_t path_len;

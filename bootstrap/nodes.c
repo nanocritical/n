@@ -188,6 +188,7 @@ const char *node_which_strings[] = {
   [MODULE_BODY] = "MODULE_BODY",
   [ROOT_OF_ALL] = "ROOT_OF_ALL",
   [DIRECTDEF] = "DIRECTDEF",
+  [BUILD] = "BUILD",
 };
 
 static uint32_t module_ptr_hash(const struct module **mod) {

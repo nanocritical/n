@@ -10,6 +10,7 @@ enum token_type {
   Timport = 1,
   Texport,
   Tfrom,
+  Tbuild,
   Tstruct,
   Tenum,
   Tunion,

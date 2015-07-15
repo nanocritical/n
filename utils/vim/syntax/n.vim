@@ -6,7 +6,7 @@ syn keyword nInclude import from
 syn match nFunLine "\((\(fun\|\(shallow\s\+\)\?met\).*)\|\(fun\|\(shallow\s\+\)\?met\)[\$!#]\?\)\s\+\w\+" contains=nIntf,nDeclFun,nFun,nWildcard
 syn match nFun "\w\+" contained
 syn keyword nDeclFun fun met shallow contained
-syn keyword nDecl union struct enum atom intf newtype
+syn keyword nDecl union struct enum atom intf newtype build
 syn keyword nStorageClass inline extern opaque
 syn keyword nExport export
 syn keyword nSemantic unique shared pshared

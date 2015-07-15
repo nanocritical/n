@@ -241,6 +241,8 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_INTERNAL_GLOBALENV_PARENT] = "Internal_globalenv_parent",
   [ID_INTERNAL_GLOBALENV_INSTALL] = "Internal_globalenv_install",
   [ID_INTERNAL_GLOBALENV_UNINSTALL] = "Internal_globalenv_uninstall",
+  [ID_CFLAGS] = "cflags",
+  [ID_LDFLAGS] = "ldflags",
 };
 
 static uint32_t token_hash(const struct token *tok) {
@@ -398,6 +400,9 @@ static ERROR parse_modpath(struct module *mod, const char *raw_fn) {
   }
   return 0;
 }
+
+IMPLEMENT_HTABLE_SPARSE(unused__, ident2str, char *, ident,
+                        ident_hash, ident_cmp);
 
 static void init_tbis(struct globalctx *gctx) {
   TBI_VOID = gctx->builtin_typs_by_name[ID_TBI_VOID];
@@ -571,6 +576,8 @@ void globalctx_init(struct globalctx *gctx) {
   scope_init(&gctx->modules_root);
   node_set_which(&gctx->modules_root, ROOT_OF_ALL);
   gctx->modules_root.typ = typ_create(NULL, &gctx->modules_root);
+
+  ident2str_init(&gctx->build_target, 0);
 }
 
 const char *module_component_filename_at(const struct module *mod, size_t pos) {
@@ -2911,6 +2918,71 @@ again:
   }
 }
 
+static ERROR build_set_flag(struct module *mod, struct node *expr) {
+  error e;
+  if (expr->as.BIN.operator != TPLUS_ASSIGN) {
+    goto malformed_expr;
+  }
+
+  struct node *flag = subs_first(expr);
+  struct node *val = subs_last(expr);
+
+  if (flag->which != IDENT) {
+    goto malformed_expr;
+  }
+
+  if (val->which != STRING) {
+    goto malformed_expr;
+  }
+
+  const char *v = val->as.STRING.value + 1;
+  size_t v_len = strlen(v) - 1;
+
+  char **existing = ident2str_get(&mod->build.flags, node_ident(flag));
+  if (existing == NULL) {
+    (void) ident2str_set(&mod->build.flags, node_ident(flag), strndup(v, v_len));
+  } else {
+    const size_t len = strlen(*existing);
+    *existing = realloc(*existing, len + 1 + strlen(val->as.STRING.value) + 1);
+    strcpy(*existing + len, " ");
+    strncpy(*existing + len + 1, v, v_len);
+    existing[len + 1 + v_len] = '\0';
+  }
+
+  return 0;
+
+malformed_expr:
+  e = mk_except(mod, expr, "malformed 'build FLAG += STRING' expression");
+  THROW(e);
+}
+
+// Syntax:
+//  build FLAG += STRING
+//  build error ARGS...
+//
+//  build if BOOL_EXPR
+// with optional block, otherwise effect is on file.
+static ERROR p_build(struct node *node, struct module *mod) {
+  node->which = BUILD;
+  error e = p_statement(node, mod);
+  EXCEPT(e);
+
+  struct node *expr = subs_first(node);
+  switch (expr->which) {
+  case BIN:
+    e = build_set_flag(mod, expr);
+    EXCEPT(e);
+    break;
+  default:
+    e = mk_except(mod, node, "malformed build expression");
+    THROW(e);
+    break;
+  }
+
+  node_subs_remove(parent(node), node);
+  return 0;
+}
+
 static ERROR p_toplevel(struct module *mod) {
   if (mod->parser.len == 0) {
     return 0;
@@ -3034,6 +3106,9 @@ bypass:
   case Twithin:
     e = p_within(NEW(mod, node), mod, true);
     break;
+  case Tbuild:
+    e = p_build(NEW(mod, node), mod);
+    break;
   case TEOL:
     if (first) {
       // This happens when a file starts with comments.
@@ -3119,6 +3194,7 @@ static void module_init(struct globalctx *gctx, struct stage *stage,
   PUSH_STATE(mod->mempool);
 
   importmap_init(&mod->importmap, 0);
+  ident2str_init(&mod->build.flags, 0);
 }
 
 EXAMPLE(parse_modpath) {

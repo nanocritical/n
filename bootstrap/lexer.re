@@ -380,6 +380,7 @@ normal:
   "import" { R(Timport); }
   "export" { R(Texport); }
   "from" { R(Tfrom); }
+  "build" { R(Tbuild); }
   "declare" { R(Tdeclare); }
   "and" { R(Tand); }
   "or" { R(Tor); }
