@@ -1,0 +1,111 @@
+from n import *
+import n.unsafe
+import n.encoding.hex
+
+build ldflags += "-lcrypto -lssl"
+
+-- Higher-level interfaces are available in
+--	n.crypto.cryptohash
+--	n.crypto.cryptohmac
+
+-- TODO(e): once n.builtins.Error support recording more complex errors, do it.
+
+alias int = I32
+alias uint = U32
+
+extern let EVP_MAX_MD_SIZE:Uint
+
+extern inline struct EVP_MD =
+extern inline struct HMAC_CTX =
+extern struct ENGINE =
+
+extern fun EVP_md_null = *EVP_MD
+extern fun EVP_md2 = *EVP_MD
+extern fun EVP_md4 = *EVP_MD
+extern fun EVP_md5 = *EVP_MD
+extern fun EVP_sha = *EVP_MD
+extern fun EVP_sha1 = *EVP_MD
+extern fun EVP_dss = *EVP_MD
+extern fun EVP_dss1 = *EVP_MD
+extern fun EVP_ecdsa = *EVP_MD
+extern fun EVP_sha224 = *EVP_MD
+extern fun EVP_sha256 = *EVP_MD
+extern fun EVP_sha384 = *EVP_MD
+extern fun EVP_sha512 = *EVP_MD
+extern fun EVP_mdc2 = *EVP_MD
+extern fun EVP_ripemd160 = *EVP_MD
+extern fun EVP_whirlpool = *EVP_MD
+
+extern fun _HMAC evp_md:*EVP_MD key:unsafe.Voidref key_len:int
+	\ d:*U8 n:int md:*U8 md_len:#uint = ?#U8
+extern fun _HMAC_CTX_init ctx:#HMAC_CTX
+extern fun _HMAC_Init_ex ctx:#HMAC_CTX key:unsafe.Voidref key_len:int md:*EVP_MD impl:*ENGINE = int
+extern fun _HMAC_Update ctx:#HMAC_CTX data:*U8 len:int = int
+extern fun _HMAC_Final ctx:#HMAC_CTX md:#U8 len:#uint = int
+extern fun _HMAC_CTX_cleanup ctx:#HMAC_CTX
+
+fun HMAC evp_md:*EVP_MD key:[]U8 d:[]U8 md_buf:[!]U8 = Error, md:[!]U8
+	if key.Bytecount > int.MAX.Unsigned.Uint
+		return INVAL, {}
+	let key_len = key.Bytecount.Signed.Trim_i32
+	if d.Bytecount > int.MAX.Uint
+		return INVAL, {}
+	let d_len = d.Bytecount.Signed.Trim_i32
+	if md_buf.Bytecount > uint.MAX.Uint
+		return INVAL, {}
+	var md_len = md_buf.Bytecap.Trim_u32
+	let r = _HMAC evp_md (unsafe.Voidref.From_ptr key.Unsafe_data) key_len
+		\ d.Unsafe_data d_len md_buf#Unsafe_data #md_len
+	if not r?
+		return UNKNOWN, {}
+	return OK, md_buf![.. md_len.Uint]
+
+fun HMAC_CTX_init ctx:#HMAC_CTX
+	_HMAC_CTX_init ctx
+
+fun HMAC_Init_ex ctx:#HMAC_CTX key:[]U8 md:*EVP_MD impl:*ENGINE = Error
+	if key.Bytecount > int.MAX.Unsigned.Uint
+		return INVAL
+	let key_len = key.Bytecount.Signed.Trim_i32
+	let r = _HMAC_Init_ex ctx (unsafe.Voidref.From_ptr key.Unsafe_data) key_len md impl
+	if r == 0
+		return UNKNOWN
+	return OK
+
+fun HMAC_Update ctx:#HMAC_CTX data:[]U8 = Error
+	if data.Bytecount > int.MAX.Uint
+		return INVAL
+	let data_len = data.Bytecount.Signed.Trim_i32
+	let r = _HMAC_Update ctx data.Unsafe_data data_len
+	if r == 0
+		return UNKNOWN
+	return OK
+
+fun HMAC_Final ctx:#HMAC_CTX md_buf:[!]U8 = Error, md:[!]U8
+	if md_buf.Bytecount > uint.MAX.Uint
+		return INVAL, {}
+	var md_len = md_buf.Bytecap.Trim_u32
+	let r = _HMAC_Final ctx md#Unsafe_data #md_len
+	if r == 0
+		return UNKNOWN, {}
+	return OK, md_buf![.. md_len.Uint]
+
+fun HMAC_CTX_cleanup ctx:#HMAC_CTX
+	_HMAC_CTX_cleanup ctx
+
+
+example hmac_sha1
+	let key = ""
+	let msg = ""
+	var md:Stringbuf
+	md#Resize 20
+
+	let except, mdr = HMAC EVP_sha1 key.Bytes msg.Bytes md!Bytes
+	assert mdr.Count == md.Count
+
+	var hexmd:Stringbuf
+	hexmd#Resize 40
+	let except, hexlen = hex.Encode hexmd!Bytes md.Bytes
+	assert hexlen == 40
+	-- cat /dev/null |openssl dgst -sha1 -hmac ""
+	assert hexmd == "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d"
