@@ -4,7 +4,7 @@ import n.fmt
 import n.io
 import n.encoding.hex
 
-enum Function =
+inline enum Function =
 	| SHA256 = 0
 	| SHA224
 	| SHA384
@@ -31,17 +31,31 @@ Function met openssl_evp_md = *openssl.EVP_MD
 	| MD5 -> return openssl.EVP_md5
 
 
-struct Digest =
-	isa `Show
+inline struct Digest =
+	isa `Show `Has_equality `Hashable32
 	Function	:Function
 	Binary		:Stringbuf
+	Is_hmac		:Bool
 
 Digest met Show st:#fmt.`State
-	fmt.F st "%s:%s" self.Hex self.Function
+	let hmac such
+		if self.Is_hmac
+			hmac = "HMAC-"
+	-- Function tag at the end to make bytewise comparison stop faster.
+	fmt.F st "%s:%s%s" self.Hex hmac self.Function
 
 Digest met Hex = r:Stringbuf
 	r#Resize <- hex.Encoded_length self.Function.Bytecount
 	never, _ = hex.Encode r!Bytes self.Binary.Bytes
+
+Digest met Hash32 = U32
+	return self.Binary.Hash32
+
+Digest met Operator_eq other:*this = Bool
+	return self.Function == other.Function and self.Binary == other.Binary
+		\ and self.Is_hmac == other.Is_hmac
+Digest met Operator_ne other:*this = Bool
+	return not self == other
 
 
 -- Convenience function.
@@ -52,7 +66,7 @@ fun Hash function:Function b:[]U8 = md:Digest
 	md = state#Final
 
 
-struct State =
+inline struct State =
 	isa io.`Writer
 	ctx		:openssl.EVP_MD_CTX
 	ctx_initialized	:Bool
@@ -74,6 +88,7 @@ State met# Write b:[]U8 = empty:[]U8, Error
 	never = openssl.EVP_DigestUpdate #self#ctx b
 
 State met# Final = digest:Digest
+	assert self.ctx_initialized
 	digest#Function = self.function
 	digest#Binary#Resize self.function.Bytecount
 	never, _ = openssl.EVP_DigestFinal_ex #self#ctx digest!Binary!Bytes![.. 0]
@@ -88,6 +103,9 @@ example sha1
 	let md = state#Final
 	assert md.Function == SHA1
 	assert md.Hex == "589c22335a381f122d129225f5c0ba3056ed5811"
+
+	let mdcpy = md
+	assert md == mdcpy
 
 	var buf:Stringbuf
 	fmt.F #buf "%s" md
@@ -104,3 +122,60 @@ example sha1
 	let md4 = Hash SHA256 msg.Bytes
 	assert md4.Function == SHA256
 	assert md4.Hex == "cb8379ac2098aa165029e3938a51da0bcecfc008fd6795f401178647f96c5b34"
+
+
+
+-- Convenience function.
+fun Hmac function:Function key:[]U8 b:[]U8 = md:Digest
+	var state:Hmac_state
+	state#Init function key
+	_, never = state#Write b
+	md = state#Final
+
+
+inline struct Hmac_state =
+	isa io.`Writer
+	ctx		:openssl.HMAC_CTX
+	ctx_initialized	:Bool
+	function	:Function
+
+Hmac_state met# Dtor
+	openssl.HMAC_CTX_cleanup #self#ctx
+
+Hmac_state met# Init function:Function key:[]U8
+	if not self.ctx_initialized
+		openssl.HMAC_CTX_init #self#ctx
+		self#ctx_initialized = true
+
+	self#function = function
+	never = openssl.HMAC_Init_ex #self#ctx key self.function.openssl_evp_md nil
+
+Hmac_state met# Write b:[]U8 = empty:[]U8, Error
+	assert self.ctx_initialized
+	never = openssl.HMAC_Update #self#ctx b
+
+Hmac_state met# Final = digest:Digest
+	assert self.ctx_initialized
+	digest#Function = self.function
+	digest#Binary#Resize self.function.Bytecount
+	never, _ = openssl.HMAC_Final #self#ctx digest!Binary!Bytes![.. 0]
+	digest#Is_hmac = true
+
+
+example hmac_sha1
+	let key = "abc"
+	let msg = "def"
+
+	var state:Hmac_state
+	state#Init SHA1 key.Bytes
+	_, never = state#Write msg.Bytes
+	let md = state#Final
+	assert md.Function == SHA1
+	assert md.Hex == "12554eabbaf7e8e12e4737020f987ca7901016e5"
+
+	let mdcpy = md
+	assert md == mdcpy
+
+	var buf:Stringbuf
+	fmt.F #buf "%s" md
+	assert buf == "12554eabbaf7e8e12e4737020f987ca7901016e5:HMAC-SHA1"
