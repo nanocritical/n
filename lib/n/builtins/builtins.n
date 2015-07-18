@@ -1891,6 +1891,24 @@ inline Range met Last count:Uint = Range
 	return {Begin=(self.End - (Min self.Count count))
 		\ End=self.End}
 
+inline Range met With_begin beg:Uint = Range
+	if beg > self.End
+		beg = self.End
+	return {Begin=beg End=self.End}
+
+inline Range met With_end end:Uint = Range
+	if end < self.Begin
+		end = self.Begin
+	return {Begin=self.Begin End=end}
+
+inline Range met Overlap other:*this = Int, Int
+	let db = other.Begin.U64.Bitwise_signed - self.Begin.U64.Bitwise_signed
+	let de = other.End.U64.Bitwise_signed - self.End.U64.Bitwise_signed
+	return db.To_int, de.To_int
+
+inline Range met Is_within other:*this = Bool
+	return self.Begin >= other.Begin and self.End <= other.End
+
 Range met Show st:#`Fmt_state
 	"[".Show st
 	self.Begin.Show st
