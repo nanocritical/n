@@ -349,6 +349,11 @@ nanny met# On e:ev.Event = Error
 				break
 			except = werr
 
+			if pid == 0
+				-- There are children still, but there are not
+				-- in a waitable state.
+				break
+
 			let pcmd = self.pids.[pid.Unsigned]
 			if not pcmd?
 				Log#Warning "nanny: we don't know about PID '%s'" pid
