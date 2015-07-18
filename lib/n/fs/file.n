@@ -19,10 +19,11 @@ inline struct File =
 File met# Dtor
 	drop = self!Close
 
-File fun Open_fd fd:syscall.Fd = this
+File fun Open_fd fd:syscall.Fd = f:#this
+	f = Alloc this
 	var buf:Stringbuf
 	fmt.F #buf "/proc/self/fd/%s" fd
-	return {fd=fd name=(path.Path.From_string buf.String)}
+	f# = {fd=fd name=(path.Path.From_string buf.String)}
 
 File met Is_open = Bool
 	return self.fd.Is_valid

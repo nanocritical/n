@@ -57,12 +57,12 @@ inline struct Cmd =
 	Pid	:Uint
 	Status	:?Status
 
-	pin_rd	:fs.File
-	pin_wr	:fs.File
-	pout_rd	:fs.File
-	pout_wr	:fs.File
-	perr_rd	:fs.File
-	perr_wr	:fs.File
+	pin_rd	:?#fs.File
+	pin_wr	:?#fs.File
+	pout_rd	:?#fs.File
+	pout_wr	:?#fs.File
+	perr_rd	:?#fs.File
+	perr_wr	:?#fs.File
 
 example cmd_failure
 	var poll:ev.Poll
@@ -135,17 +135,17 @@ example cmd_nonblocking_pipes
 Cmd met# init_pipes = Error
 	-- We check if Stdin_pipe et al. have already setup the pipes.
 
-	if not self.pin_wr.Fd.Is_valid
+	if not self.pin_wr? or not self.pin_wr.Fd.Is_valid
 		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
 		self#pin_rd = fs.File.Open_fd rd
 		self#pin_wr = fs.File.Open_fd wr
 
-	if not self.pout_rd.Fd.Is_valid
+	if not self.pout_rd? or not self.pout_rd.Fd.Is_valid
 		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
 		self#pout_rd = fs.File.Open_fd rd
 		self#pout_wr = fs.File.Open_fd wr
 
-	if not self.perr_rd.Fd.Is_valid
+	if not self.perr_rd? or not self.perr_rd.Fd.Is_valid
 		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
 		self#perr_rd = fs.File.Open_fd rd
 		self#perr_wr = fs.File.Open_fd wr
@@ -153,17 +153,17 @@ Cmd met# init_pipes = Error
 	if not self.using_pin
 		if not self.Stdin?
 			self#Stdin = #self#stdin_empty
-		self#stdin_copier#Reset #self#pin_wr self.Stdin
+		self#stdin_copier#Reset self#pin_wr self.Stdin
 
 	if not self.using_pout
 		if not self.Stdout?
 			self#Stdout = #self#stdout_discard
-		self#stdout_copier#Reset self.Stdout #self#pout_rd
+		self#stdout_copier#Reset self.Stdout self#pout_rd
 
 	if not self.using_perr
 		if not self.Stderr?
 			self#Stderr = #self#stderr_discard
-		self#stderr_copier#Reset self.Stderr #self#perr_rd
+		self#stderr_copier#Reset self.Stderr self#perr_rd
 
 
 Cmd met# Run poll:#ev.Poll = Error within the_nanny
@@ -257,30 +257,30 @@ Cmd met# Stdin_pipe = Error, #fs.File
 	self#pin_rd = fs.File.Open_fd rd
 	self#pin_wr = fs.File.Open_fd wr
 	self#using_pin = true
-	return OK, #self#pin_wr
+	return OK, self#pin_wr
 
 Cmd met# Stdout_pipe = Error, #fs.File
 	let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
 	self#pout_rd = fs.File.Open_fd rd
 	self#pout_wr = fs.File.Open_fd wr
 	self#using_pout = true
-	return OK, #self#pout_rd
+	return OK, self#pout_rd
 
 Cmd met# Stderr_pipe = Error, #fs.File
 	let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
 	self#perr_rd = fs.File.Open_fd rd
 	self#perr_wr = fs.File.Open_fd wr
 	self#using_perr = true
-	return OK, #self#perr_rd
+	return OK, self#perr_rd
 
 Cmd met! on_status status:Status
 	self!Status = status
 
-	if self.pin_wr.Fd.Is_valid
+	if self.pin_wr? and self.pin_wr.Fd.Is_valid
 		never = self!poll!Register {Fd=self.pin_wr.Fd Ask={CLOSE}}
-	if self.pout_rd.Fd.Is_valid
+	if self.pout_rd? and self.pout_rd.Fd.Is_valid
 		never = self!poll!Register {Fd=self.pout_rd.Fd Ask={CLOSE}}
-	if self.perr_rd.Fd.Is_valid
+	if self.perr_rd? and self.perr_rd.Fd.Is_valid
 		never = self!poll!Register {Fd=self.perr_rd.Fd Ask={CLOSE}}
 
 	if self.Completion?
