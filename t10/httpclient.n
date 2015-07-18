@@ -25,11 +25,9 @@ handler met# On r:#http.Response w:#http.`Request_writer = Error
 		self#copier#Reset #self#buf #r#Body
 		self#state += 1
 
-	var err = r#Body#Fill
-	if err != io.EOF
-		return err
+	_, drop = r#Body#Fill
 
-	_, err = self#copier#Copy
+	let _, err = self#copier#Copy
 	if err == syscall.EAGAIN
 		return err
 	if err != io.EOF

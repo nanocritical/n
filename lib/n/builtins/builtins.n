@@ -571,8 +571,8 @@ inline Slice_impl met! Clear
 -- We do want to make sure we don't get hit by undefined-behavior optimizations
 -- in the C compiler, though, so we perform the overlap computations inside a
 -- non-inline function on *U8. This is probably unnecessarily paranoid. But
--- it's not because you're paranoid that an optimizing compiler is not trying
--- to fuck with your code.
+-- just because you're paranoid doesn't mean that an optimizing compiler is not
+-- trying to fuck with your code.
 extern fun Slice_overlap a:*U8 acnt:Uint acap:Uint b:*U8 bcnt:Uint bcap:Uint = Bool, Intptr, Intptr
 
 inline Slice_impl met Overlap other:this = ?(Intptr, Intptr)

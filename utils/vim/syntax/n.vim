@@ -27,7 +27,7 @@ syn keyword nKeyword noop as declare new
 syn keyword nException except throw drop fatal Drop Fatal
 syn match nOperator ":"
 syn match nOperator "\(ov<<\|>>\|<=\|>=\|<\|>\|===\|!==\|==|\|!=|\|==\|!=\||\)"
-syn match nOperator "\(@\|&\|\(ov\)\?[+\-\*/%&|\^~]\)"
+syn match nOperator "\(\(weak ?\)\?@\|\(weak ?\)\?&\|\(ov\)\?[+\-\*/%&|\^~]\)" contains=nNullable
 syn match nOperator "\(ov\)\?[\:+\-\*/%&|\^~]\?="
 
 syn match nSemantic "::"

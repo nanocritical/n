@@ -42,10 +42,11 @@ Reader met# refresh at_least:Uint to_undo:Uint = Error within logging.Log
 			\ WARN_MAX_MESSAGE_LENGTH MAX_MESSAGE_LENGTH
 
 	if self.r.Buffered == 0
-		self!pending_err = self#r#Fill
+		var just_filled
+		just_filled, self!pending_err = self#r#Fill
 			\ max=(Min (Max at_least self.block_size) MAX_MESSAGE_LENGTH-self.Total_count)
 
-		if self.r.Buffered == 0
+		if just_filled == 0
 			let err = self.pending_err
 			self!pending_err = OK
 			if err == io.EOF

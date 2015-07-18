@@ -18,6 +18,9 @@ inline struct File =
 
 File met# Dtor
 	drop = self!Close
+	-- FIXME(e): unecessary, workingaround ncc0 bad auto dtor of fields
+	self#fd#Dtor
+	self#name#Dtor
 
 File fun Open_fd fd:syscall.Fd = f:#this
 	f = Alloc this

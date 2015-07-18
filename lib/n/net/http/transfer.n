@@ -1,14 +1,16 @@
 -- Write (transmission of) and read (reception of) HTTP either requests and
 -- responses.
 
--- TODO(e): This isn't ideal. Limited_reader is not a bufio.Reader. body_reader
--- should probably do this kind of work itself using its configuration. Which
--- is actually more or less what Go does.
-
 union body_reader =
 	| LIMITED = 0 -> bufio.Limited_reader
 	| DIRECT -> #bufio.Reader
 	| CHUNKED -> chunked_reader
+
+body_reader met debug_kind = r:Stringbuf
+	match self
+	| LIMITED -> fmt.F #r "LIMITED(%s)" self.LIMITED.Left
+	| DIRECT -> fmt.F #r "DIRECT"
+	| CHUNKED -> fmt.F #r "CHUNKED"
 
 body_reader met# get_dyn = #bufio.`Fillable_reader
 	match self
@@ -21,10 +23,11 @@ body_reader met# get_dyn = #bufio.`Fillable_reader
 -- side-effect to a read on the request body. The read will most likely return
 -- AGAIN.
 struct expect_continue_reader =
-	isa io.`Reader
-	wrote_continue	:Bool
-	r		:#io.`Reader
-	w		:#bufio.Writer
+	isa bufio.`Fillable_reader
+	wrote_continue		:Bool
+	flushed_continue	:Bool
+	r			:#bufio.`Fillable_reader
+	w			:#bufio.Writer
 
 expect_continue_reader met# Read b:[!]U8 = [!]U8, Error
 	-- FIXME(e): Ensure we've read any request body, even though it's not
@@ -32,11 +35,28 @@ expect_continue_reader met# Read b:[!]U8 = [!]U8, Error
 
 	if not self.wrote_continue
 		_ = self#w#Write "HTTP/1.1 100 Continue\r\n\r\n".Bytes
+		self#wrote_continue = true
+
+	if not self.flushed_continue
 		let err = self!w#Flush
 		if err != OK
 			return b, err
-		self#wrote_continue = true
+		self#flushed_continue = true
+		Log#Debug "sent 100-Continue"
+
 	return self#r#Read b
+
+expect_continue_reader met Buffered = Uint
+	return self.r.Buffered
+
+expect_continue_reader met Peek ?max:?Uint = []U8
+	return self.r.Peek max=max
+
+expect_continue_reader met! Skip_buffered count:Uint
+	return self!r!Skip_buffered count
+
+expect_continue_reader met# Fill ?max:?Uint = just_filled:Uint, Error
+	return self#r#Fill max=max
 
 
 fun Parse_http_version vers:String = Error, Uint

@@ -11,49 +11,49 @@ struct chunked_reader =
 	copy		:Stringbuf
 	copy_skipped	:Uint
 
-chunked_reader met# begin_chunk = Error
+chunked_reader met# begin_chunk = Error, fill_more:Bool
 	assert self.left_chunk == 0
 
 	if self.r_at_eof and self.r.Buffered == 0
-		return io.EOF
+		return io.EOF, false
 
 	let partial, line = self.r.Peek_crlf_line
 	if partial
 		if self.r_at_eof
-			return io.UNEXPECTED_EOF
-		return syscall.EAGAIN
+			return io.UNEXPECTED_EOF, false
+		return OK, true
 
 	self!r!Skip_buffered line.Count
 	if line.Count > max_line_length
-		return ERR_LINE_TOO_LONG
+		return ERR_LINE_TOO_LONG, false
 
 	let two = self.r.Peek_string max=crlf.Count
 	self!r!Skip_buffered two.Count
 	if two != crlf
-		return ERR_MALFORMED_CHUNK_ENCODING
+		return ERR_MALFORMED_CHUNK_ENCODING, false
 
 	let number = strings.Trim_spaces line
 	let val, err = strconv.Parse_uint number base=16 bit_size=64
 	if err != OK
 		self!left_chunk = 0
-		return err
+		return err, false
 
 	self!left_chunk_crlf = true
 	self!left_chunk = val.To_uint
 	if self.left_chunk == 0
-		return io.EOF
+		return io.EOF, false
 
-chunked_reader met# make_progress = Error
+chunked_reader met# make_progress = Error, fill_more:Bool
 	assert self.left_chunk == 0
 	if self.left_chunk_crlf
 		if self.r.Buffered < crlf.Count
 			if self.r_at_eof
-				return io.UNEXPECTED_EOF
-			return syscall.EAGAIN
+				return io.UNEXPECTED_EOF, false
+			return OK, true
 		let two = self.r.Peek_string max=crlf.Count
 		self!r!Skip_buffered two.Count
 		if two != crlf
-			return ERR_MALFORMED_CHUNK_ENCODING
+			return ERR_MALFORMED_CHUNK_ENCODING, false
 		self!left_chunk_crlf = false
 
 	return self#begin_chunk
@@ -67,30 +67,48 @@ chunked_reader met! Skip_buffered count:Uint
 	self!copy_skipped += count
 	return
 
-chunked_reader met# Fill ?max:?Uint = Error
+chunked_reader met# Fill ?max:?Uint = just_filled:Uint, Error
+	var max = max else Uint.MAX
+
 	if self.copy.Count > 0 and self.copy_skipped == self.copy.Count
 		-- We've advanced to the end of our local buffer.
 		self#copy#Clear
 		self#copy_skipped = 0
 
-	self!r_fill_err = self#r#Fill max=max
-	self!r_at_eof = self.r_fill_err == io.EOF
+	var fill_more = true
+	while fill_more
+		fill_more = false
 
-	while true
-		if self.left_chunk == 0
-			let perr = self#make_progress
-			if perr != OK
-				return perr
+		var r_just_filled
+		let enough_for_chunk_header = 32
+		r_just_filled, self!r_fill_err = self#r#Fill max=max+enough_for_chunk_header
+		self!r_at_eof = self.r_fill_err == io.EOF
 
-		let available = self.r.Peek max=self.left_chunk
-		self#copy#Append available
-		self#r#Skip_buffered available.Count
-		self#left_chunk -= available.Count
+		while true
+			if self.left_chunk == 0
+				var perr
+				perr, fill_more = self#make_progress
+				if perr != OK
+					return just_filled, perr
+				if fill_more
+					if r_just_filled == 0
+						-- Give up.
+						fill_more = false
+					break
 
-		if self.left_chunk > 0
-			break
+			let available = self.r.Peek max=self.left_chunk
+			self#copy#Append available
+			self#r#Skip_buffered available.Count
+			self#left_chunk -= available.Count
+			just_filled += available.Count
+			max -= available.Count
 
-	return self.r_fill_err
+			if self.left_chunk > 0
+				break
+
+	if self.Buffered > 0
+		return just_filled, OK
+	return just_filled, self.r_fill_err
 
 chunked_reader met Peek ?max:?Uint = []U8
 	let end = self.copy.Count such
@@ -116,8 +134,8 @@ example chunked_read
 	var br = #<- bufio.Reader.Mk sr
 	var cr = {r=br}:chunked_reader
 
-	var err = cr#Fill
-	assert err == io.EOF
+	var cnt, err = cr#Fill
+	assert cnt == 17 and err == io.EOF
 
 	var buf:Stringbuf
 	buf#Reserve 5
@@ -138,8 +156,8 @@ example chunked_read
 	b, err = cr#Read b
 	assert b.Const == "f0".Bytes and err == io.EOF
 
-	err = cr#Fill
-	assert err == io.EOF
+	cnt, err = cr#Fill
+	assert cnt == 0 and err == io.EOF
 
 example chunked_read_peek
 	let chunks = "10\r\n0123456789abcdef\r\n1\r\n0\r\n"
@@ -147,12 +165,12 @@ example chunked_read_peek
 	var br = #<- bufio.Reader.Mk sr
 	var cr = {r=br}:chunked_reader
 
-	var err = cr#Fill
-	assert err == io.EOF
+	var cnt, err = cr#Fill
+	assert cnt == 17 and err == io.EOF
 
 	assert cr.Peek == "0123456789abcdef0".Bytes
-	err = cr#Fill
-	assert err == io.EOF
+	cnt, err = cr#Fill
+	assert cnt == 0 and err == io.EOF
 
 fun write_chunk_size w:#io.`Writer cnt:Uint = Error
 	var buf:Stringbuf

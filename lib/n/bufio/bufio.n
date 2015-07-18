@@ -26,15 +26,21 @@ intf `Reader =
 -- method is mandatory to read any data.
 intf `Fillable_reader =
 	isa `Reader
-	-- Perform a read of up to `max` bytes. Return any underlying error.
-	-- Like io.`Read, short reads need not return an error, unless they
-	-- read nothing at all. If an error is returned (e.g. EOF), data may
-	-- have been read and buffered: you must read it before considering the
-	-- error.
+	-- Perform a read of up to `max` bytes. If `max` is unspecified, may
+	-- read any number of bytes >= 1.
 	--
-	-- Any error returned here will also be returned when calls to Read
-	-- reach the end of the buffered output.
-	met# Fill ?max:?Uint = Error
+	-- Return the number of bytes read during this call, and any underlying
+	-- error. Similarly to `Read.Read, you must consider the bytes read
+	-- (and possibly bytes that were already counted in Buffered before
+	-- this call) before considering the error.
+	--
+	-- Like io.`Read, short reads need not return an error, unless they
+	-- read nothing at all.
+	--
+	-- An error returned here will also be returned when calls to Read
+	-- reach the end of the buffered output, unless Fill is called in
+	-- between.
+	met# Fill ?max:?Uint = just_filled:Uint, Error
 
 
 -- bufio.`Writer has no Flush method, see bufio.`Flushable_writer.
@@ -113,19 +119,23 @@ Reader met Buffered = Uint
 
 -- Returns OK if max bytes were read. If unspecified, reads until io.EOF or
 -- another read or write error.
-Reader met# Fill ?max:?Uint = Error
+Reader met# Fill ?max:?Uint = just_filled:Uint, Error
 	if self#fillbufr?
 		return self#fillbufr#Fill max=max
 	if self#bufr?
 		-- If it's not fillable, then it's already filled.
 		-- Likely it's something like a bufio.Bytes_reader.
 		self#fill_err = io.EOF
-		return self.fill_err
+		return 0, self.fill_err
 
 	self#buf#Copy_from self.pending.Bytes
-	_, self#fill_err = self!copier#Copy max=max
+	just_filled = self.pending.Count
+	var written
+	written, self#fill_err = self!copier#Copy max=max
+	just_filled += written
 	self#pending = self.buf.String
-	return self.fill_err
+
+	return just_filled, self.fill_err
 
 -- Does not Fill more data. Does not advance.
 -- The returned slice is valid until the next call to Fill.
@@ -210,12 +220,14 @@ example reader
 	b, err = r#Read b
 	assert b.Count == 0 and err == OK
 
-	except = r#Fill max=4
+	var cnt
+	cnt, except = r#Fill max=4
+	assert cnt == 4
 	b, err = r#Read b
 	assert b.Count == 4 and err == OK and b.Const == "This".Bytes
 
-	err = r#Fill
-	assert err == io.EOF
+	cnt, err = r#Fill
+	assert cnt == s.Count-4 and err == io.EOF
 	b, err = r#Read b![.. 0]
 	assert b.Count == s.Count-4 and err == OK and b.Const == s.Bytes.[4 ..]
 
@@ -325,12 +337,10 @@ inline struct Auto_reader =
 	R	:#Reader
 
 Auto_reader met# Read b:[!]U8 = r:[!]U8, err:Error
+	if self.R.Buffered == 0
+		_, drop = self#R#Fill
+
 	r, err = self#R#Read b
-	if r.Count == b.Count and err == io.EOF
-		err = self#R#Fill
-		if err != OK
-			return r, err
-		r, err = self#R#Read b
 
 
 -- Wraps around a bufio.Writer, and automatically flushes the buffer when it
@@ -502,14 +512,14 @@ Limited_reader met! Skip_buffered count:Uint
 	assert count <= self.Buffered
 	return self!R!Skip_buffered count
 
-Limited_reader met# Fill ?max:?Uint = Error
+Limited_reader met# Fill ?max:?Uint = just_filled:Uint, Error
 	if self.left_fill == 0
-		return io.EOF
+		return 0, io.EOF
 
 	let buffered_before = self.R.Buffered
-	let err = self#R#Fill max=(Min self.left_fill (max else Uint.MAX))
+	let just_filled, err = self#R#Fill max=(Min self.left_fill (max else Uint.MAX))
 	self!left_fill -= self.R.Buffered - buffered_before
-	return err
+	return just_filled, err
 
 Limited_reader met# Read b:[!]U8 = rb:[!]U8, rerr:Error
 	if self.Left == 0

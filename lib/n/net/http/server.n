@@ -218,7 +218,6 @@ struct server_conn_handler =
 	server_handler		:?#`Server
 	handler			:?#`Server_handler
 	handler_buffered	:?#`Server_handler_buffered
-	buffered_filled	:Bool
 
 	on_done_handler		:on_done_handler
 
@@ -256,7 +255,6 @@ server_conn_handler met# recycle
 	self#server_handler = nil
 	self#handler = nil
 	self#handler_buffered = nil
-	self#buffered_filled = false
 	self#state = WAITING_HEADER
 
 server_conn_handler met# Close = err:Error
@@ -323,6 +321,8 @@ server_conn_handler met# Close = err:Error
 	except = err
 
 server_conn_handler met can_progress e:ev.Event = Bool
+	-- Note: even in non-TLS HTTP, making progress can involve both READ or
+	-- WRITE when a 100-Continue is expected.
 	match self.state
 	| WAITING_HEADER -> return READ in e.Got
 	| HANDLING -> return READ in e.Got or WRITE in e.Got or MANUAL in e.Got
@@ -352,6 +352,9 @@ server_conn_handler met# On e:ev.Event = err:Error
 			if err == syscall.EAGAIN
 				noop
 			elif err == syscall.EPIPE
+				self#state = CLOSE
+			elif err == io.EOF and self.state == WAITING_HEADER
+				-- We didn't read anything at all.
 				self#state = CLOSE
 			else
 				Log#Error "closing in state '%s' because of error: %s"
@@ -385,20 +388,20 @@ server_conn_handler met# On e:ev.Event = err:Error
 		except = self.server.poll#Register self.ev_close
 
 server_conn_handler met# waiting_header = Error
-	let rerr = self#bufr#Fill
+	while true
+		let _, rerr = self#bufr#Fill
 
-	if rerr != io.EOF and rerr != syscall.EAGAIN
-		except = rerr
+		if is_header_loaded self.bufr
+			break
 
-	if self.bufr.Buffered == 0 and rerr == io.EOF
-		self#state = CLOSE
-		return OK
-
-	if not is_header_loaded self.bufr
-		self.debug "header not loaded, count:" self.bufr.Buffered
 		if rerr == io.EOF
+			if self.bufr.Buffered == 0
+				-- We probably got a spurious READ event (maybe with RDHUP).
+				return rerr
+			self.debug "header not loaded, count:" self.bufr.Buffered
 			return ERR_MALFORMED_HEADER
-		return syscall.EAGAIN
+		if rerr == syscall.EAGAIN
+			return rerr
 
 	except = read_request_header #self#request !self!bufr self.conn.Remote_addr
 
@@ -445,16 +448,11 @@ server_conn_handler met# handling = Error
 server_conn_handler met# handling_buffered = Error
 	self.debug self.state
 
-	if not self.buffered_filled
-		Break
-		let rerr = self#request#Body#Fill
+	while true
+		let _, rerr = self#request#Body#Fill
 		if rerr == io.EOF
-			self#buffered_filled = true
-		elif rerr == syscall.EAGAIN
-			Break
-			return rerr
-		else
-			except = rerr
+			break
+		except = rerr
 
 	let handler_err = self.handler#On #self#response #self#request
 	if handler_err != OK

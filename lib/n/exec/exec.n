@@ -226,20 +226,20 @@ Cmd met# Run poll:#ev.Poll = Error within the_nanny
 
 Cmd met# On e:ev.Event = Error
 	Log#Debug "%s" e
-	if not ERROR in e.Got and WRITE in e.Got and e.Fd == self.pin_wr.Fd
+	if not ERROR in e.Got and ((WRITE in e.Got and e.Fd == self.pin_wr.Fd) or MANUAL in e.Got)
 		let _, err = self!stdin_copier#Copy
 		if err == io.EOF
 			never = self!poll!Register {Fd=self.pin_wr.Fd Ask={CLOSE}}
-		elif err != OK and err != syscall.EAGAIN
-			return err
+		elif err != syscall.EAGAIN
+			except = err
 	if READ in e.Got and e.Fd == self.pout_rd.Fd
 		let _, err = self!stdout_copier#Copy
-		if err != OK and err != io.EOF and err != syscall.EAGAIN
-			return err
+		if err != io.EOF and err != syscall.EAGAIN
+			except = err
 	if READ in e.Got and e.Fd == self.perr_rd.Fd
 		let _, err = self!stderr_copier#Copy
-		if err != OK and err != io.EOF and err != syscall.EAGAIN
-			return err
+		if err != io.EOF and err != syscall.EAGAIN
+			except = err
 
 	if CLOSE in e.Got and e.Fd == self.pin_wr.Fd
 		never = self!pin_wr!Close
