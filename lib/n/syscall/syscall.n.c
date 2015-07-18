@@ -331,12 +331,20 @@ static SY_int SY(renameat)(SY_int olddirfd, NB(U8) *oldpath,
 }
 
 static NB(Int) SY(write)(SY_int fd, NB(U8) *buf, NB(Uint) count) {
+  // write(2) says that on a short write, it *may* report an error. We hope
+  // it sets errno whenever there is a short write, even if no error has
+  // been detected. But we don't trust it.
+  errno = 0;
   ssize_t ret = write(fd, buf, count);
   _$Nlatestsyscallerrno = errno;
   return ret;
 }
 
 static NB(Int) SY(pwrite)(SY_int fd, NB(U8) *buf, NB(Uint) count, NB(Uint) off) {
+  // pwrite(2) says that on a short write, it *may* report an error. We hope
+  // it sets errno whenever there is a short write, even if no error has
+  // been detected. But we don't trust it.
+  errno = 0;
   ssize_t ret = pwrite(fd, buf, count, off);
   _$Nlatestsyscallerrno = errno;
   return ret;

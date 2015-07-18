@@ -665,13 +665,33 @@ fun Renameat olddirfd:Fd oldpath:String newdirfd:Fd newpath:String flags:U32 = E
 fun Write fd:Fd b:[]U8 = []U8, Error
 	let cnt = write fd.Sys_number b.Unsafe_rawdata b.Count
 	if cnt >= 0
-		return b.[cnt.Unsigned ..], OK
+		let rb = b.[cnt.Unsigned ..]
+		if rb.Count > 0
+			-- Short write.
+			let err = convert_error errno such
+				-- See syscall.n.c: we clear errno before
+				-- the syscall to make this comparison
+				-- sound.
+				if err == OK
+					err = io.SHORT_WRITE
+			return rb, err
+		return rb, OK
 	return b, convert_error errno
 
 fun Pwrite fd:Fd b:[]U8 off:Uint = []U8, Error
 	let cnt = pwrite fd.Sys_number b.Unsafe_rawdata b.Count off
 	if cnt >= 0
-		return b.[cnt.Unsigned ..], OK
+		let rb = b.[cnt.Unsigned ..]
+		if rb.Count > 0
+			-- Short write.
+			let err = convert_error errno such
+				-- See syscall.n.c: we clear errno before
+				-- the syscall to make this comparison
+				-- sound.
+				if err == OK
+					err = io.SHORT_WRITE
+			return rb, err
+		return rb, OK
 	return b, convert_error errno
 
 fun Read fd:Fd b:[!]U8 = r:[!]U8, Error
