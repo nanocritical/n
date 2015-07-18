@@ -6,9 +6,9 @@ import n.syscall
 import n.bench
 
 inline struct Time =
-	isa `Ordered
+	isa `Ordered `Hashable32
 	sec	:Int
-	nsec	:U32
+	nsec	:U32 -- Always normalized.
 	-- No location field* Operations that depend on it would take it as an
 	-- argument..
 
@@ -75,6 +75,10 @@ inline Time met Operator_gt other:*this = Bool
 
 inline Time met Is_zero = Bool
 	return self.sec == 0 and self.nsec == 0
+
+inline Time met Hash32 = U32
+	let u = (self.nsec.U64 ov<< 32) ^ self.sec.I64.Bitwise_unsigned
+	return u.Hash32
 
 example
 	let t = {sec=1 nsec=500_000_000}:Time
