@@ -1,48 +1,45 @@
-Debug [ev.n:163 sys_wait]: 
-Debug [ev.n:181 sys_wait]: 1 
-Debug [exec.n:218 On]: {WRITE} on 7
-Debug [ev.n:163 sys_wait]: 
-Debug [ev.n:181 sys_wait]: 4 
-Debug [exec.n:218 On]: {WRITE ERROR} on 7
-Debug [exec.n:218 On]: {HUP} on 8
-Debug [exec.n:218 On]: {HUP} on 10
-Debug [exec.n:304 On]: {READ} on 6
-Debug [exec.n:342 On]: remove signalfd from poll
-Debug [ev.n:163 sys_wait]: 
-Debug [exec.n:218 On]: {CLOSE} on 7
-Debug [exec.n:218 On]: {CLOSE} on 8
-Debug [exec.n:218 On]: {CLOSE} on 10
-Debug [ev.n:163 sys_wait]: 
-Debug [ev.n:181 sys_wait]: 1 
-Debug [exec.n:218 On]: {WRITE} on 9
-Debug [ev.n:163 sys_wait]: 
-Debug [ev.n:181 sys_wait]: 1 
-Debug [exec.n:218 On]: {READ} on 10
-Debug [ev.n:163 sys_wait]: 
-Debug [ev.n:181 sys_wait]: 3 
-Debug [exec.n:218 On]: {WRITE ERROR} on 9
-Debug [exec.n:218 On]: {HUP} on 10
-Debug [exec.n:218 On]: {HUP} on 12
-Debug [ev.n:163 sys_wait]: 
-Debug [ev.n:181 sys_wait]: 1 
-Debug [exec.n:304 On]: {READ} on 6
-Debug [exec.n:342 On]: remove signalfd from poll
-Debug [ev.n:163 sys_wait]: 
-Debug [exec.n:218 On]: {CLOSE} on 12
-Debug [exec.n:218 On]: {CLOSE} on 10
-Debug [exec.n:218 On]: {CLOSE} on 9
-Debug [ev.n:163 sys_wait]: 
-Debug [ev.n:181 sys_wait]: 1 
-Debug [exec.n:95 On]: {WRITE} on 10
-Debug [ev.n:163 sys_wait]: 
-Debug [exec.n:95 On]: {CLOSE} on 10
-Debug [ev.n:181 sys_wait]: 2 
-Debug [exec.n:95 On]: {READ HUP} on 11
-Debug [exec.n:218 On]: {HUP} on 13
-Debug [ev.n:163 sys_wait]: 
-Debug [exec.n:95 On]: {CLOSE} on 11
-Debug [ev.n:181 sys_wait]: 1 
-Debug [exec.n:304 On]: {READ} on 6
-Debug [exec.n:342 On]: remove signalfd from poll
-Debug [ev.n:163 sys_wait]: 
-Debug [exec.n:218 On]: {CLOSE} on 13
+Debug [ev.n:212 sys_wait]: 
+Debug [ev.n:224 sys_wait]: 1 
+Debug [exec.n:235 On]: {WRITE} on 7
+Debug [exec.n:235 On]: {CLOSE} on 7
+Debug [ev.n:212 sys_wait]: 
+Debug [ev.n:224 sys_wait]: 3 
+Debug [exec.n:235 On]: {HUP} on 8
+Debug [exec.n:235 On]: {HUP} on 10
+Debug [exec.n:346 On]: {READ} on 6
+Debug [exec.n:389 On]: remove signalfd from poll
+Debug [exec.n:235 On]: {CLOSE} on 10
+Debug [exec.n:235 On]: {CLOSE} on 8
+Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close
+Debug [ev.n:212 sys_wait]: 
+Debug [ev.n:224 sys_wait]: 1 
+Debug [exec.n:235 On]: {WRITE} on 8
+Debug [exec.n:235 On]: {CLOSE} on 8
+Debug [ev.n:212 sys_wait]: 
+Debug [ev.n:224 sys_wait]: 1 
+Debug [exec.n:235 On]: {READ} on 9
+except: lib/n/exec/exec.n:254: On: Error: WOULD_BLOCK: Operation would block
+Debug [ev.n:212 sys_wait]: 
+Debug [ev.n:224 sys_wait]: 3 
+Debug [exec.n:235 On]: {HUP} on 9
+Debug [exec.n:235 On]: {HUP} on 11
+Debug [exec.n:346 On]: {READ} on 6
+Debug [exec.n:389 On]: remove signalfd from poll
+Debug [exec.n:235 On]: {CLOSE} on 9
+Debug [exec.n:235 On]: {CLOSE} on 11
+Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close
+Debug [ev.n:212 sys_wait]: 
+Debug [ev.n:224 sys_wait]: 1 
+Debug [exec.n:105 On]: {WRITE} on 8
+Debug [exec.n:105 On]: {CLOSE} on 8
+Debug [ev.n:212 sys_wait]: 
+Debug [ev.n:224 sys_wait]: 2 
+Debug [exec.n:105 On]: {READ HUP} on 9
+Debug [exec.n:235 On]: {HUP} on 11
+Debug [exec.n:105 On]: {CLOSE} on 9
+Debug [ev.n:212 sys_wait]: 
+Debug [ev.n:224 sys_wait]: 1 
+Debug [exec.n:346 On]: {READ} on 6
+Debug [exec.n:389 On]: remove signalfd from poll
+Debug [exec.n:235 On]: {CLOSE} on 11
+Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close
