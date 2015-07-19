@@ -6,6 +6,7 @@ import n.net.http
 import n.net.url
 import n.logging
 import n.syscall
+import n.bufio
 
 within logging.Log
 
@@ -25,11 +26,11 @@ handler met# On r:#http.Response w:#http.`Request_writer = Error
 		self#copier#Reset #self#buf #r#Body
 		self#state += 1
 
-	_, drop = r#Body#Fill
+	let _, fill_err = r#Body#Fill
 
 	let _, err = self#copier#Copy
-	if err == syscall.EAGAIN
-		return err
+	if err == bufio.NEED_FILL and fill_err == io.WOULD_BLOCK
+		return fill_err
 	if err != io.EOF
 		return err
 
@@ -49,7 +50,7 @@ fun test = Error
 
 	while poll.Has_waiters
 		let wait_err, e = poll!Wait
-		if wait_err == syscall.EAGAIN
+		if wait_err == io.WOULD_BLOCK
 			continue
 		except = wait_err
 
@@ -57,7 +58,7 @@ fun test = Error
 			break
 
 		let err = e.Handler#On e
-		if err == syscall.EAGAIN
+		if err == io.WOULD_BLOCK
 			continue
 
 		if err != OK

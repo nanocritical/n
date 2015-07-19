@@ -3,6 +3,7 @@ import n.syscall
 import n.time
 import n.unsafe
 import n.fmt
+import n.io
 import n.logging
 
 within logging.Log
@@ -160,7 +161,7 @@ Poll met! process_manuals = Error
 		self#Current_handler = h
 		let err = h#On {Got={MANUAL} Handler=h}
 		self#Current_handler = nil
-		if err == syscall.EWOULDBLOCK or err == syscall.EAGAIN
+		if err == io.WOULD_BLOCK
 			keep#Push# = h
 			continue
 		if err != OK
@@ -187,7 +188,7 @@ Poll met! process_closes = closed_some:Bool
 			let err = e_close.Handler#On e_close
 			self#Current_handler = nil
 
-			if err == syscall.EWOULDBLOCK or err == syscall.EAGAIN
+			if err == io.WOULD_BLOCK
 				continue
 			if err != OK
 				Log#Warning "Handler error on CLOSE: %s" err
@@ -201,6 +202,12 @@ Poll met! process_closes = closed_some:Bool
 
 		closed_some = true
 
+-- In a few places, we introduce a pseudo io.WOULD_BLOCK that does not come
+-- from a syscall. In general that's a terrible idea, but here it let's us
+-- communicate the right idea to Loop or other similar code.
+fun pseudo_would_block = Error
+	return io.WOULD_BLOCK
+
 Poll met! sys_wait timeout:?time.Duration = Error
 	Log#Debug ""
 
@@ -210,7 +217,7 @@ Poll met! sys_wait timeout:?time.Duration = Error
 		\ (timeout?.Millisec else -1) nil
 	self#sleeping = false
 	if err == syscall.EINTR
-		return syscall.EAGAIN
+		return pseudo_would_block
 
 	self!pending = res
 
@@ -229,10 +236,10 @@ Poll met! Wait ?timeout:?time.Duration = Error, e:Event
 			-- waiters anymore. If we're called again, then we'll block
 			-- on the syscall.
 			-- This is a "spurious" wakeup, we don't return OK.
-			return syscall.EAGAIN, NONE
+			return pseudo_would_block, NONE
 
 		let err = self!sys_wait timeout
-		if err == syscall.EAGAIN
+		if err == io.WOULD_BLOCK
 			return err, NONE
 		except = err
 
@@ -251,14 +258,14 @@ Poll met! Wait ?timeout:?time.Duration = Error, e:Event
 fun Loop poll:#Poll ?continue_despite_handler_error:?Bool = Error
 	while poll.Has_waiters
 		let wait_err, e = poll!Wait
-		if wait_err == syscall.EAGAIN
+		if wait_err == io.WOULD_BLOCK
 			continue
 		except = wait_err
 
 		poll#Current_handler = e.Handler
 		let err = e.Handler#On e
 		poll#Current_handler = nil
-		if err == syscall.EAGAIN
+		if err == io.WOULD_BLOCK
 			continue
 
 		if err != OK

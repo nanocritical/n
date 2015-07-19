@@ -1,6 +1,19 @@
+-- See LICENSE for details. Originally derived from go/src/pkg/bufio
+-- Copyright 2009 The Go Authors. All rights reserved.
+
+-- Note that while the spirit of the interfaces defined here may seem similar
+-- to Go's bufio, in reality N's bufio behaves very differently. We're careful
+-- to trigger I/O on the underlying streams only in the Fill and Flush methods.
+-- By contrast, Go's bufio.Reader calls Read() even inside of Peek().
+-- In N, we assume the caller may very much care about where I/O happens. In
+-- this sense, bufio is much lower-level than in Go.
+
 from n import *
 import n.io
 import n.fmt
+
+let NEED_FILL = {Why=*"NEED_FILL: buffer empty"}:Error
+let NEED_FLUSH = {Why=*"NEED_FLUSH: buffer full"}:Error
 
 -- bufio.`Reader has no Fill method, see bufio.`Fillable_reader.
 -- This allows for buffered readers that can be transparently filled (e.g.
@@ -37,7 +50,7 @@ intf `Fillable_reader =
 	-- Like io.`Read, short reads need not return an error, unless they
 	-- read nothing at all.
 	--
-	-- An error returned here will also be returned when calls to Read
+	-- io.EOF returned here will also be returned when calls to Read
 	-- reach the end of the buffered output, unless Fill is called in
 	-- between.
 	met# Fill ?max:?Uint = just_filled:Uint, Error
@@ -87,7 +100,7 @@ inline struct Reader =
 	buf		:Stringbuf
 	pending		:String
 	copier		:io.Copier
-	fill_err	:Error
+	saw_eof		:Bool
 
 Reader fun Mk r:#io.`Reader = ret:this
 	ret#r = r
@@ -104,7 +117,9 @@ Reader met# Read b:[!]U8 = [!]U8, Error
 		return self#bufr#Read b
 
 	if self.Buffered == 0
-		return b, self.fill_err
+		if self.saw_eof
+			return b, io.EOF
+		return b, NEED_FILL
 
 	let before = b.Count
 	let result = b!Append self.pending.Bytes
@@ -125,17 +140,16 @@ Reader met# Fill ?max:?Uint = just_filled:Uint, Error
 	if self#bufr?
 		-- If it's not fillable, then it's already filled.
 		-- Likely it's something like a bufio.Bytes_reader.
-		self#fill_err = io.EOF
-		return 0, self.fill_err
+		return 0, io.EOF
 
 	self#buf#Copy_from self.pending.Bytes
 	just_filled = self.pending.Count
-	var written
-	written, self#fill_err = self!copier#Copy max=max
+	let written, fill_err = self!copier#Copy max=max
 	just_filled += written
 	self#pending = self.buf.String
 
-	return just_filled, self.fill_err
+	self#saw_eof = fill_err == io.EOF
+	return just_filled, fill_err
 
 -- Does not Fill more data. Does not advance.
 -- The returned slice is valid until the next call to Fill.
@@ -218,7 +232,7 @@ example reader
 	var err = OK
 
 	b, err = r#Read b
-	assert b.Count == 0 and err == OK
+	assert b.Count == 0 and err == NEED_FILL
 
 	var cnt
 	cnt, except = r#Fill max=4
@@ -519,6 +533,9 @@ Limited_reader met# Fill ?max:?Uint = just_filled:Uint, Error
 	let buffered_before = self.R.Buffered
 	let just_filled, err = self#R#Fill max=(Min self.left_fill (max else Uint.MAX))
 	self!left_fill -= self.R.Buffered - buffered_before
+
+	if self.left_fill == 0
+		return just_filled, io.EOF
 	return just_filled, err
 
 Limited_reader met# Read b:[!]U8 = rb:[!]U8, rerr:Error

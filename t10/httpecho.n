@@ -53,7 +53,7 @@ fun test = Error
 	--	except = poll!Loop
 	while true
 		let wait_err, e = poll!Wait
-		if wait_err == syscall.EAGAIN
+		if wait_err == io.WOULD_BLOCK
 			continue
 		except = wait_err
 
@@ -61,7 +61,7 @@ fun test = Error
 			break
 
 		let err = e.Handler#On e
-		if err == syscall.EAGAIN
+		if err == io.WOULD_BLOCK
 			continue
 
 		if err != OK

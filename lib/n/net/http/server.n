@@ -165,7 +165,7 @@ response_writer met# Write_header status_code:Uint
 
 response_writer met# Flush ?max:?Uint = Error
 	let err = self#bufw#Flush max=max
-	if err == syscall.EAGAIN
+	if err == io.WOULD_BLOCK
 		return err
 	if err != OK
 		self!close_because_of = err
@@ -293,7 +293,7 @@ server_conn_handler met# Close = err:Error
 			let left, err = self#conn#Read hole
 			if err == io.EOF
 				break
-			if err == syscall.EAGAIN
+			if err == io.WOULD_BLOCK
 				-- We'll get a HUP when the client closes:
 				-- so we will eventually get back in this
 				-- function.
@@ -309,7 +309,7 @@ server_conn_handler met# Close = err:Error
 		-- Already closed
 		err = OK
 
-	if err == syscall.EWOULDBLOCK
+	if err == io.WOULD_BLOCK
 		return err
 
 	-- If other error, give up trying to close it.
@@ -349,7 +349,7 @@ server_conn_handler met# On e:ev.Event = err:Error
 			| CLOSE -> stop = true
 		catch err
 			stop = true
-			if err == syscall.EAGAIN
+			if err == io.WOULD_BLOCK
 				noop
 			elif err == syscall.EPIPE
 				self#state = CLOSE
@@ -376,7 +376,7 @@ server_conn_handler met# On e:ev.Event = err:Error
 
 	if CLOSE in e.Got
 		let close_err = self#Close
-		if close_err == syscall.EWOULDBLOCK or close_err == syscall.EAGAIN
+		if close_err == io.WOULD_BLOCK
 			return close_err
 		Free self
 		return OK
@@ -400,7 +400,7 @@ server_conn_handler met# waiting_header = Error
 				return rerr
 			self.debug "header not loaded, count:" self.bufr.Buffered
 			return ERR_MALFORMED_HEADER
-		if rerr == syscall.EAGAIN
+		if rerr == io.WOULD_BLOCK
 			return rerr
 
 	except = read_request_header #self#request !self!bufr self.conn.Remote_addr
@@ -433,7 +433,7 @@ server_conn_handler met# handling = Error
 
 	let handler_err = self.handler#On #self#response #self#request
 
-	if handler_err == syscall.EAGAIN or handler_err == syscall.EWOULDBLOCK
+	if handler_err == io.WOULD_BLOCK
 		return handler_err
 
 	if handler_err != OK
@@ -483,7 +483,7 @@ server_conn_handler met# flush = Error
 	self#response#finalize
 
 	let err = self#response#Flush
-	if err == syscall.EAGAIN
+	if err == io.WOULD_BLOCK
 		return err
 	except = err
 
@@ -523,7 +523,7 @@ Server met# On e:ev.Event = Error
 		err, conn# = self.listening.Accept
 		if err != OK
 			Free conn
-			if err != syscall.EAGAIN and err != syscall.EWOULDBLOCK
+			if err != io.WOULD_BLOCK
 				Log#Error "Accept failed with: %s" err
 			return err
 

@@ -9,7 +9,12 @@ let SHORT_READ = {Why=*"SHORT_READ: Short read"}:Error
 let SHORT_WRITE = {Why=*"SHORT_WRITE: Short write"}:Error
 let SHORT_BUFFER = {Why=*"SHORT_BUFFER: Short buffer"}:Error
 let UNEXPECTED_EOF = {Why=*"UNEXPECTED_EOF: Unexpected EOF"}:Error
-let AGAIN = {Why=*"AGAIN: Operation would block"}:Error
+
+-- We just tried to perform system I/O, but it would have blocked/hanged the
+-- process. Should only be returned by the syscall module.
+-- Use case when used in conjunction with edge-triggered polling.
+let WOULD_BLOCK = {Why=*"WOULD_BLOCK: Operation would block"}:Error
+
 
 let chunk_size = 4096
 

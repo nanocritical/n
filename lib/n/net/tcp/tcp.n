@@ -105,7 +105,7 @@ Conn met Fd = syscall.Fd
 Conn met# Close = Error
 	if self.fd.Is_valid
 		let err = syscall.Close self#fd
-		if err == syscall.EWOULDBLOCK
+		if err == io.WOULD_BLOCK
 			return err
 		self#fd = {}
 		return err
@@ -151,7 +151,7 @@ Socket met# Close = Error
 		let err = syscall.Close self#sockfd
 		-- In case SO_LINGER is used on a non-blocking socket. But you
 		-- probably shouldn't be doing that, right?
-		if err == syscall.EWOULDBLOCK
+		if err == io.WOULD_BLOCK
 			return err
 		self#sockfd = {}
 		return err

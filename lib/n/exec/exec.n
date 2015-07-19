@@ -35,9 +35,9 @@ inline struct Cmd =
 
 	Wd	:?!fs.File
 
-	Stdin	:?#io.`Reader
-	Stdout	:?#io.`Writer
-	Stderr	:?#io.`Writer
+	Stdin	:?#bufio.`Fillable_reader
+	Stdout	:?#bufio.`Flushable_writer
+	Stderr	:?#bufio.`Flushable_writer
 
 	Completion	:?#`Completion_handler
 
@@ -48,6 +48,9 @@ inline struct Cmd =
 	stdin_empty	:bufio.Bytes_reader
 	stdout_discard	:ioutil.Discard
 	stderr_discard	:ioutil.Discard
+	buf_stdin_empty		:bufio.Reader
+	buf_stdout_discard	:bufio.Writer
+	buf_stderr_discard	:bufio.Writer
 
 	stdin_copier	:io.Copier
 	stdout_copier	:io.Copier
@@ -81,7 +84,8 @@ example cmd_nonblocking_buffers
 	except = poll#Init
 
 	var buf:Stringbuf
-	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo -n test"} Stdout=#buf Stderr=#buf}:Cmd
+	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo -n test"}
+		\ Stdout=#(bufio.Writer.Mk #buf) Stderr=#(bufio.Writer.Mk #buf)}:Cmd
 	let except = cmd#Run #poll
 
 	except = ev.Loop #poll
@@ -152,17 +156,20 @@ Cmd met# init_pipes = Error
 
 	if not self.using_pin
 		if not self.Stdin?
-			self#Stdin = #self#stdin_empty
+			self#buf_stdin_empty = bufio.Reader.Mk #self#stdin_empty
+			self#Stdin = #self#buf_stdin_empty
 		self#stdin_copier#Reset self#pin_wr self.Stdin
 
 	if not self.using_pout
 		if not self.Stdout?
-			self#Stdout = #self#stdout_discard
+			self#buf_stdout_discard = bufio.Writer.Mk #self#stderr_discard
+			self#Stdout = #self#buf_stdout_discard
 		self#stdout_copier#Reset self.Stdout self#pout_rd
 
 	if not self.using_perr
 		if not self.Stderr?
-			self#Stderr = #self#stderr_discard
+			self#buf_stderr_discard = bufio.Writer.Mk #self#stderr_discard
+			self#Stderr = #self#buf_stderr_discard
 		self#stderr_copier#Reset self.Stderr self#perr_rd
 
 
@@ -226,19 +233,31 @@ Cmd met# Run poll:#ev.Poll = Error within the_nanny
 
 Cmd met# On e:ev.Event = Error
 	Log#Debug "%s" e
-	if not ERROR in e.Got and ((WRITE in e.Got and e.Fd == self.pin_wr.Fd) or MANUAL in e.Got)
+	if not ERROR in e.Got and (
+		\ (WRITE in e.Got and e.Fd == self.pin_wr.Fd)
+		\ or (MANUAL in e.Got and self.pin_wr.Fd.Is_valid) -- Maybe we already closed it.
+		\ )
+		let _, fill_err = self#Stdin#Fill
 		let _, err = self!stdin_copier#Copy
 		if err == io.EOF
 			never = self!poll!Register {Fd=self.pin_wr.Fd Ask={CLOSE}}
-		elif err != syscall.EAGAIN
+		elif err == bufio.NEED_FILL
+			except = fill_err
+		else
 			except = err
 	if READ in e.Got and e.Fd == self.pout_rd.Fd
 		let _, err = self!stdout_copier#Copy
-		if err != io.EOF and err != syscall.EAGAIN
+		let flush_err = self#Stdout#Flush
+		if flush_err == io.WOULD_BLOCK
+			except = flush_err
+		if err != io.EOF
 			except = err
 	if READ in e.Got and e.Fd == self.perr_rd.Fd
 		let _, err = self!stderr_copier#Copy
-		if err != io.EOF and err != syscall.EAGAIN
+		let flush_err = self#Stderr#Flush
+		if flush_err == io.WOULD_BLOCK
+			except = flush_err
+		if err != io.EOF
 			except = err
 
 	if CLOSE in e.Got and e.Fd == self.pin_wr.Fd
@@ -331,7 +350,7 @@ nanny met# On e:ev.Event = Error
 	while true
 		var si:syscall.Signalfd_siginfo
 		let left, err = syscall.Read self.signalfd si#Raw
-		if err == syscall.EAGAIN
+		if err == io.WOULD_BLOCK
 			break
 		if err != OK or left.Available != 0
 			Log#Critical "nanny: failed to read Signalfd_siginfo with: %s" err

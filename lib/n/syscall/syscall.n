@@ -296,7 +296,7 @@ fun convert_error code:int = Error
 	| _ENOEXEC -> return ENOEXEC
 	| _EBADF -> return EBADF
 	| _ECHILD -> return ECHILD
-	| _EAGAIN -> return EAGAIN
+	| _EAGAIN -> return io.WOULD_BLOCK
 	| _ENOMEM -> return ENOMEM
 	| _EACCES -> return EACCES
 	| _EFAULT -> return EFAULT
@@ -326,7 +326,7 @@ fun convert_error code:int = Error
 	| _ENOSYS -> return ENOSYS
 	| _ENOTEMPTY -> return ENOTEMPTY
 	| _ELOOP -> return ELOOP
-	| _EWOULDBLOCK -> return EWOULDBLOCK
+	| _EWOULDBLOCK -> return io.WOULD_BLOCK
 	| _ENOMSG -> return ENOMSG
 	| _EIDRM -> return EIDRM
 	| _ECHRNG -> return ECHRNG

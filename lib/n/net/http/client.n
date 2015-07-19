@@ -113,7 +113,7 @@ request_writer met# Write_header
 
 request_writer met# Flush ?max:?Uint = Error
 	let err = self#bufw#Flush max=max
-	if err == syscall.EAGAIN
+	if err == io.WOULD_BLOCK
 		return err
 	if err != OK
 		self!close_because_of = err
@@ -281,7 +281,7 @@ client_conn_handler met# Close = err:Error
 		-- Already closed
 		err = OK
 
-	if err == syscall.EWOULDBLOCK
+	if err == io.WOULD_BLOCK
 		return err
 
 	-- If other error, give up trying to close it.
@@ -321,7 +321,7 @@ client_conn_handler met# On e:ev.Event = err:Error
 			| CLOSE -> stop = true
 		catch err
 			stop = true
-			if err == syscall.EAGAIN
+			if err == io.WOULD_BLOCK
 				noop
 			elif err == syscall.EPIPE
 				self#state = CLOSE
@@ -345,7 +345,7 @@ client_conn_handler met# On e:ev.Event = err:Error
 
 	if CLOSE in e.Got
 		let close_err = self#Close
-		if close_err == syscall.EWOULDBLOCK or close_err == syscall.EAGAIN
+		if close_err == io.WOULD_BLOCK
 			return close_err
 		Free self
 		return OK
@@ -390,7 +390,7 @@ client_conn_handler met# flush = Error
 	self#request#finalize
 
 	let err = self#request#Flush
-	if err == syscall.EAGAIN
+	if err == io.WOULD_BLOCK
 		return err
 	except = err
 
@@ -409,7 +409,7 @@ client_conn_handler met# waiting_header = Error
 				return rerr
 			self.debug "header not loaded, count:" self.bufr.Buffered
 			return ERR_MALFORMED_HEADER
-		if rerr == syscall.EAGAIN
+		if rerr == io.WOULD_BLOCK
 			return rerr
 
 	except = read_response_header #self#response !self!bufr self.conn.Remote_addr
