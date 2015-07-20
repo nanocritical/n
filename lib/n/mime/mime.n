@@ -1,0 +1,13 @@
+from n import *
+import n.path
+
+fun Type_by_extension ext:path.Path = r:Stringbuf
+	if ext == ".css" -> r#Set "text/css; charset=utf-8"
+	if ext == ".gif" -> r#Set "image/gif"
+	if ext == ".htm" -> r#Set "text/html; charset=utf-8"
+	if ext == ".html" -> r#Set "text/html; charset=utf-8"
+	if ext == ".jpg" -> r#Set "image/jpeg"
+	if ext == ".js" -> r#Set "application/x-javascript"
+	if ext == ".pdf" -> r#Set "application/pdf"
+	if ext == ".png" -> r#Set "image/png"
+	if ext == ".xml" -> r#Set "text/xml; charset=utf-8"
