@@ -645,7 +645,7 @@ fun Symlinkat target:String newdirfd:Fd linkpath:String = Error
 	return convert_error errno
 
 fun Readlinkat dirfd:Fd pathname:String buf:[!]U8 = Error, []U8
-	let dst = buf![buf.Count .. buf.Cap]
+	let dst = buf!Available_elements
 	let ret = readlinkat dirfd.Sys_number (cstring.Mk pathname).Rawdata
 		\ dst!Unsafe_rawdata dst.Count
 	if ret >= 0
@@ -695,7 +695,7 @@ fun Pwrite fd:Fd b:[]U8 off:Uint = []U8, Error
 	return b, convert_error errno
 
 fun Read fd:Fd b:[!]U8 = r:[!]U8, Error
-	let dst = b![b.Count .. b.Cap]
+	let dst = b!Available_elements
 	let cnt = read fd.Sys_number dst!Unsafe_rawdata dst.Count
 	if cnt >= 0
 		r = b![.. b.Count+cnt.Unsigned]
@@ -705,7 +705,7 @@ fun Read fd:Fd b:[!]U8 = r:[!]U8, Error
 	return b, convert_error errno
 
 fun Pread fd:Fd b:[!]U8 off:Uint = r:[!]U8, Error
-	let dst = b![b.Count .. b.Cap]
+	let dst = b!Available_elements
 	let cnt = pread fd.Sys_number dst!Unsafe_rawdata dst.Count off
 	if cnt >= 0
 		r = b![.. b.Count+cnt.Unsigned]
@@ -760,17 +760,19 @@ fun Fsetxattr fd:Fd name:String value:String flags:I32 = Error
 		return OK
 	return convert_error errno
 
-fun Fgetxattr fd:Fd name:String value:[!]U8 flags:I32 = Error, Int
-	let r = fgetxattr fd.Sys_number (cstring.Mk name).Rawdata value!Unsafe_rawdata value.Count
+fun Fgetxattr fd:Fd name:String value:[!]U8 flags:I32 = Error, [!]U8
+	let dst = value!Available_elements
+	let r = fgetxattr fd.Sys_number (cstring.Mk name).Rawdata dst!Unsafe_rawdata dst.Count
 	if r >= 0
-		return OK, r
-	return convert_error errno, 0
+		return OK, value![.. value.Count + r.Unsigned]
+	return convert_error errno, value
 
-fun Flistxattr fd:Fd list:[!]U8 = Error, Int
-	let r = flistxattr fd.Sys_number list!Unsafe_rawdata list.Count
+fun Flistxattr fd:Fd list:[!]U8 = Error, [!]U8
+	let dst = list!Available_elements
+	let r = flistxattr fd.Sys_number dst!Unsafe_rawdata dst.Count
 	if r >= 0
-		return OK, r
-	return convert_error errno, 0
+		return OK, list![.. list.Count + r.Unsigned]
+	return convert_error errno, list
 
 example
 	let fn = ".test_syscall"
@@ -1100,7 +1102,7 @@ fun Epoll_ctl epfd:Fd op:I32 fd:Fd event:*Epoll_event = Error
 
 -- Append to the events slice in the available space.
 fun Epoll_pwait epfd:Fd events:[!]Epoll_event timeout:Int raw_sigmask:?*U8 = Error, [!]Epoll_event
-	let dst = events![events.Count .. events.Cap]
+	let dst = events!Available_elements
 	let ret = epoll_pwait epfd.Sys_number dst#Unsafe_rawdata dst.Count timeout raw_sigmask
 	if ret >= 0
 		return OK, events![events.Count .. events.Count + (Min ret.Unsigned.Uint dst.Count)]
