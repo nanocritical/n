@@ -842,6 +842,54 @@ static SY_int SY(waitpid)(SY_int pid, SY_int *status, SY_int options) {
   return ret;
 }
 
+static void tm_sys(struct tm *sys, const struct SY(Tm) *tm) {
+  sys->tm_sec = tm->Sec;
+  sys->tm_min = tm->Min;
+  sys->tm_hour = tm->Hour;
+  sys->tm_mday = tm->Mday;
+  sys->tm_mon = tm->Mon;
+  sys->tm_year = tm->Year;
+  sys->tm_wday = tm->Wday;
+  sys->tm_yday = tm->Yday;
+  sys->tm_isdst = tm->Isdst;
+}
+
+static void sys_tm(struct SY(Tm) *tm, const struct tm *sys) {
+  tm->Sec = sys->tm_sec;
+  tm->Min = sys->tm_min;
+  tm->Hour = sys->tm_hour;
+  tm->Mday = sys->tm_mday;
+  tm->Mon = sys->tm_mon;
+  tm->Year = sys->tm_year;
+  tm->Wday = sys->tm_wday;
+  tm->Yday = sys->tm_yday;
+  tm->Isdst = sys->tm_isdst;
+}
+
+struct SY(Tm) *SY(Gmtime_r)(NB(I64) *timep, struct SY(Tm) *result) {
+  struct tm sys = { 0 };
+  if (gmtime_r(timep, &sys) == NULL) {
+    return NULL;
+  }
+  sys_tm(result, &sys);
+  return result;
+}
+
+struct SY(Tm) *SY(Localtime_r)(NB(I64) *timep, struct SY(Tm) *result) {
+  struct tm sys = { 0 };
+  if (localtime_r(timep, &sys) == NULL) {
+    return NULL;
+  }
+  sys_tm(result, &sys);
+  return result;
+}
+
+NB(Uint) SY(strftime)(NB(U8) *s, NB(Uint) max, NB(U8) *format, struct SY(Tm) *tm) {
+  struct tm sys = { 0 };
+  tm_sys(&sys, tm);
+  return strftime((char *)s, max, (const char *)format, &sys);
+}
+
 #endif
 
 #undef SY

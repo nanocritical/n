@@ -1276,3 +1276,26 @@ fun Waitpid for_pid:Int options:I32 = Error, pid:Int, status:I32
 	if ret >= 0
 		return OK, ret.Int, st
 	return convert_error errno, 0, 0
+
+
+inline struct Tm =
+	Sec	:I32
+	Min	:I32
+	Hour	:I32
+	Mday	:I32
+	Mon	:I32
+	Year	:I32
+	Wday	:I32
+	Yday	:I32
+	Isdst	:I32
+
+extern fun Gmtime_r timep:*I64 result:#Tm = ?*Tm
+extern fun Localtime_r timep:*I64 result:#Tm = ?*Tm
+
+extern fun strftime s:*U8 max:Uint format:*U8 tm:*Tm = Uint
+
+-- If b.Count == r.Count, there may have been an error.
+fun Strftime b:[!]U8 format:String tm:*Tm = r:[!]U8
+	let dst = b!Available_elements
+	let ret = strftime dst#Unsafe_rawdata dst.Count (cstring.Mk format).Rawdata tm
+	return b![.. b.Count + ret]

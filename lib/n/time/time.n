@@ -6,7 +6,7 @@ import n.syscall
 import n.bench
 
 inline struct Time =
-	isa `Ordered `Hashable32
+	isa `Ordered `Hashable32 `Show
 	sec	:Int
 	nsec	:U32 -- Always normalized.
 	-- No location field* Operations that depend on it would take it as an
@@ -276,6 +276,31 @@ let days_before = {
 
 fun is_leap year:Int = Bool
 	return year%4 == 0 and (year%100 != 0 or year%400 == 0)
+
+
+-- By default, RFC3339 in UTC.
+Time met Show st:#fmt.`State
+	let tm:syscall.Tm such
+		_ = syscall.Gmtime_r self.As_unix_sec.I64 #tm
+	var buf:Stringbuf
+	buf#Reserve 128
+	let r = syscall.Strftime buf!Bytes "%Y-%m-%dT%TZ" tm
+	_, never = st#Write r
+
+Time met Strftime fmt:String = res:Stringbuf
+	let tm:syscall.Tm such
+		_ = syscall.Gmtime_r self.As_unix_sec.I64 #tm
+	res#Reserve 128
+	let r = syscall.Strftime res!Bytes fmt tm
+	res#Resize r.Count
+
+Time met Strftime_local fmt:String = res:Stringbuf
+	let tm:syscall.Tm such
+		_ = syscall.Localtime_r self.As_unix_sec.I64 #tm
+	res#Reserve 128
+	let r = syscall.Strftime res!Bytes fmt tm
+	res#Resize r.Count
+
 
 -- Truncates to 0.
 inline Duration met Sec = sec:Int
