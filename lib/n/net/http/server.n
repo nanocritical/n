@@ -119,10 +119,12 @@ response_writer met# write_header status_code:Uint b:[]U8
 	-- Cannot use Content-Length with non-identity Transfer-Encoding.
 	if self.chunking
 		header#Del "Content-Length"
-	if self.req.Proto_version < 10
-		return
 
-	if self.close_after_reply and (not keep_alives_enabled or not has_token ((header.Get "Connection")?.String else "") "close")
+	if self.req.Proto_version < 10
+		noop
+	elif self.close_after_reply
+		\ and (not keep_alives_enabled
+		\ or not has_token ((header.Get "Connection")?.String else "") "close")
 		header#Del "Connection"
 		if self.req.Proto_version >= 11
 			(header#Set "Connection")#Set <- "close"
