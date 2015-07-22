@@ -227,9 +227,9 @@ Poll met! Wait ?timeout:?time.Duration = Error, e:Event
 	if self.pending.Count == 0
 		var closed_some
 		while self.manuals.Count + self.closes.Count != 0
-			except = self!process_manuals
-
 			closed_some = self!process_closes or closed_some
+
+			except = self!process_manuals
 
 		if closed_some and not self.Has_waiters and self.Pending_events_count == 0
 			-- Give the caller a chance to notice that there are no
