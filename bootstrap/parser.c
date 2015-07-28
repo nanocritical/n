@@ -1365,7 +1365,7 @@ static ERROR p_for(struct node *node, struct module *mod,
   node_set_which(node, FOR);
   node->as.FOR.is_foreach = for_foreach == Tforeach;
 
-  error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_IN);
+  error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_OVER);
   EXCEPT(e);
 
   e = scan_expected(mod, Tin);

@@ -363,7 +363,7 @@ normal:
   "else" { R(Telse); }
   "foreach" { R(Tforeach); }
   "for" { R(Tfor); }
-  "in" { R(Tin); }
+  "over" { R(Tover); }
   "while" { R(Twhile); }
   "continue" { R(Tcontinue); }
   "break" { R(Tbreak); }
@@ -387,6 +387,7 @@ normal:
   "not" { R(Tnot); }
   "false" { R(Tfalse); }
   "true" { R(Ttrue); }
+  "in" { R(Tin); }
   "isa" { R(Tisa); }
   "nil" { R(Tnil); }
   "noop" { R(Tnoop); }
