@@ -769,7 +769,7 @@ static ERROR try_insert_dyn(struct node **src,
 
 static STEP_NM(step_dyn_inference,
                NM(RETURN) | NM(BIN) | NM(DEFNAME) | NM(TYPECONSTRAINT) |
-               NM(CALL) | NM(INIT));
+               NM(CALL) | NM(INIT) | NM(TUPLE));
 static ERROR step_dyn_inference(struct module *mod, struct node *node,
                                 void *user, bool *stop) {
   DSTEP(mod, node);
@@ -837,10 +837,20 @@ static ERROR step_dyn_inference(struct module *mod, struct node *node,
         n += 1;
       }
     }
-
-#undef GET_TYP
-
     return 0;
+
+  case TUPLE:
+    {
+      size_t n = 0;
+      FOREACH_SUB(x, node) {
+        src = x;
+        e = try_insert_dyn(&src, mod, node, typ_generic_arg(node->typ, n));
+        EXCEPT(e);
+        n += 1;
+      }
+    }
+    return 0;
+
   case INIT:
     if (typ_is_isalist_literal(node->typ)) {
       return 0;
