@@ -215,6 +215,7 @@ intf `Fs =
 
 	-- Act on a file* Called by File.
 	met! File_close f:!File = Error
+	met! File_dup f:*File = Error, #File
 	met! File_stat f:*File = Error, Stat
 	met File_readlink f:*File = Error, path.Path
 	met! File_datasync f:!File = Error
@@ -362,6 +363,15 @@ linux met! File_close f:!File = Error
 	self!stats!Current!Closed += 1
 	self!stats!Current!Maintain
 	return OK
+
+linux met! File_dup f:*File = Error, f2:#File
+	let except, fd = syscall.Dup f.fd
+	f2 = Alloc File
+	f2#fs = f.fs
+	f2#hidden = f.hidden
+	f2#name = f.name
+	f2#fd = fd
+	return OK, f2
 
 linux met! File_stat f:*File = Error, st:Stat
 	let flags = syscall.AT_SYMLINK_NOFOLLOW | syscall.AT_EMPTY_PATH

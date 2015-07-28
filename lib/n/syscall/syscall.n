@@ -551,6 +551,7 @@ extern fun getenv name:*U8 = ?*U8
 extern fun setenv name:*U8 value:*U8 overwrite:int = int
 extern fun mmap addr:Uintptr length:Uint prot:Mmap_prot flags:Mmap_flags fd:int offset:Uint = ?#U8
 extern fun munmap addr:#U8 length:Uint = int
+extern fun dup oldfd:int = int
 extern fun dup3 oldfd:int newfd:int flags:int = int
 
 fun sys_close fd:I32 = Error
@@ -844,6 +845,12 @@ fun Munmap addr:#U8 length:Uint = Error
 	if ret >= 0
 		return OK
 	return convert_error errno
+
+fun Dup oldfd:Fd = Error, Fd
+	let ret = dup oldfd.Sys_number
+	if ret >= 0
+		return OK, Fd.Mk ret
+	return convert_error errno, {}
 
 fun Dup3 oldfd:Fd newfd:Fd flags:I32 = Error, Fd
 	let ret = dup3 oldfd.Sys_number newfd.Sys_number flags

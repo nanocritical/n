@@ -479,6 +479,12 @@ static SY_int SY(munmap)(NB(U8) *addr, NB(Uint) length) {
   return ret;
 }
 
+static SY_int SY(dup)(SY_int oldfd) {
+  int ret = dup(oldfd);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
 static SY_int SY(dup3)(SY_int oldfd, SY_int newfd, SY_int flags) {
   int ret = dup3(oldfd, newfd, flags);
   _$Nlatestsyscallerrno = errno;

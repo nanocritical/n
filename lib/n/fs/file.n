@@ -50,6 +50,17 @@ File met! Close = Error
 		return syscall.Close fd
 	return self!fs!File_close self
 
+File met Dup = Error, f2:#this
+	if not self.fs?
+		let except, fd = syscall.Dup self.fd
+		f2 = Alloc this
+		f2#fs = self.fs
+		f2#hidden = self.hidden
+		f2#name = self.name
+		f2#fd = fd
+		return OK, f2
+	return self.fs!File_dup self
+
 File met Stat = Error, Stat
 	if not self.fs?
 		-- TODO(e): need support for pipes, sockets, ...
