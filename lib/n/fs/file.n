@@ -7,9 +7,14 @@
 -- On older Linux, or on systems without equivalent support, such facility
 -- cannot be implemented as safely, but this module will do its best.
 
+intf `Seeker =
+	isa io.`Reader
+	met! Seek offset:Int whence:Whence = Error, Uint
+
 inline struct File =
 	isa `Not_copyable io.`Reader io.`Writer
 		\ io.`Read_closer io.`Write_closer
+		\ `Seeker
 		-- io.`Reader_at io.`Writer_at
 	fs	:?!`Fs
 	fd	:syscall.Fd
