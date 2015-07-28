@@ -233,7 +233,7 @@ intf `Fs =
 	met! File_read_at f:!File b:[!]U8 off:Uint = [!]U8, Error
 	met! File_write f:!File b:[]U8 = []U8, Error
 	met! File_write_at f:!File b:[]U8 off:Uint = []U8, Error
-	met! File_mmap f:!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, !Mmap
+	met! File_mmap f:!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, #Mmap
 	met! Munmap m:#Mmap
 
 	-- Act on a Path.
@@ -495,7 +495,7 @@ linux met! Save_measurements = bench.Restorer
 linux met Measure = Stats
 	return self.stats.Current
 
-linux met! File_mmap f:!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, ?!Mmap
+linux met! File_mmap f:!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, #Mmap
 	let offset = offset else 0
 	let size = size else block
 		let except, st = f.Stat
