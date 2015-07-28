@@ -105,6 +105,10 @@ intf `Equality_by_compare =
 intf `Trivial_equality =
 	isa `Trivial_compare `Equality_by_compare
 
+-- Remember that it is possible for
+--	not a < b and not b < a
+-- Using `Partially_ordered requires some thought. Typically, any of these
+-- operations returning false is not informative.
 intf `Partially_ordered =
 	isa `Has_equality
 	met Operator_le other:*final = Bool
