@@ -22,7 +22,7 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 	elif t isa `Default_dtor
 		p#Dtor
 	else
-		assert false
+		assert false -- FIXME(e): not supported
 	Heap!Free_raw ((Cast #t #U8) p) (sizeof t)
 
 (fun t:`Any) Alloc_opaque = #t within Heap
@@ -30,17 +30,21 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 	assert s?
 	return (Cast #U8 #t) <- Heap!Alloc_raw s
 
+-- Rename to Free_dyn?
 (fun t:`Any) Free_opaque p:?#t within Heap
 	if not p?
 		return
 
-	if t isa `Trivial_dtor
+	let trivial = (Dyncast `Trivial_dtor) p
+	if trivial?
 		noop
-	elif t isa `Default_dtor
-		p#Dtor
 	else
-		assert false
-	let s = t.Sizeof
+		let def = (Dyncast `Default_dtor) p
+		if def?
+			def#Dtor
+		else
+			assert false -- FIXME(e): not supported
+	let s = p.Sizeof
 	assert s?
 	Heap!Free_raw ((Cast #t #U8) p) s
 
