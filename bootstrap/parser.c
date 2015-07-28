@@ -694,6 +694,8 @@ static ERROR module_read(struct module *mod, const char *prefix, const char *fn)
 
   if (vecsize_count(&mod->components_first_pos) > 1) {
     mod->parser.next_component_first_pos = *vecsize_get(&mod->components_first_pos, 1);
+  } else {
+    mod->parser.next_component_first_pos = mod->parser.len;
   }
 
 except:
@@ -717,6 +719,23 @@ static bool eof(struct parser *parser) {
   return parser->codeloc.pos >= parser->len;
 }
 
+static void update_component(struct module *mod) {
+  if (mod->parser.codeloc.pos >= mod->parser.next_component_first_pos) {
+    mod->parser.current_component += 1;
+    if (vecsize_count(&mod->components_first_pos) > mod->parser.current_component + 1) {
+      mod->parser.next_component_first_pos = *vecsize_get(&mod->components_first_pos,
+                                                          mod->parser.current_component + 1);
+    } else {
+      mod->parser.next_component_first_pos = mod->parser.len + 1;
+    }
+  }
+}
+
+static void skip_rest_of_component(struct module *mod) {
+  // Files must end with EOL: jump to it.
+  mod->parser.codeloc.pos = mod->parser.next_component_first_pos - 1;
+}
+
 static ERROR scan(struct token *tok, struct module *mod) {
   memset(tok, 0, sizeof(*tok));
 
@@ -727,15 +746,7 @@ static ERROR scan(struct token *tok, struct module *mod) {
     EXCEPT(e);
   }
 
-  if (mod->parser.codeloc.pos >= mod->parser.next_component_first_pos) {
-    mod->parser.current_component += 1;
-    if (vecsize_count(&mod->components_first_pos) > mod->parser.current_component + 1) {
-      mod->parser.next_component_first_pos = *vecsize_get(&mod->components_first_pos,
-                                                          mod->parser.current_component + 1);
-    } else {
-      mod->parser.next_component_first_pos = mod->parser.len + 1;
-    }
-  }
+  update_component(mod);
 
   return 0;
 }
@@ -2959,6 +2970,7 @@ malformed_expr:
 // Syntax:
 //  build FLAG += STRING
 //  build error ARGS...
+//  build return
 //
 //  build if BOOL_EXPR
 // with optional block, otherwise effect is on file.
@@ -2973,14 +2985,22 @@ static ERROR p_build(struct node *node, struct module *mod) {
     e = build_set_flag(mod, expr);
     EXCEPT(e);
     break;
-  default:
-    e = mk_except(mod, node, "malformed build expression");
-    THROW(e);
+  case RETURN:
+    if (subs_count(expr) != 0 || parent(node)->which != MODULE_BODY) {
+      goto malformed;
+    }
+    skip_rest_of_component(mod);
     break;
+  default:
+    goto malformed;
   }
 
   node_subs_remove(parent(node), node);
   return 0;
+
+malformed:
+  e = mk_except(mod, node, "malformed build expression");
+  THROW(e);
 }
 
 static ERROR p_toplevel(struct module *mod) {
