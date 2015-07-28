@@ -2299,7 +2299,15 @@ static ERROR link_wildcard_generics(struct module *mod, struct typ *i,
       e = unify(mod, call, wildcard, nonnullable_functor(nullable_wildcard));
       EXCEPT(e);
     } else {
-      assert(false && "FIXME: can this happen?");
+      // This is most likely an unintentional error, e.g.:
+      //  let seeker = (Dyncast fs.`Seeker) r
+      // with 'fs' not imported, i.e.
+      //    IDENT/0 (fs) :*_Ng_1bb{"fs" `Seeker:*(*n.builtins.`Any_ref *n.builtins.`Any) }
+      // but it could also be a case of concrete type constraints coming too
+      // late.
+      e = mk_except_type(mod, call, "under-constrained generic instantiation"
+                         " (hints: missing import? undefined ident?)");
+      THROW(e);
     }
   }
   return 0;
@@ -2309,10 +2317,6 @@ static ERROR implicit_function_instantiation(struct module *mod, struct node *no
   error e;
   struct node *fun = subs_first(node);
   struct typ *tfun = fun->typ;
-  const size_t arity = subs_count(node) - 1;
-
-  // Already checked in prepare_call_arguments().
-  assert(arity == typ_function_arity(tfun));
 
   struct typ **i = typ_permanent_loc(instantiate_fully_implicit(mod, node, tfun));
 
@@ -2345,8 +2349,6 @@ static ERROR implicit_function_instantiation(struct module *mod, struct node *no
 }
 
 static ERROR function_instantiation(struct module *mod, struct node *node) {
-  assert(subs_count_atleast(node, 2));
-
   error e = implicit_function_instantiation(mod, node);
   EXCEPT(e);
 
