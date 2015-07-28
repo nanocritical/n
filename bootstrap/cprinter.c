@@ -2030,17 +2030,15 @@ static void print_deffun_builtingen(struct out *out, const struct module *mod, c
     }
     break;
   case BG_SIZEOF:
-    if (node_is_export(par) && node_is_inline(par)) {
+    // TODO(e): Should we restrict visibility of Sizeof on export/inline?
+    if (!node_is_extern(par)) {
       pf(out, "return (n$builtins$optuint){ .X = sizeof(THIS()), .Nonnil = 1 };\n");
-    } else {
-      pf(out, "return (n$builtins$optuint){ 0 };\n");
     }
     break;
   case BG_ALIGNOF:
-    if (node_is_export(par) && node_is_inline(par)) {
+    // TODO(e): Should we restrict visibility of Sizeof on export/inline?
+    if (!node_is_extern(par)) {
       pf(out, "return (n$builtins$optuint){ .X = __alignof__(THIS()), .Nonnil = 1 };\n");
-    } else {
-      pf(out, "return (n$builtins$optuint){ 0 };\n");
     }
     break;
   case BG_MOVE:
