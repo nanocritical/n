@@ -82,7 +82,7 @@ fun Prn ?err:?Bool ?sep:?*String ...v:(Vararg ?*`Show)
 fun Cat w:#io.`Writer ?sep:?*String ...v:(Vararg ?*`Show)
 	let st = {W=w}:State
 	try
-		for s in v
+		for s over v
 			if not s?
 				F w "(nil)"
 				continue

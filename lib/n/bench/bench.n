@@ -28,7 +28,7 @@ inline struct Example =
 	let PB = 1024*this.TB
 
 Example met! Benchmark ...v:(Vararg *Standard_measures) within Heap fs.Fs time.Clock
-	for m in v
+	for m over v
 		self!active_measures |= {(m*)}
 		match m
 		| CLOCK
@@ -41,7 +41,7 @@ Example met! Benchmark ...v:(Vararg *Standard_measures) within Heap fs.Fs time.C
 			noop
 
 Example met# Dtor
-	for m in self.active_measures.Iter
+	for m over self.active_measures.Iter
 		match m
 		| CLOCK
 			self!clock_restorer#Dtor

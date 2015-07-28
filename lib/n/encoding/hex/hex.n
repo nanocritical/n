@@ -12,7 +12,7 @@ fun Encode dst:[!]U8 src:[]U8 = Error, Uint
 	if dst.Count < elen
 		return INVAL, 0
 
-	foreach i in src.All
+	foreach i over src.All
 		let v = src.[i]
 		dst![2*i]# = hextable.[(v >> 4).Uint]
 		dst![2*i+1]# = hextable.[(v & 0x0f).Uint]
@@ -26,7 +26,7 @@ fun Decode dst:[!]U8 src:[]U8 = Error, Uint
 		return INVAL, 0
 
 	let dlen = Decoded_length src.Count
-	foreach i in 0 .. dlen
+	foreach i over 0 .. dlen
 		let except, a = from_hex_char src.[2*i]
 		let except, b = from_hex_char src.[2*i+1]
 		dst![i]# = (a ov<< 4) | b
@@ -50,7 +50,7 @@ example enc_dec
 		\ ("f8f9fafbfcfdfeff", "\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff")
 		\ ("67", "g")
 		\ ("e3a1", "\xe3\xa1") }:[](String, String)
-	foreach e, d in tests
+	foreach e, d over tests
 		var buf:Stringbuf
 		buf#Resize <- Encoded_length d.Count
 		let except, elen = Encode buf!Bytes d.Bytes

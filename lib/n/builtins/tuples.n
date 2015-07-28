@@ -465,7 +465,7 @@ Tuple_16 met Show st:#`Fmt_state
 	show_tuple st self
 
 (fun t:`Any_tuple) show_tuple st:#`Fmt_state x:t
-	foreach i in x.All
+	foreach i over x.All
 		if i != 0
 			", ".Show st
 		let ap = x.Get i

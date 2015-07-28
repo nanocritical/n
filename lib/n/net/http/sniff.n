@@ -66,12 +66,12 @@ fun Detect_content_type data:[]U8 = String
 
 	-- Index of the first non-whitespace byte in data.
 	let first_non_ws = 0 such
-		foreach d in data
+		foreach d over data
 			if not is_ws d
 				break
 			first_non_ws += 1
 
-	foreach sig in sniff_signatures
+	foreach sig over sniff_signatures
 		let ct = sig.test data first_non_ws
 		if ct != ""
 			return ct
@@ -104,7 +104,7 @@ masked_sig met test data:[]U8 first_non_ws:Uint = String
 		data = data.[first_non_ws ..]
 	if data.Count < self.mask.Count
 		return ""
-	foreach i in self.mask.All
+	foreach i over self.mask.All
 		let db = data.[i] & self.mask.[i]
 		if db != self.pat.[i]
 			return ""
@@ -117,7 +117,7 @@ html_sig met test data:[]U8 first_non_ws:Uint = String
 	let data = data.[first_non_ws ..]
 	if data.Count < self.h.Count + 1
 		return ""
-	foreach i in self.h.All
+	foreach i over self.h.All
 		let b = self.h.[i]
 		var db = data.[i]*
 		if 'A' <= b and b <= 'Z'
@@ -136,7 +136,7 @@ struct text_sig =
 text_sig met test data:[]U8 first_non_ws:Uint = String
 	-- c.f. section 5, step 4.
 	let data = data.[first_non_ws ..]
-	foreach b in data
+	foreach b over data
 		if (0x00 <= b and b <= 0x08)
 			\ or b == 0x0B
 			\ or (0x0E <= b and b <= 0x1A)
@@ -178,6 +178,6 @@ example detect_content_type
 		\ ("GIF 87a", "GIF87a", "image/gif")
 		\ ("GIF 89a", "GIF89a...", "image/gif")
 		\ }:[](String, String, String)
-	foreach tt in tests
+	foreach tt over tests
 		let _, data, ct = tt
 		assert ct == Detect_content_type data.Bytes

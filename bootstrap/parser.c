@@ -1368,7 +1368,7 @@ static ERROR p_for(struct node *node, struct module *mod,
   error e = p_expr(node_new_subnode(mod, node), mod, T__NOT_OVER);
   EXCEPT(e);
 
-  e = scan_expected(mod, Tin);
+  e = scan_expected(mod, Tover);
   EXCEPT(e);
 
   e = p_expr(node_new_subnode(mod, node), mod, T__NOT_STATEMENT);

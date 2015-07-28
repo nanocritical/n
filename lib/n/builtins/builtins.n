@@ -559,7 +559,7 @@ inline Slice_impl met! Clear
 		and bytecnt = self.cnt * (sizeof t)
 		Slice_memset dst 0 bytecnt
 	else
-		foreach i in self.All
+		foreach i over self.All
 			if t isa `Default_dtor
 				self![i]#Dtor
 
@@ -622,11 +622,11 @@ inline Slice_impl met! Full_copy other:this = r:this
 		let p_src = (Voidref.From_ptr other.Unsafe_rawdata).Uintptr
 		let bytecnt = other.cnt * (sizeof t)
 		if p_dst - p_src >= bytecnt.Uintptr -- Unsigned comparison
-			foreach i in r.All
+			foreach i over r.All
 				if t isa `Copyable -- To appease the compiler.
 					r![i]#Copy_ctor other.[i]
 		else
-			for i in r.All.Reverse_iter
+			for i over r.All.Reverse_iter
 				if t isa `Copyable -- To appease the compiler.
 					r![i]#Copy_ctor other.[i]
 	return r
@@ -676,11 +676,11 @@ inline Slice_impl met! Full_move other:this = r:this
 			let p_src = (Voidref.From_ptr other.Unsafe_rawdata).Uintptr
 			let bytecnt = other.cnt * (sizeof t)
 			if p_dst - p_src >= bytecnt.Uintptr -- Unsigned comparison
-				foreach i in r.All
+				foreach i over r.All
 					if t isa `Moveable -- To appease the compiler.
 						r![i]# = other![i]#Move
 			else
-				for i in r.All.Reverse_iter
+				for i over r.All.Reverse_iter
 					if t isa `Moveable -- To appease the compiler.
 						r![i]# = other![i]#Move
 		return r
@@ -693,7 +693,7 @@ inline Slice_impl met! Full_move other:this = r:this
 		let p_src = (Voidref.From_ptr other.Unsafe_rawdata).Uintptr
 		let bytecnt = other.cnt * (sizeof t)
 		if p_dst - p_src >= bytecnt.Uintptr -- Unsigned comparison
-			foreach i in r.All
+			foreach i over r.All
 				if t isa `Copyable -- To appease the compiler.
 					r![i]#Copy_ctor other.[i]
 				if t isa `Default_dtor
@@ -701,7 +701,7 @@ inline Slice_impl met! Full_move other:this = r:this
 				else
 					assert false
 		else
-			for i in r.All.Reverse_iter
+			for i over r.All.Reverse_iter
 				let e = r![i]
 				if t isa `Copyable -- To appease the compiler.
 					r![i]#Copy_ctor other.[i]
@@ -761,7 +761,7 @@ inline Slice_impl shallow met$ Last = $t
 
 inline Slice_impl met Show st:#`Fmt_state
 	"{".Show st
-	foreach i in self.All
+	foreach i over self.All
 		if i != 0
 			" ".Show st
 		let x = self.[i]
@@ -780,7 +780,7 @@ inline Slice_impl met Operator_eq other:*this = Bool
 	elif t isa `Has_equality
 		if self.Count != other.Count
 			return false
-		foreach i in self.All
+		foreach i over self.All
 			if self.[i] != other.[i]
 				return false
 		return true
@@ -800,7 +800,7 @@ example
 	assert a.Count == 8
 	assert a.All == 0 .. 8
 	assert a.Unsafe_rawdata === (Cast *Uint ?*U8) a.Unsafe_data
-	foreach i in a.All
+	foreach i over a.All
 		assert a.[i] == i
 	assert a.First == 0
 	assert a.Last == 7
@@ -812,7 +812,7 @@ example
 	-- OK to create slice of cap 0:
 	assert a.[8 ..].Count == 0
 	let b = a.[4 ..]
-	foreach i in b.All
+	foreach i over b.All
 		assert b.[i] == a.[4 + i]
 	let c = a.[0 .. 4]
 	assert c.Cap == a.Cap
@@ -824,14 +824,14 @@ example
 	let ref = { 0:Uint 1 2 3 4 5 6 7 }
 	let a = { 0 1 2 3 4 5 6 7 }:[!]Uint such
 		let b = a![4 ..]
-		foreach i in b.All
+		foreach i over b.All
 			b![i]! = 0
 
 		let suma = 0
 		and sumb = 0 such
-			foreach x in a.[4 ..]
+			foreach x over a.[4 ..]
 				suma += x*
-			foreach x in b
+			foreach x over b
 				sumb += x*
 		assert suma == sumb
 
@@ -839,7 +839,7 @@ example
 		let d = c!Full_copy ref
 		assert d.Count == ref.Count
 		assert d.Count == c.Count
-		foreach i in c.All
+		foreach i over c.All
 			assert c.[i] == ref.[i]
 			assert d.[i] == ref.[i]
 
@@ -847,13 +847,13 @@ example
 		let f = e![4 ..] such
 			let g = f!Copy_from ref.[4 ..]
 			assert g.Count == 4
-			foreach i in g.All
+			foreach i over g.All
 				assert g.[i] == ref.[4 + i]
 		let h = e![.. 4] such
 			let m = h!Copy_from ref
 			assert m.Count > h.Count
 			assert m.Count == ref.Count
-			foreach i in m.All
+			foreach i over m.All
 				if i < h.Count
 					assert h.[i] == ref.[i]
 				assert m.[i] == ref.[i]
@@ -1946,7 +1946,7 @@ example
 	let r = {Begin=2 End=10}:Range
 	assert r.Count == 8
 	let j = 7 such
-		for i in r.Reverse_iter
+		for i over r.Reverse_iter
 			assert i >= r.Begin and i < r.End
 			assert j == i - r.Begin
 			j -= 1
@@ -1955,7 +1955,7 @@ example
 	let r = {Begin=10 End=20}:Range
 	assert r.Count == 10
 	let n = 0 such
-		foreach i in r
+		foreach i over r
 			assert i >= r.Begin and i < r.End
 			assert n == i - r.Begin
 			n += 1

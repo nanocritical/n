@@ -65,7 +65,7 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 			noop
 		elif t isa `Default_dtor
 			if cnt < old_cnt
-				foreach i in cnt .. old_cnt
+				foreach i over cnt .. old_cnt
 					s![i]#Dtor
 		else
 			assert false
@@ -78,7 +78,7 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 			noop
 		elif t isa `Default_dtor
 			if cnt < old_cnt
-				foreach i in cnt .. old_cnt
+				foreach i over cnt .. old_cnt
 					s![i]#Dtor
 		else
 			assert false
@@ -99,7 +99,7 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 			let old = s*
 			let raw = Heap!Realloc_raw nil 0 bytecap
 			s# = {dat=((Cast #U8 #t) raw) cnt=cnt cap=cap}
-			foreach i in s.All
+			foreach i over s.All
 				s![i]# = old![i]#Move
 			let _ = Heap!Realloc_raw old_raw old_bytecap 0
 
@@ -109,7 +109,7 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 				noop
 			elif t isa `Default_dtor
 				if cnt < old_cnt
-					foreach i in cnt .. old_cnt
+					foreach i over cnt .. old_cnt
 						s![i]#Dtor
 			else
 				assert false

@@ -114,7 +114,7 @@ fun fix_transfer_encoding header:#Header method:*Stringbuf = Error, te:(Buf Stri
 	-- encodings, the loop below is designed with foresight. One
 	-- invariant that must be maintained is that, if present,
 	-- chunked encoding must always come first.
-	foreach i in encodings.All
+	foreach i over encodings.All
 		let encoding = (strings.Trim_spaces encodings.[i]).To_lower
 		-- "identity" encoding is not recorded
 		if encoding == "identity"
@@ -172,7 +172,7 @@ fun fix_trailer header:#Header te:(Buf Stringbuf) = Error, trailer:Header
 	_ = header#Map#Delete "Trailer"
 
 	let keys = raw.Split ","
-	foreach key in keys
+	foreach key over keys
 		let normkey = (strings.Trim_spaces key).Buf
 		mime_canonical_header_key normkey!Bytes
 		if normkey == "Transfer-Encoding" or normkey == "Trailer" or normkey == "Content-Length"

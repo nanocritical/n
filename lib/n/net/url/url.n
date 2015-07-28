@@ -138,7 +138,7 @@ fun Query_escape s:String = Stringbuf
 
 fun escape s:String mode:encoding = ret:Stringbuf
 	var space_count, hex_count = 0:Uint, 0:Uint
-	foreach i in s.All
+	foreach i over s.All
 		let c = s.[i]
 		if should_escape c mode
 			if c == ' ' and mode == ENCODE_QUERY_COMPONENT
@@ -152,7 +152,7 @@ fun escape s:String mode:encoding = ret:Stringbuf
 
 	ret#Resize s.Count+2*hex_count
 	var j = 0
-	foreach i in s.All
+	foreach i over s.All
 		let c = s.[i]
 		if c == ' ' and mode == ENCODE_QUERY_COMPONENT
 			ret![j]! = '+'
@@ -197,7 +197,7 @@ inline struct Url =
 -- (Scheme must be [a-z_a-Z][a-z_a-Z0-9+-.]*)
 -- If so, return scheme, path; else return "", rawurl.
 fun getscheme rawurl:String = Error, String, String
-	foreach i in rawurl.All
+	foreach i over rawurl.All
 		let c = rawurl.[i]
 		if ('a' <= c and c <= 'z') or ('A' <= c and c <= 'Z')
 			noop
@@ -303,7 +303,7 @@ example authority
 	assert parse_authority "u*/abc" == (OK, ?"u", "/abc")
 	assert parse_authority "u:p*/abc" == (OK, ?"u:p", "/abc")
 
--- Includes path[?query][#fragment], suitable for use in HTTP request line.
+-- Includes path[?query][#fragment], suitable for use over HTTP request line.
 Url met Full_path = buf:Stringbuf
 	buf#Cat self.Path
 	if self.Raw_query != ""
@@ -428,9 +428,9 @@ example parse_query
 -- ("bar=baz&foo=quux") sorted by key.
 -- FIXME: not sorted
 Values met Encode = buf:Stringbuf
-	for k, vs in self.Map.Iter
+	for k, vs over self.Map.Iter
 		let prefix = Query_escape k.String
-		foreach i in vs.All
+		foreach i over vs.All
 			let v = vs.[i]
 			if buf.Count > 0
 				buf#Cat "&"
@@ -458,7 +458,7 @@ fun resolve_path base:String ref:String = r:Stringbuf
 
 	let dst = {}:(Buf String)
 	let src = full.Split "/"
-	foreach i in src.All
+	foreach i over src.All
 		let elem = src.[i]
 		if elem == "."
 			noop

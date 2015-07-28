@@ -145,7 +145,7 @@ fun make_random_name name:#path.Path prefix:?String postfix:?String
 			b, except = cryptorand.Read_full b
 		catch err
 			Fatal err
-		foreach i in b.All
+		foreach i over b.All
 			b![i]! = letter32_from_rand_byte b.[i]
 	name#Append b
 
@@ -332,7 +332,7 @@ linux met! Open_file name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openatt
 					\ (attr.Group else -1)
 
 			if attr.Xattr.Count > 0
-				foreach key, val in attr.Xattr
+				foreach key, val over attr.Xattr
 					except CLOSE = syscall.Fsetxattr fd key.String val.String
 						\ syscall.XATTR_REPLACE
 

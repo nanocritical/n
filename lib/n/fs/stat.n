@@ -47,7 +47,7 @@ Stat met Is_symlink = Bool
 	return SYMLINK == self.Type
 
 fun sys_mode_from_accessmask m:Accessmask = r:syscall.Mode
-	for e in m.Iter
+	for e over m.Iter
 		match e
 		| UR -> r |= syscall.S_IRUSR
 		| UW -> r |= syscall.S_IWUSR

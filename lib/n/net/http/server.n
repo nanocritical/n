@@ -410,7 +410,7 @@ server_conn_handler met# waiting_header = Error
 	except = read_request_header #self#request !self!bufr self.conn.Remote_addr
 
 	var handler
-	foreach server_handler in self.server.Handlers
+	foreach server_handler over self.server.Handlers
 		handler = (server_handler*)#On_incoming self.request
 		if handler?
 			self#server_handler = server_handler*

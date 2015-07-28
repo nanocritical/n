@@ -5,10 +5,10 @@ from n import *
 -- memory?
 
 fun Trim_front s:String cut:String = String
-	foreach i in s.All
+	foreach i over s.All
 		let c = s.[i]
 		let found = false such
-			foreach x in cut
+			foreach x over cut
 				if c == x
 					found = true
 		if not found
@@ -16,10 +16,10 @@ fun Trim_front s:String cut:String = String
 	return s
 
 fun Trim_back s:String cut:String = String
-	for i in s.All.Reverse_iter
+	for i over s.All.Reverse_iter
 		let c = s.[i]
 		let found = false such
-			foreach x in cut
+			foreach x over cut
 				if c == x
 					found = true
 					break

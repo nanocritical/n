@@ -19,7 +19,7 @@ struct Cookie =
 	Raw		:Stringbuf -- Others strings in self point in Raw.
 	Unparsed	:(Buf String) -- Raw text of unparsed attribute-value pairs
 
--- Serialization of the cookie for use in a Cookie header (if only Name and
+-- Serialization of the cookie for use over a Cookie header (if only Name and
 -- Value are set) or a Set-Cookie response header (if other fields are set).
 Cookie met Show st:#fmt.`State
 	fmt.F st "%s=%s" (sanitize_cookie_name self.Name) (sanitize_cookie_value self.Value)
@@ -64,7 +64,7 @@ fun read_set_cookies h:*Header = cookies:(Buf Cookie)
 	if not lines?
 		return cookies
 
-	foreach line in lines
+	foreach line over lines
 		var parts = (strings.Trim_spaces line.String).Split ";"
 		if parts.Count == 1 and parts.[0] == ""
 			continue
@@ -88,7 +88,7 @@ fun read_set_cookies h:*Header = cookies:(Buf Cookie)
 		c#Name = name
 		c#Value = value
 
-		foreach i in 1 .. parts.Count
+		foreach i over 1 .. parts.Count
 			parts![i]! = strings.Trim_spaces parts.[i]
 			if parts.[i] == ""
 				continue
@@ -149,13 +149,13 @@ fun read_cookies h:*Header ?filter:?String = cookies:(Buf Cookie)
 	if not lines?
 		return cookies
 
-	foreach line in lines
+	foreach line over lines
 		let parts = (strings.Trim_spaces line.String).Split ";"
 		if parts.Count == 1 and parts.[0] == ""
 			continue
 
 		-- Per-line attributes
-		foreach i in 0 .. parts.Count
+		foreach i over 0 .. parts.Count
 			parts![i]! = strings.Trim_spaces parts.[i]
 			if parts.[i] == ""
 				continue
@@ -211,7 +211,7 @@ fun is_cookie_domain_name s:String = Bool
 	var last = '.':U8
 	var ok = false -- Ok once we've seen a letter.
 	var partlen = 0:Uint
-	foreach c in s
+	foreach c over s
 		if 'a' <= c and c <= 'z' or 'A' <= c and c <= 'Z'
 			-- No '_' allowed here (in contrast to package net).
 			ok = true
@@ -246,7 +246,7 @@ fun is_cookie_domain_name s:String = Bool
 
 fun sanitize_cookie_name n:String = r:Stringbuf
 	r#Resize n.Count
-	foreach i in 0 .. n.Count
+	foreach i over 0 .. n.Count
 		let c = n.[i]
 		if c == '\n' or c == '\r'
 			r![i]! = '-'
@@ -284,7 +284,7 @@ valid_cookie_path_byte met Test b:U8 = Bool
 
 (fun T:`Byte_test) sanitize_or_warn field_name:String valid:T v:String = buf:Stringbuf
 	var ok = true
-	foreach i in 0 .. v.Count
+	foreach i over 0 .. v.Count
 		if valid.Test v.[i]
 			continue
 
@@ -295,7 +295,7 @@ valid_cookie_path_byte met Test b:U8 = Bool
 	if ok
 		return v.Buf
 
-	foreach b in v
+	foreach b over v
 		if valid.Test b
 			buf#Push b
 
@@ -331,13 +331,13 @@ fun parse_cookie_value raw:String ?expires:?Bool = String, Bool
 
 (fun T:`Byte_test) parse_cookie_value_using raw:String valid_byte:T = String, Bool
 	raw = unquote_cookie_value raw
-	foreach b in raw
+	foreach b over raw
 		if not valid_byte.Test b
 			return "", false
 	return raw, true
 
 fun is_cookie_name_valid raw:String = Bool
-	foreach b in raw
+	foreach b over raw
 		if not is_token b
 			return false
 	return true
@@ -355,7 +355,7 @@ example write_set_cookies
 		\ ({Name="cookie-8" Value="eight" Domain="::1"}, "cookie-8=eight", true)
 		\ }:[](Cookie, String, Bool)
 
-	foreach tt in write_set_cookies_tests
+	foreach tt over write_set_cookies_tests
 		let cookie, raw, dropped_domain = tt
 		var buf:Stringbuf
 		var st = {W=#buf}:fmt.State

@@ -9,7 +9,7 @@ inline struct Enumset T:`Enum =
 
 Enumset fun From_slice c:[]T = this
 	let r = {}:this such
-		foreach x in c
+		foreach x over c
 			r!bits |= (this.Internal_mask_value x.Tag.U64)
 	return r
 Enumset fun From_bits bits:U64 = this
@@ -79,7 +79,7 @@ Enumset met Show st:#`Fmt_state
 	"{".Show st
 	let it = self.Iter
 	var i = 0:Uint
-	for e in it
+	for e over it
 		if i > 0
 			" ".Show st
 		e.Show st

@@ -41,7 +41,7 @@ fun test_varint32 bs:Uint bytes:[]U8 value:U64 = Error
 	codedw#Write_varint32 value.Trim_u32
 	except = codedw#Flush
 	if bytes.Count >= 5
-		foreach i in 0 .. 4
+		foreach i over 0 .. 4
 			assert bufw.Bytes.[i] == bytes.[i]
 
 		-- Only the 4 bits 28 .. 32 make it in there
@@ -90,18 +90,18 @@ example varint
 		\ ({0x9b 0xa8 0xf9 0xc2 0xbb 0xd6 0x80 0x85 0xa6 0x81}, (0x1b ov<< 0) | (0x28 ov<< 7) | (0x79 ov<< 14) | (0x42 ov<< 21) | (0x3b ov<< 28) | (0x56 ov<< 35) | (0x00 ov<< 42) | (0x05 ov<< 49) | (0x26 ov<< 56) | (0x01 ov<< 63))}:[]([]U8, U64)
 
 	let block_sizes = {1 2 3 5 7 13 32 Writer.DEFAULT_BLOCK_SIZE}:[]Uint
-	foreach bs in block_sizes
-		foreach bytes, value in varint_cases
+	foreach bs over block_sizes
+		foreach bytes, value over varint_cases
 			except = test_varint32 bs bytes value
 
-	foreach bs in block_sizes
-		foreach bytes, value in varint_cases
+	foreach bs over block_sizes
+		foreach bytes, value over varint_cases
 			except = test_varint64 bs bytes value
 
 example varint_signext
 	let varint_cases = {0 1 -1 1237894 -37895138}:[]I32
 
-	foreach value in varint_cases
+	foreach value over varint_cases
 		var bufw:Stringbuf
 		var codedw = Writer.Mk #(bufio.Writer.Mk #bufw)
 		codedw#Write_varint32_sign_extended value
@@ -132,8 +132,8 @@ example varint_error
 		\ }:[]([]U8, Error)
 
 	let block_sizes = {1 2 3 5 7 13 32 Writer.DEFAULT_BLOCK_SIZE}:[]Uint
-	foreach bs in block_sizes
-		foreach bytes, expected_err in varint_cases
+	foreach bs over block_sizes
+		foreach bytes, expected_err over varint_cases
 			var br = bufio.Bytes_reader.Mk bytes
 			var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
 			var coded = Reader.Mk #bufr block_size=bs*
@@ -141,7 +141,7 @@ example varint_error
 			let err, _ = coded#Read_varint32
 			assert err == expected_err
 
-		foreach bytes, expected_err in varint_cases
+		foreach bytes, expected_err over varint_cases
 			var br = bufio.Bytes_reader.Mk bytes
 			var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
 			var coded = Reader.Mk #bufr block_size=bs*
@@ -157,8 +157,8 @@ example fixed
 		\ }:[]([]U8, U32)
 
 	let block_sizes = {1 2 3 5 7 13 32 Writer.DEFAULT_BLOCK_SIZE}:[]Uint
-	foreach bs in block_sizes
-		foreach bytes, value in cases_32
+	foreach bs over block_sizes
+		foreach bytes, value over cases_32
 			var br = bufio.Bytes_reader.Mk bytes
 			var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
 			var coded = Reader.Mk #bufr block_size=bs*
@@ -171,8 +171,8 @@ example fixed
 		\ ({0x11 0x22 0x33 0x44 0x55 0x66 0x77 0x88}, 0x8877665544332211)
 		\ }:[]([]U8, U64)
 
-	foreach bs in block_sizes
-		foreach bytes, value in cases_64
+	foreach bs over block_sizes
+		foreach bytes, value over cases_64
 			var br = bufio.Bytes_reader.Mk bytes
 			var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
 			var coded = Reader.Mk #bufr block_size=bs*

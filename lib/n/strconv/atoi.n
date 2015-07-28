@@ -52,7 +52,7 @@ fun Parse_uint s:String ?base:?Uint ?bit_size:?Uint = n:U64, Error
 	else
 		max_val = (1 ov<< bit_size) - 1
 
-	foreach i in s.All
+	foreach i over s.All
 		var v:U8
 		let d = s.[i]
 		if '0' <= d and d <= '9'
@@ -139,7 +139,7 @@ example atoui64tests
 		\ ("18446744073709551616", U64.MAX, ERR_RANGE)
 		\ ("18446744073709551620", U64.MAX, ERR_RANGE)
 		\ }:[](String, U64, Error)
-	foreach s, val, err in tests
+	foreach s, val, err over tests
 		let out, out_err = Parse_uint s base=10 bit_size=64
 		assert out_err == err and out == val
 
@@ -164,7 +164,7 @@ example btoui64tests
 		\ ("02000000000000000000000", U64.MAX, ERR_RANGE)
 		\ ("0200000000000000000000", 1 ov<< 61, OK)
 		\ }:[](String, U64, Error)
-	foreach s, val, err in tests
+	foreach s, val, err over tests
 		let out, out_err = Parse_uint s base=0 bit_size=64
 		assert out_err == err and out == val
 
@@ -188,7 +188,7 @@ example atoi64tests
 		\ ("9223372036854775809", I64.MAX, ERR_RANGE)
 		\ ("-9223372036854775809", I64.MIN, ERR_RANGE)
 		\ }:[](String, I64, Error)
-	foreach s, val, err in tests
+	foreach s, val, err over tests
 		let out, out_err = Parse_int s base=10 bit_size=64
 		assert out_err == err and out == val
 
@@ -216,7 +216,7 @@ example btoi64tests
 		\ ("9223372036854775809", I64.MAX, ERR_RANGE)
 		\ ("-9223372036854775809", I64.MIN, ERR_RANGE)
 		\ }:[](String, I64, Error)
-	foreach s, val, err in tests
+	foreach s, val, err over tests
 		let out, out_err = Parse_int s base=0 bit_size=64
 		assert out_err == err and out == val
 
@@ -233,7 +233,7 @@ example atoui32tests
 		\ ("4294967295", U32.MAX, OK)
 		\ ("4294967296", U32.MAX, ERR_RANGE)
 		\ }:[](String, U32, Error)
-	foreach s, val, err in tests
+	foreach s, val, err over tests
 		let out, out_err = Parse_uint s base=10 bit_size=32
 		assert out_err == err and out == val.U64
 
@@ -259,6 +259,6 @@ example atoi32tests
 		\ ("2147483649", I32.MAX, ERR_RANGE)
 		\ ("-2147483649", I32.MIN, ERR_RANGE)
 		\ }:[](String, I32, Error)
-	foreach s, val, err in tests
+	foreach s, val, err over tests
 		let out, out_err = Parse_int s base=10 bit_size=32
 		assert out_err == err and out == val.I64

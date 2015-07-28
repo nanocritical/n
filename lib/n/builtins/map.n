@@ -104,7 +104,7 @@ example sptable_basic
 	assert (t#get 7)* == 44
 	assert (t#get 99)* == 45
 
-	for i, e in t!iter
+	for i, e over t!iter
 		match i
 		| 0 -> assert e == 42
 		| 3 -> assert e == 43
@@ -145,7 +145,7 @@ struct Map K:`Map_key T:`Copyable =
 
 -- Ignore duplicated keys.
 Map fun From_slice c:[](K, T) = r:this
-	foreach i in c.All
+	foreach i over c.All
 		let k, v = c.[i]
 		let added, p = r#Try_store k
 		if added
@@ -188,7 +188,7 @@ example check_bijection
 	let size = 4096
 	var hits = {}:Bitmap
 	hits#Resize size
-	foreach nth in 0 .. size
+	foreach nth over 0 .. size
 		hits!Set <- quad_open_addr size hash nth
 	assert hits.Popcount == size
 
@@ -286,7 +286,7 @@ Map met# Try_store key:*K = added:Bool, #T
 -- Return true if some keys from 'other' were already in 'self'.
 Map met# Ingest other:*this = ingested_all:Bool
 	ingested_all = true
-	for pos in other.table.bitmap.Iter
+	for pos over other.table.bitmap.Iter
 		let u = other#table#get pos
 		if not u.hash?
 			continue
@@ -326,7 +326,7 @@ Map met Operator_eq other:*this = Bool
 	if self.Count != other.Count
 		return false
 
-	for k, sv in self.Iter
+	for k, sv over self.Iter
 		let ov = other.[k]
 		if not ov?
 			return false
@@ -349,7 +349,7 @@ Map met Operator_ne other:*this = Bool
 Map met Show st:#`Fmt_state
 	"{".Show st
 	var i = 0:Uint
-	for k, v in self.Iter
+	for k, v over self.Iter
 		if i > 0
 			", ".Show st
 		"(".Show st
@@ -386,7 +386,7 @@ struct Set T:`Map_key =
 
 -- Ignore duplicated elements.
 Set fun From_slice c:[]T = r:this
-	foreach i in c.All
+	foreach i over c.All
 		let x = c.[i]
 		let added, p = r!map#Try_store x
 		if added
@@ -415,7 +415,7 @@ Set met# Add x:*T = added:Bool
 
 Set met# Add_all other:*this = added_all:Bool
 	added_all = true
-	for x in other.Iter
+	for x over other.Iter
 		added_all = self!Add x and added_all
 
 Set met# Remove x:*T = removed:Bool
@@ -423,7 +423,7 @@ Set met# Remove x:*T = removed:Bool
 
 Set met# Remove_all other:*this = removed_all:Bool
 	removed_all = true
-	for x in other.Iter
+	for x over other.Iter
 		removed_all = self!Remove x and removed_all
 
 -- Useful to perform a pop-like operation:
@@ -439,15 +439,15 @@ Set met# Intersect other:*this
 	-- TODO(e): rehash the set if the size has changed a lot.
 
 	let to_remove:(Buf T)
-	for x, _ in self.map.Iter
+	for x, _ over self.map.Iter
 		if not x in other
 			to_remove#Push# = x
 
-	foreach i in to_remove.All
+	foreach i over to_remove.All
 		let _ = self#Remove to_remove.[i]
 
 Set met# Symmetric_difference other:*this
-	for x in other.Iter
+	for x over other.Iter
 		if x in self
 			let _ = self.Remove x
 		else
@@ -457,7 +457,7 @@ Set met Operator_eq other:*this = Bool
 	if self.Count != other.Count
 		return false
 
-	for x in other.Iter
+	for x over other.Iter
 		if not x in self
 			return false
 	return true
@@ -468,7 +468,7 @@ Set met Operator_ne other:*this = Bool
 Set met Operator_le other:*this = Bool
 	if self.Count > other.Count
 		return false
-	for x in self.Iter
+	for x over self.Iter
 		if not x in other
 			return false
 	return true
@@ -487,7 +487,7 @@ Set met Operator_ge other:*this = Bool
 Set met Show st:#`Fmt_state
 	"{".Show st
 	var i = 0:Uint
-	for x in self.Iter
+	for x over self.Iter
 		if i > 0
 			" ".Show st
 		if x isa `Show
@@ -533,7 +533,7 @@ struct Multiset T:`Map_key =
 	map	:(Map T Uint)
 
 Multiset fun From_slice c:[]T = r:this
-	foreach i in c.All
+	foreach i over c.All
 		let x = c.[i]
 		let _, p = r!map#Try_store x
 		p# += 1
@@ -543,7 +543,7 @@ Multiset met# Clear
 
 Multiset met# Copy_ctor other:*this
 	self#Clear
-	for x, m in other.Iter
+	for x, m over other.Iter
 		let _ = self#Add x multiple=m*
 
 Multiset met Count = Uint

@@ -19,7 +19,7 @@ fun Main = I32
 		assert v.Last == 1
 		v#Pop
 		(v#Push)! = 1
-		for i in v.All.Iter
+		for i over v.All.Iter
 			assert v.[i]* == i.Trim_u32.Signed
 	let w = foo
 	assert w.[0]* == 1

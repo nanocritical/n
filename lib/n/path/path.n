@@ -197,7 +197,7 @@ example -> let p = "":Path such p#Join "a" "b" "/c"; assert p == "a/b/c"
 
 Path met Ext = Path
 	let path = self.buf.String
-	for i in path.All.Reverse_iter
+	for i over path.All.Reverse_iter
 		if path.[i] == ".".[0]
 			return Path.From_string path.[i ..]
 	return ""

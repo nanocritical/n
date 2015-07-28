@@ -6,7 +6,7 @@ fun opts ?a:?*I32 = I32
 fun chained v:!(Vararg *I32) = I32
 	let s = 0
 	such
-		for i in v!
+		for i over v!
 			s += i*
 	return s
 
@@ -17,14 +17,14 @@ fun fvar a:I32 ?b:?*I32 ...v:(Vararg *I32) = I32
 fun onlyvar ...v:(Vararg *I32) = I32
 	let s = 0
 	such
-		for i in v
+		for i over v
 			s += i*
 	return s
 
 fun diff x:I32 ...v:(Vararg *I32) = I32
 	let d = 0
 	such
-		for i in v
+		for i over v
 			d -= i*
 	return x + d
 
@@ -32,7 +32,7 @@ fun diff x:I32 ...v:(Vararg *I32) = I32
 	return 0
 
 fun relay ...v:(Vararg *I32)
-	for x in v
+	for x over v
 		Pr x
 	Prn
 

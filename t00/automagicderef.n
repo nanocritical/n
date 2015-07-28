@@ -33,7 +33,7 @@ fun Main = I32
 	let hh = (holder.mk *np1):(holder ?*I32)
 	let hhh = (holder.mk 1:I32):(holder I32)
 
-	-- FIXME: need support for ::nonnull on mk to use h1.x and hh.x in the return
+	-- FIXME: need support for ::nonnull on mk to use h1.x and hh.x over the return
 	-- expression at the end.
 	let _ = h1.x
 	let _ = hh.x

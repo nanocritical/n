@@ -2,7 +2,7 @@ let to_lower = 32 -- 'a' - 'A'
 
 fun mime_canonical_header_key key:[!]U8
 	var upper = true
-	foreach i in key.All
+	foreach i over key.All
 		let c = key![i]
 		if c == ' '
 			c! = '-'
@@ -25,7 +25,7 @@ example canonical_key
 		\ ("C ontent-Transfer-Encoding", "C-Ontent-Transfer-Encoding")
 		\ ("foo bar", "Foo-Bar")}:[](String, String)
 	var s:Stringbuf
-	foreach i in pairs.All
+	foreach i over pairs.All
 		let a, b = pairs.[i]
 		s#Clear
 		s#Cat a
@@ -106,10 +106,10 @@ fun write_header bufw:#bufio.Writer h:*Header exclude:*(Set Stringbuf)
 		return
 
 	var tmp:Stringbuf
-	for k, vs in h.Map.Iter
+	for k, vs over h.Map.Iter
 		if k in exclude
 			continue
-		foreach v in vs
+		foreach v over vs
 			fmt.F bufw "%s: %s%s" k (trim (no_newlines #tmp v.String)) crlf
 	fmt.F bufw "%s" crlf
 
@@ -178,7 +178,7 @@ prevent_passthrough_reader met# Read b:[!]U8 = [!]U8, Error
 
 example header
 	var h:Header
-	foreach e in {
+	foreach e over {
 		\ ("Host", "example.com")
 		\ ("ConteNt-type", "text/plain")
 		\ ("hosT", "x.com")}:[](String, String)
@@ -226,7 +226,7 @@ fun has_token v:?String token:String = Bool
 		return false
 	if v == token
 		return true
-	foreach sp in 0 .. 1+v.Count-token.Count
+	foreach sp over 0 .. 1+v.Count-token.Count
 		-- Check that first character is good.
 		-- The token is ASCII, so checking only a single byte
 		-- is sufficient.  We skip this potential starting
@@ -280,5 +280,5 @@ example test_has_token
 		\ ("foobar", "foo", false)
 		\ ("barfoo ", "foo", false)
 		\ }:[](String, String, Bool)
-	foreach header, token, want in tests
+	foreach header, token, want over tests
 		assert want == has_token header token

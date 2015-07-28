@@ -10,7 +10,7 @@ inline Buf met# Dtor
 	if t isa `Trivial_dtor
 		noop
 	else
-		foreach i in self.All
+		foreach i over self.All
 			self![i]#Dtor
 	Realloc #self#s 0
 
@@ -152,7 +152,7 @@ Buf met# auto_shrink
 example
 	var v = {}:(Buf Uint)
 	assert v.Count == 0
-	foreach i in 0 .. 63
+	foreach i over 0 .. 63
 		(v#Push)! = i
 	assert v.Cap == 64
 	v#Reserve 112
@@ -161,14 +161,14 @@ example
 	var w = v
 	let r = v.Count .. v.Cap
 	assert r.Count == 112-63
-	foreach i in r
+	foreach i over r
 		(v#Push)! = i
 		assert v.Cap == 112
 	assert v.Count == 112
 	assert v.Cap == 112
 	(v#Push)! = 1
 	assert v.Cap == 224
-	foreach _ in 0 .. (v.Count - 113)
+	foreach _ over 0 .. (v.Count - 113)
 		v#Pop
 	assert v.Count == 113
 	assert v.Cap == 224

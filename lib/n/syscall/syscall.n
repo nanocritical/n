@@ -1151,7 +1151,7 @@ extern fun sigaddset raw_set:#U8 signum:int = int
 Sigset fun Mk ...signums:(Vararg *I32) = Error, r:this
 	let raw = r#Unsafe_raw
 	sigemptyset raw
-	for signum in signums
+	for signum over signums
 		let ret = sigaddset raw signum
 		if ret < 0
 			return convert_error errno, {}
@@ -1227,19 +1227,19 @@ fun Execve filename:String argv:[]String envp:[]String = Error
 	let cfilename = cstring.Mk filename
 
 	let cargv:(Buf cstring.Cstring) such
-		foreach a in argv
+		foreach a over argv
 			cargv#Push# = cstring.Mk a
 	let pcargv:(Buf ?*U8) such
-		foreach a in cargv
+		foreach a over cargv
 			pcargv#Push# = a.Rawdata
 		if pcargv.Count == 0
 			pcargv#Push# = nil
 
 	let cenvp:(Buf cstring.Cstring) such
-		foreach a in envp
+		foreach a over envp
 			cenvp#Push# = cstring.Mk a
 	let pcenvp:(Buf ?*U8) such
-		foreach a in cenvp
+		foreach a over cenvp
 			pcenvp#Push# = a.Rawdata
 		if pcenvp.Count == 0
 			pcenvp#Push# = nil

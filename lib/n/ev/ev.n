@@ -124,7 +124,7 @@ Poll met! Register e:Event = Error
 
 	let sys_events_defaults = syscall.EPOLLERR | syscall.EPOLLHUP | syscall.EPOLLET
 	let events = sys_events_defaults such
-		for f in pe.Ask.Iter
+		for f over pe.Ask.Iter
 			events |= events_to_sys_events f
 
 	let rawdata = (unsafe.Cast ?#Event ?#U8) pe
@@ -154,7 +154,7 @@ Poll met! process_manuals = Error
 	-- Processing manual handlers may add more to manuals, so we steal it:
 	let manuals = self!manuals#Move
 	var keep:(Buf ?#`Handler)
-	foreach ph in manuals
+	foreach ph over manuals
 		let h = ph*
 		if not h?
 			continue
@@ -172,7 +172,7 @@ Poll met! process_manuals = Error
 Poll met! process_closes = closed_some:Bool
 	-- Processing close handlers may add more to closes, so we steal it:
 	let closes = self!closes#Move
-	for fd in closes.Iter
+	for fd over closes.Iter
 		let pe = self.fds.[fd]
 		if not pe?
 			Log#Warning "spurious fd on close list: %s" fd

@@ -110,7 +110,7 @@ fun init_type typename:String = Type
 	return {Typename=typename typename_hash32=typename.Hash32}
 
 Dynisalist met Check
-	foreach ee in self.entries
+	foreach ee over self.entries
 		let rintf = init_type ee.typename
 		let e, addr = self.find_entry rintf false
 		assert e? and addr == 0
@@ -130,7 +130,7 @@ example
 		\ "`Trivial_copy"}
 	let my = init_type "my" such
 		my#dynisalist#Init list.Count
-		foreach t in list
+		foreach t over list
 			let r = init_type t
 			let fakedyntable = (unsafe.Cast *U8 refdyntable) t.Bytes.Unsafe_rawdata
 			my#dynisalist#Add_entry r fakedyntable

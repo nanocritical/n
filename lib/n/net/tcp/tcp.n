@@ -64,7 +64,7 @@ fun Resolve_address addr:String = err:Error, addrs:(Buf Addr)
 			host, zone = host.Cut_around z.Unsigned
 
 	let except, ips = net.Lookup_ip host
-	foreach ip in ips
+	foreach ip over ips
 		let addr = addrs#Push
 		addr#Ip = ip
 		addr#Port = num_port.To_uint

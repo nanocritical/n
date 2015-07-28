@@ -12,7 +12,7 @@ intf `Comparison impl:`Enum =
 (fun impl:`Enum) Compare ex:!bench.Example repeat:Uint c:!(`Comparison impl)
 	Eprn c.Name
 
-	for i in (Enumset impl).ALL.Iter
+	for i over (Enumset impl).ALL.Iter
 		-- Warm once.
 		let _ = c!Run ex 1 i
 
@@ -45,13 +45,13 @@ index met Name = String
 
 index met Check = Error
 	let x0 = self.r.[0]
-	foreach x in self.r
+	foreach x over self.r
 		if x != x0
 			return INVAL
 	return OK
 
 index met! Run ex:!bench.Example repeat:Uint impl:String_index_impl = Error
-	foreach _ in 0 .. repeat
+	foreach _ over 0 .. repeat
 		self!r![impl.Tag.Uint-1]! = self.haystack.Index_selectimpl impl self.needle
 	return OK
 

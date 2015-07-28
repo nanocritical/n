@@ -127,7 +127,7 @@ Ip fun Parse s:String = err:Error, ret:this
 Ip fun parse_v4 s:String = Error, this
 	var p = {0 0 0 0}:[!]U8
 	var beg, end
-	foreach j in 0 .. p.Count
+	foreach j over 0 .. p.Count
 		if beg >= s.Count
 			-- Missing octets.
 			return INVAL, {}
@@ -262,7 +262,7 @@ fun Join_host_port r:#io.`Writer host:String port:Uint
 -- Split_host_port splits a network address of the form "host", "host:port",
 -- "[host]:port", "ipv6-host%zone", "[ipv6-host%zone]:port" into
 -- (host, nil), or (host, port), or (ipv6-host%zone, nil), or (ipv6-host%zone,
--- port).  A literal address or host name for IPv6 must be enclosed in square
+-- port).  A literal address or host name for IPv6 must be enclosed over square
 -- brackets if a port is given, as in "[::1]:80", "[ipv6-host]:http" or
 -- "[ipv6-host%zone]:80".
 --
@@ -336,7 +336,7 @@ example split_host_port
 		\ ("[::%0]:80", OK, "::%0", ?"80")
 		\ }:[](String, Error, String, ?String)
 
-	foreach input, ex_err, ex_host, ex_port in tests
+	foreach input, ex_err, ex_host, ex_port over tests
 		var err, host, port = Split_host_port input
 		assert err == ex_err and host == ex_host
 			\ and ((not port? and not ex_port?) or (port? and ex_port? and port == ex_port))

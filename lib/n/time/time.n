@@ -332,7 +332,7 @@ fun show_frac st:#fmt.`State prec:Uint v:I64
 	let w = v
 	and leading_zeros = 0
 	and trim_by = Uint.MAX such
-		foreach i in 0 .. prec
+		foreach i over 0 .. prec
 			let d = w % 10
 			if d != 0
 				buf![prec - i]! = ZERO + d.I64.Unsigned.Trim_u8
@@ -449,7 +449,7 @@ example
 		\ ("-2562047h47m16.854775807s", Duration.MIN+1)
 		\ ("-2562047h47m16.854775808s", Duration.MIN) }:[](String, Duration)
 
-	foreach s, v in samples
+	foreach s, v over samples
 		v.Show st
 		assert buf.String == s
 		buf#Clear

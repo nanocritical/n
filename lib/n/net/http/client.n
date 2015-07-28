@@ -271,7 +271,7 @@ client_conn_handler met# Close = err:Error
 
 	self.debug
 
-	-- No need for a fancy closing procedure, unlike server.n. Here in the
+	-- No need for a fancy closing procedure, unlike server.n. Here over the
 	-- HTTP client, we receive confirmation from the server that it got all
 	-- our request through its response. If we're closing, we're not
 	-- expecting more (or we chose to ignore it by closing).
@@ -458,14 +458,14 @@ client_one_host met# Dtor
 	self#hostkey#Dtor
 	self#config#Dtor
 
-	for rconnh in self.idles.Iter
+	for rconnh over self.idles.Iter
 		Free rconnh.Ref
 	self#idles#Dtor
 
 	if self.actives.Count != 0
 		Log#Warning "%s connections to host '%s' were still active"
 			\ self.actives.Count self.hostkey
-	for rconnh in self.actives.Iter
+	for rconnh over self.actives.Iter
 		Free rconnh.Ref
 	self#actives#Dtor
 
@@ -505,7 +505,7 @@ Client fun Mk poll:#ev.Poll ?default_config:?Client_config = r:this
 	r#default_config = default_config else {Max_idle_connections_per_host=10}
 
 Client met# Dtor
-	for _, coh in self.hosts.Iter
+	for _, coh over self.hosts.Iter
 		Free coh*
 	self#hosts#Dtor
 

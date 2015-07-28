@@ -219,10 +219,10 @@ Cmd met# Run poll:#ev.Poll = Error within the_nanny
 	except, _ = syscall.Fcntl_i32 d2 syscall.F_SETFL f2 & ~syscall.O_NONBLOCK
 
 	let argv:(Buf String) such
-		foreach a in self.Args
+		foreach a over self.Args
 			argv#Push# = a.String
 	let envp:(Buf String) such
-		foreach a in self.Envs
+		foreach a over self.Envs
 			envp#Push# = a.String
 
 	try

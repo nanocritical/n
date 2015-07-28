@@ -33,7 +33,7 @@ example hashmap_basic
 	assert m.["42"] == 43
 	assert m.["44"] == 44
 
-	for k, v in m.Iter
+	for k, v over m.Iter
 		if k == "42"
 			assert v == 43
 		elif k == "44"
@@ -71,7 +71,7 @@ example hashmap_growth
 	var m = {}:(Map Stringbuf Uint)
 
 	var before
-	foreach i in 0 .. 16
+	foreach i over 0 .. 16
 		let buf = {}:Stringbuf such
 			buf#Pr i
 			(m#Store buf)# = i
@@ -80,20 +80,20 @@ example hashmap_growth
 		-- We want the size after initialization.
 		before = m.table.size
 	assert m.table.size == before
-	foreach i in 0 .. 16
+	foreach i over 0 .. 16
 		let buf = {}:Stringbuf such
 			buf#Pr i
 			assert m.[buf] == i
 			buf#Clear
 
-	foreach i in 16 .. 256
+	foreach i over 16 .. 256
 		let buf = {}:Stringbuf such
 			buf#Pr i
 			(m#Store buf)# = i
 			buf#Clear
 		assert m.Count == i + 1
 	assert m.table.size > before
-	foreach i in 16 .. 256
+	foreach i over 16 .. 256
 		let buf = {}:Stringbuf such
 			buf#Pr i
 			assert m.[buf] == i

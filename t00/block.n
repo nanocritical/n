@@ -51,7 +51,7 @@ fun Main = I32
 	and z2 = block
 		let tmp = 0:I32
 		such
-			for i in (0 .. 100).Iter -> tmp += i.Trim_u32.Signed
+			for i over (0 .. 100).Iter -> tmp += i.Trim_u32.Signed
 		tmp
 	assert y2 == 'test'
 	assert z2 == 50*99

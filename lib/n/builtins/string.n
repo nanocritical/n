@@ -234,7 +234,7 @@ let _M1 = 3267000013:U32
 
 fun hash32_go_string b:[]U8 = U32
 	let hash = _M0 such
-		foreach x in b
+		foreach x over b
 			hash = (hash ^ x.U32) ov* _M1
 	return hash
 
@@ -292,7 +292,7 @@ let rk_prime = 16777619:U32
 
 fun rk_hash b:[]U8 = U32, U32
 	let hash = 0 such
-		foreach x in b
+		foreach x over b
 			hash = hash ov* rk_prime ov+ x.U32
 	let pow = 1
 	and sq = rk_prime
@@ -349,11 +349,11 @@ String met rk_index sep:String = Int
 
 	let hashsep, pow = rk_hash sep.Bytes
 	let h = 0 such
-		foreach i in 0 .. n
+		foreach i over 0 .. n
 			h = h ov* rk_prime ov+ self.[i].U32
 		if h == hashsep and self.[.. n] == sep
 			return 0
-		foreach i in n .. cnt
+		foreach i over n .. cnt
 			h ov*= rk_prime
 			h ov+= self.[i].U32
 			h ov-= pow ov* self.[i-n].U32
@@ -365,9 +365,9 @@ String met rk_index sep:String = Int
 fun bm_init_bad_shift bad:#(Buf Uint) sep:String
 	bad#Resize 256
 	let m = sep.Count
-	foreach i in bad.All
+	foreach i over bad.All
 		bad![i]! = m
-	foreach i in 0 .. m-1
+	foreach i over 0 .. m-1
 		bad![sep.[i].Uint]! = m - 1 - i
 
 -- Tuned Boyer-Moore
@@ -467,8 +467,8 @@ example -> assert "abcdef".Last_index "def" == 3
 String met Index_any chars:String = Int
 	if chars.Count == 0
 		return -1
-	for i, c in self.Iter
-		for _, m in chars.Iter
+	for i, c over self.Iter
+		for _, m over chars.Iter
 			if c == m
 				return i.Signed
 	return -1
@@ -481,7 +481,7 @@ String met Last_index_any chars:String = Int
 	while i > 0
 		let r, size = Rune.Decode_last b.[.. i]
 		i -= size
-		for _, m in chars.Iter
+		for _, m over chars.Iter
 			if r == m
 				return i.Signed
 	return -1
@@ -496,14 +496,14 @@ String met Strip any:String = String
 
 -- FIXME(e): unicode
 String met Strip_left any:String = String
-	foreach i in self.All
+	foreach i over self.All
 		if any.Index_byte self.[i] == -1
 			return self.[i ..]
 	return ""
 
 -- FIXME(e): unicode
 String met Strip_right any:String = String
-	for i in self.All.Reverse_iter
+	for i over self.All.Reverse_iter
 		if any.Index_byte self.[i] == -1
 			return self.[.. i+1]
 	return ""
@@ -514,18 +514,18 @@ example -> assert "\t\nabc\t\n".Strip_left "\n\t" == "abc\t\n"
 
 String met To_lower = r:Stringbuf
 	r#Reserve self.Count
-	foreach i in self.All
+	foreach i over self.All
 		r#Push <- Byte_to_lower self.[i]
 
 String met To_upper = r:Stringbuf
 	r#Reserve self.Count
-	foreach i in self.All
+	foreach i over self.All
 		r#Push <- Byte_to_upper self.[i]
 
 -- FIXME(e): Unicode
 fun explode s:String ?max:?Uint = ret:(Buf String)
 	ret#Reserve s.Count
-	for i, r in s.Iter
+	for i, r over s.Iter
 		if r == Rune.ERROR
 			ret#Push# = Rune.ERROR_STRING
 		else
@@ -690,15 +690,15 @@ inline Stringbuf met# Reserve atleast:Uint
 
 Stringbuf met# Cat ?sep:?*String ...v:(Vararg *`String)
 	let sepcnt = sep?.Count else 0
-	for b in v
+	for b over v
 		self#Reserve self.bytes.Count + sepcnt + b.Count
 		self#bytes = self!bytes!Append b.String.Bytes
 		if sep? and v.Count_left > 0
 			self#bytes = self!bytes!Append sep.Bytes
 
 Stringbuf met# Cat_all ?sep:?*String ...v:(Vararg *[]String)
-	for b in v
-		foreach i in b.All
+	for b over v
+		foreach i over b.All
 			let s = b.[i]
 			self#Cat s
 			if sep? and i > 0 and i != b.Count-1
@@ -731,7 +731,7 @@ Stringbuf met# Pr ?sep:?*String ...v:(Vararg ?*`Show)
 	let separator = sep else " "
 	and st = {}:fmt.State such
 		st#Init self
-		for x in v
+		for x over v
 			if x?
 				x.Show #st
 			else
