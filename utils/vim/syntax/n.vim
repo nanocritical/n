@@ -109,8 +109,8 @@ hi def link nNumbers Number
 hi def link nString String
 hi def link nSpecial SpecialChar
 "hi def link nSemantic Semantic
-"hi def link nMutate Operator
-"hi def link nMercurial Operator
+hi def link nMutate Operator
+hi def link nMercurial Operator
 hi def link nNullable Constness
 hi def link nWildcard Special
 hi def link nIntf Type
