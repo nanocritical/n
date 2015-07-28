@@ -56,7 +56,10 @@ fun F w:#io.`Writer fmt:String ...v:(Vararg ?*`Show)
 				let s = v!Next
 				if not s?
 					break
-				s.Show #st
+				if not (s else nil)?
+					"(nil)".Show #st
+				else
+					s.Show #st
 			fmt = after
 	catch err
 		drop = err
@@ -76,18 +79,21 @@ fun Prn ?err:?Bool ?sep:?*String ...v:(Vararg ?*`Show)
 	Cat buf sep=sep ...v
 	n.Prn err=err buf
 
-fun Cat w:#io.`Writer ?sep:?*String ...v:(Vararg *`Show)
+fun Cat w:#io.`Writer ?sep:?*String ...v:(Vararg ?*`Show)
 	let st = {W=w}:State
 	try
 		for s in v
+			if not s?
+				F w "(nil)"
+				continue
 			s.Show #st
 			if sep? and v.Count_left > 0
 				_, except = io.Write_full w sep.Bytes
 	catch _
 		noop
 
-fun Sf fmt:String ...v:(Vararg *`Show) = r:Stringbuf
+fun Sf fmt:String ...v:(Vararg ?*`Show) = r:Stringbuf
 	F #r fmt ...v
 
-fun S ?sep:?*String ...v:(Vararg *`Show) = r:Stringbuf
+fun S ?sep:?*String ...v:(Vararg ?*`Show) = r:Stringbuf
 	Cat #r sep=(sep else " ") ...v
