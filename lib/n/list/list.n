@@ -1,0 +1,182 @@
+from n import *
+
+struct Element R:`Any_any_ref =
+	isa `Not_moveable `Not_copyable
+	alias H = (Head R)
+	X	:R
+	Next	:?#final
+	Prev	:?#final
+	Head	:?#H
+
+struct Head R:`Any_any_ref =
+	isa `Not_moveable `Not_copyable
+	alias E = (Element R)
+	First	:?#E
+	Last	:?#E
+	Count	:Uint
+
+Head met# Remove e:#this.E
+	assert e.Head === self
+	let prev = e.Prev
+	let next = e.Next
+
+	if prev?
+		prev#Next = next
+	else
+		self#First = next
+
+	if next?
+		next#Prev = prev
+	else
+		self#Last = prev
+
+	self#Count -= 1
+
+	e#Prev = nil
+	e#Next = nil
+
+Head met# Replace where:#this.E e:#this.E
+	assert where.Head === self
+	if not e#Head?
+		e#Head = self
+	else
+		assert e.Head === self
+
+	let prev = where.Prev
+	let next = where.Next
+
+	if prev?
+		prev#Next = e
+	else
+		self#First = e
+
+	if next?
+		next#Prev = e
+	else
+		self#Last = e
+
+	where#Prev = nil
+	e#Next = nil
+
+-- If where is nil, insert in front.
+Head met# Insert_before where:?#this.E e:#this.E
+	if not e#Head?
+		e#Head = self
+	else
+		assert e.Head === self
+
+	if not where?
+		if self.Count == 0
+			self#First = e
+			self#Last = e
+			self#Count = 1
+			return
+		else
+			where = self.First
+
+	assert where.Head === self
+
+	let prev = where.Prev
+	e#Prev = prev
+	if prev?
+		prev#Next = e
+	else
+		self#First = e
+
+	e#Next = where
+	where#Prev = e
+	self#Count += 1
+
+-- If where is nil, insert at end.
+Head met# Insert_after where:?#this.E e:#this.E
+	if not e#Head?
+		e#Head = self
+	else
+		assert e.Head === self
+
+	if not where?
+		if self.Count == 0
+			self#First = e
+			self#Last = e
+			self#Count = 1
+			return
+		else
+			where = self.Last
+
+	assert where.Head === self
+
+	let next = where.Next
+	e#Next = next
+	if next?
+		next#Prev = e
+	else
+		self#Last = e
+
+	e#Prev = where
+	where#Next = e
+	self#Count += 1
+
+
+example basic
+	var h:(Head *Uint)
+	var a = {X=*41}:(Element *Uint)
+	var b = {X=*42}:(Element *Uint)
+	var c = {X=*43}:(Element *Uint)
+	h#Insert_before nil #b
+	assert h.Count == 1
+	assert h.First === #b
+	assert h.Last === #b
+	h#Insert_before nil #a
+	assert h.Count == 2
+	assert h.First === #a
+	assert h.Last === #b
+	h#Insert_after nil #c
+	assert h.Count == 3
+	assert h.First === #a
+	assert h.Last === #c
+	h#Remove #c
+	h#Insert_after #b #c
+	assert h.Count == 3
+	assert h.First === #a
+	assert h.Last === #c
+
+	var p = h.First
+	var i:Uint
+	while p?
+		assert p.X == 41 + i
+		p = p#Next
+		i += 1
+
+	p = h.Last
+	i = 2
+	while p?
+		assert p.X == 41 + i
+		p = p#Prev
+		i -= 1
+
+	h#Remove #b
+	assert h.Count == 2
+	assert h.First === #a
+	assert h.Last === #c
+	p = h.First
+	i = 0
+	while p?
+		if i == 0
+			assert p.X == 41
+		elif i == 1
+			assert p.X == 43
+		else
+			assert false
+		p = p#Next
+		i += 1
+
+	h#Replace #a #b
+	assert h.Count == 2
+	assert h.First === #b
+	assert h.Last === #c
+	p = h.First
+	i = 0
+	while p?
+		assert p.X == 42 + i
+		p = p#Next
+		i += 1
