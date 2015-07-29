@@ -43,7 +43,7 @@ struct opt {
 static struct opt g_opt;
 
 #define CFLAGS "-Wall -Wno-missing-braces -ffunction-sections -fdata-sections -std=c99 -I. -g -Wno-unused-function"
-#define LDFLAGS CFLAGS " -Wl,--gc-sections"
+#define LDFLAGS CFLAGS " -Wl,--gc-sections -lm"
 
 static ERROR sh(const char *cmd) {
   if (g_opt.verbose) {

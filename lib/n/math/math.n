@@ -135,3 +135,132 @@ example -> assert 0 == Roundup_mult 0:U8 16:U8
 example -> assert 15 == Roundup_mult 1:U8 15:U8
 example -> assert 17 == Roundup_mult 17:U8 17:U8
 example -> assert 34 == Roundup_mult 18:U8 17:U8
+
+
+-- TODO(e): Turn into extern inline when ncc0 codegen supports it.
+extern let E:Double
+extern let LOG2E:Double
+extern let LOG10E:Double
+extern let LN2:Double
+extern let LN10:Double
+extern let PI:Double
+extern let RATIO_PI_2:Double
+extern let RATIO_PI_4:Double
+extern let RATIO_1_PI:Double
+extern let RATIO_2_PI:Double
+extern let RATIO_2_SQRTPI:Double
+extern let SQRT2:Double
+extern let RATIO_SQRT1_2:Double
+
+extern inline fun Acos x:Double = Double
+extern inline fun Acosf x:Float = Float
+extern inline fun Acosh x:Double = Double
+extern inline fun Acoshf x:Float = Float
+extern inline fun Asin x:Double = Double
+extern inline fun Asinf x:Float = Float
+extern inline fun Asinh x:Double = Double
+extern inline fun Asinhf x:Float = Float
+extern inline fun Atan x:Double = Double
+extern inline fun Atan2 x:Double y:Double = Double
+extern inline fun Atan2f x:Float y:Float = Float
+extern inline fun Atanf x:Float = Float
+extern inline fun Atanh x:Double = Double
+extern inline fun Atanhf x:Float = Float
+extern inline fun Cbrt x:Double = Double
+extern inline fun Cbrtf x:Float = Float
+extern inline fun Ceil x:Double = Double
+extern inline fun Ceilf x:Float = Float
+extern inline fun Copysign x:Double y:Double = Double
+extern inline fun Copysignf x:Float y:Float = Float
+extern inline fun Cos x:Double = Double
+extern inline fun Cosf x:Float = Float
+extern inline fun Cosh x:Double = Double
+extern inline fun Coshf x:Float = Float
+extern inline fun Erf x:Double = Double
+extern inline fun Erfc x:Double = Double
+extern inline fun Erfcf x:Float = Float
+extern inline fun Erff x:Float = Float
+extern inline fun Exp x:Double = Double
+extern inline fun Exp2 x:Double = Double
+extern inline fun Exp2f x:Float = Float
+extern inline fun Expf x:Float = Float
+extern inline fun Expm1 x:Double = Double
+extern inline fun Expm1f x:Float = Float
+extern inline fun Fabs x:Double = Double
+extern inline fun Fabsf x:Float = Float
+extern inline fun Fdim x:Double y:Double = Double
+extern inline fun Fdimf x:Float y:Float = Float
+extern inline fun Floor x:Double = Double
+extern inline fun Floorf x:Float = Float
+extern inline fun Fma x:Double y:Double z:Double = Double
+extern inline fun Fmaf x:Float y:Float z:Float = Float
+extern inline fun Fmax x:Double y:Double = Double
+extern inline fun Fmaxf x:Float y:Float = Float
+extern inline fun Fmin x:Double y:Double = Double
+extern inline fun Fminf x:Float y:Float = Float
+extern inline fun Fmod x:Double y:Double = Double
+extern inline fun Fmodf x:Float y:Float = Float
+extern inline fun Frexp x:Double exp:!I32 = Double
+extern inline fun Frexpf x:Float exp:!I32 = Float
+extern inline fun Hypot x:Double y:Double = Double
+extern inline fun Hypotf x:Float y:Float = Float
+extern inline fun Ilogb x:Double = I32
+extern inline fun Ilogbf x:Float = I32
+extern inline fun J0 x:Double = Double
+extern inline fun J1 x:Double = Double
+extern inline fun Jn x:I32 y:Double = Double
+extern inline fun Ldexp x:Double y:I32 = Double
+extern inline fun Ldexpf x:Float y:I32 = Float
+extern inline fun Lgamma x:Double = Double
+extern inline fun Lgammaf x:Float = Float
+extern inline fun Log x:Double = Double
+extern inline fun Log10 x:Double = Double
+extern inline fun Log10f x:Float = Float
+extern inline fun Log1p x:Double = Double
+extern inline fun Log1pf x:Float = Float
+extern inline fun Log2 x:Double = Double
+extern inline fun Log2f x:Float = Float
+extern inline fun Logb x:Double = Double
+extern inline fun Logbf x:Float = Float
+extern inline fun Logf x:Float = Float
+extern inline fun Lrint x:Double = I64
+extern inline fun Lrintf x:Float = I64
+extern inline fun Lround x:Double = I64
+extern inline fun Lroundf x:Float = I64
+extern inline fun Modf x:Double iptr:!Double = Double
+extern inline fun Modff x:Float iptr:!Float = Float
+extern inline fun Nearbyint x:Double = Double
+extern inline fun Nearbyintf x:Float = Float
+extern inline fun Nextafter x:Double y:Double = Double
+extern inline fun Nextafterf x:Float y:Float = Float
+extern inline fun Pow x:Double y:Double = Double
+extern inline fun Powf x:Float y:Float = Float
+extern inline fun Remainder x:Double y:Double = Double
+extern inline fun Remainderf x:Float y:Float = Float
+extern inline fun Remquo x:Double y:Double quo:!I32 = Double
+extern inline fun Remquof x:Float y:Float quo:!I32 = Float
+extern inline fun Rint x:Double = Double
+extern inline fun Rintf x:Float = Float
+extern inline fun Round x:Double = Double
+extern inline fun Roundf x:Float = Float
+extern inline fun Scalbln x:Double y:I64 = Double
+extern inline fun Scalblnf x:Float y:I64 = Float
+extern inline fun Scalbn x:Double y:I32 = Double
+extern inline fun Scalbnf x:Float y:I32 = Float
+extern inline fun Sin x:Double = Double
+extern inline fun Sinf x:Float = Float
+extern inline fun Sinh x:Double = Double
+extern inline fun Sinhf x:Float = Float
+extern inline fun Sqrt x:Double = Double
+extern inline fun Sqrtf x:Float = Float
+extern inline fun Tan x:Double = Double
+extern inline fun Tanf x:Float = Float
+extern inline fun Tanh x:Double = Double
+extern inline fun Tanhf x:Float = Float
+extern inline fun Tgamma x:Double = Double
+extern inline fun Tgammaf x:Float = Float
+extern inline fun Trunc x:Double = Double
+extern inline fun Truncf x:Float = Float
+extern inline fun Y0 x:Double = Double
+extern inline fun Y1 x:Double = Double
+extern inline fun Yn x:I32 y:Double = Double

@@ -917,6 +917,14 @@ intf `Bool_compatible =
 intf `Native_boolean =
 	isa `Native `Generalized_boolean `Bool_compatible `Show
 
+inline enum Floating_class =
+	-- Values must be equal to libc's.
+	| NAN = 0
+	| INFINITE = 1
+	| ZERO = 2
+	| SUBNORMAL = 3
+	| NORMAL = 4
+
 intf `Floating =
 	isa `Numeric `Has_compare `Number_literal_compatible
 	fun MIN = final
@@ -1793,6 +1801,12 @@ extern Float met Show st:#`Fmt_state
 extern inline Float met Bitwise_u32 = U32
 inline Float met Hash32 = U32
 	return self.Bitwise_u32.Hash32
+extern inline Float met Classify = Floating_class
+extern inline Float met Is_finite = Bool
+extern inline Float met Is_normal = Bool
+extern inline Float met Is_nan = Bool
+extern inline Float met Is_inf = Int
+extern inline Float met Signbit = Bool
 
 extern inline struct Double =
 	isa `Native_floating
@@ -1836,6 +1850,12 @@ extern Double met Show st:#`Fmt_state
 extern inline Double met Bitwise_u64 = U64
 inline Double met Hash32 = U32
 	return self.Bitwise_u64.Hash32
+extern inline Double met Classify = Floating_class
+extern inline Double met Is_finite = Bool
+extern inline Double met Is_normal = Bool
+extern inline Double met Is_nan = Bool
+extern inline Double met Is_inf = Int
+extern inline Double met Signbit = Bool
 
 inline struct Bounds =
 	First	:Bool

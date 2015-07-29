@@ -426,6 +426,13 @@ static inline NB(Int) NB(Float$MAX_EXP)(void) { return FLT_MAX_EXP; }
 static inline NB(Int) NB(Float$MIN_10_EXP)(void) { return FLT_MIN_10_EXP; }
 static inline NB(Int) NB(Float$MAX_10_EXP)(void) { return FLT_MAX_10_EXP; }
 
+static inline NB(U32) NB(Float$Classify)(NB(Float) *self) { return fpclassify(*self); }
+static inline NB(Bool) NB(Float$Is_finite)(NB(Float) *self) { return isfinite(*self); }
+static inline NB(Bool) NB(Float$Is_normal)(NB(Float) *self) { return isnormal(*self); }
+static inline NB(Bool) NB(Float$Is_nan)(NB(Float) *self) { return isnan(*self); }
+static inline NB(Int) NB(Float$Is_inf)(NB(Float) *self) { return isinf(*self); }
+static inline NB(Bool) NB(Float$Signbit)(NB(Float) *self) { return signbit(*self); }
+
 static inline NB(I8) NB(Double$Round0_i8)(NB(Double) *self) { return (NB(I8)) *self; }
 static inline NB(I16) NB(Double$Round0_i16)(NB(Double) *self) { return (NB(I16)) *self; }
 static inline NB(I32) NB(Double$Round0_i32)(NB(Double) *self) { return (NB(I32)) *self; }
@@ -444,6 +451,14 @@ static inline NB(Int) NB(Double$MIN_EXP)(void) { return DBL_MIN_EXP; }
 static inline NB(Int) NB(Double$MAX_EXP)(void) { return DBL_MAX_EXP; }
 static inline NB(Int) NB(Double$MIN_10_EXP)(void) { return DBL_MIN_10_EXP; }
 static inline NB(Int) NB(Double$MAX_10_EXP)(void) { return DBL_MAX_10_EXP; }
+
+static inline NB(U32) NB(Double$Classify)(NB(Double) *self) { return fpclassify(*self); }
+static inline NB(Bool) NB(Double$Is_finite)(NB(Double) *self) { return isfinite(*self); }
+static inline NB(Bool) NB(Double$Is_normal)(NB(Double) *self) { return isnormal(*self); }
+static inline NB(Bool) NB(Double$Is_nan)(NB(Double) *self) { return isnan(*self); }
+static inline NB(Int) NB(Double$Is_inf)(NB(Double) *self) { return isinf(*self); }
+static inline NB(Bool) NB(Double$Signbit)(NB(Double) *self) { return signbit(*self); }
+
 
 #define n$builtins$Likely(x) __builtin_expect(!!(x), 1)
 #define n$builtins$Unlikely(x) __builtin_expect(!!(x), 0)
