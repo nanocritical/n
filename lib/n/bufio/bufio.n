@@ -172,10 +172,10 @@ Reader met Peek_string ?max:?Uint = String
 	return String.From_bytes <- self.Peek max=max
 
 -- Does not Fill more data.
--- The returned slice is valid until the next call to Fill.
+-- The returned string is valid until the next call to Fill.
 -- If a newline ("\r\n" or "\n") is not reached, it returns partial==true.
-Reader met Peek_line = partial:Bool, line:String
-	let pending = self.Peek_string
+Reader met Peek_line ?max:?Uint = partial:Bool, line:String
+	let pending = self.Peek_string max=max
 	let i = pending.Index_byte '\n'
 	if i < 0
 		line = pending
@@ -187,10 +187,10 @@ Reader met Peek_line = partial:Bool, line:String
 		line = pending.[.. eol]
 
 -- Does not Fill more data.
--- The returned slice is valid until the next call to Fill.
+-- The returned string is valid until the next call to Fill.
 -- If a newline "\n" is not reached, it returns partial==true.
-Reader met Peek_lf_line = partial:Bool, line:String
-	let pending = self.Peek_string
+Reader met Peek_lf_line ?max:?Uint = partial:Bool, line:String
+	let pending = self.Peek_string max=max
 	let i = pending.Index_byte '\n'
 	if i < 0
 		line = pending
@@ -200,10 +200,10 @@ Reader met Peek_lf_line = partial:Bool, line:String
 		line = pending.[.. eol]
 
 -- Does not Fill more data.
--- The returned slice is valid until the next call to Fill.
+-- The returned string is valid until the next call to Fill.
 -- If a newline "\r\n" is not reached, it returns partial==true.
-Reader met Peek_crlf_line = partial:Bool, line:String
-	let pending = self.Peek_string
+Reader met Peek_crlf_line ?max:?Uint = partial:Bool, line:String
+	let pending = self.Peek_string max=max
 	let i = pending.Index '\r\n'
 	if i < 0
 		line = pending
