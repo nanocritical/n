@@ -896,6 +896,36 @@ NB(Uint) SY(strftime)(NB(U8) *s, NB(Uint) max, NB(U8) *format, struct SY(Tm) *tm
   return strftime((char *)s, max, (const char *)format, &sys);
 }
 
+static SY_int SY(posix_openpt)(SY_int flags) {
+  int ret = posix_openpt(flags);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static SY_int SY(grantpt)(SY_int fd) {
+  int ret = grantpt(fd);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static SY_int SY(unlockpt)(SY_int fd) {
+  int ret = unlockpt(fd);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static SY_int SY(ptsname_r)(SY_int fd, NB(U8) *buf, NB(Uint) buflen) {
+  int ret = ptsname_r(fd, (char *)buf, buflen);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
+static SY_int SY(isatty)(SY_int fd) {
+  int ret = isatty(fd);
+  _$Nlatestsyscallerrno = errno;
+  return ret;
+}
+
 #endif
 
 #undef SY

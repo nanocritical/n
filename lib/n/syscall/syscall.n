@@ -1306,3 +1306,53 @@ fun Strftime b:[!]U8 format:String tm:*Tm = r:[!]U8
 	let dst = b!Available_elements
 	let ret = strftime dst#Unsafe_rawdata dst.Count (cstring.Mk format).Rawdata tm
 	return b![.. b.Count + ret]
+
+
+extern fun posix_openpt flags:int = int
+extern fun grantpt fd:int = int
+extern fun unlockpt fd:int = int
+extern fun ptsname_r fd:int buf:#U8 buflen:Uint = int
+extern fun isatty fd:int = int
+
+fun Posix_openpt flags:I32 = Error, Fd
+	let fd = posix_openpt flags
+	if fd >= 0
+		return OK, Fd.Mk fd
+	return convert_error errno, {}
+
+fun Grantpt fd:Fd = Error
+	let ret = grantpt fd.Sys_number
+	if ret == 0
+		return OK
+	return convert_error errno
+
+fun Unlockpt fd:Fd = Error
+	let ret = unlockpt fd.Sys_number
+	if ret == 0
+		return OK
+	return convert_error errno
+
+fun Ptsname_r fd:Fd = Error, buf:Stringbuf
+	buf#Reserve 64
+	var ret, eno
+	foreach _ over 0 .. 3
+		ret = ptsname_r fd.Sys_number buf!Bytes!Unsafe_data buf.Cap
+		if ret != 0
+			eno = errno
+			if eno == _ERANGE
+				buf#Reserve 2*buf.Cap
+				continue
+		break
+
+	if ret != 0
+		buf#Clear
+		return convert_error eno, buf
+
+	let len = Strlen buf.Bytes.Unsafe_data
+	buf#Copy_from buf.Bytes.[.. len]
+
+fun Isatty fd:Fd = Bool, Error
+	let ret = isatty fd.Sys_number
+	if ret == 1
+		return true, OK
+	return false, convert_error errno
