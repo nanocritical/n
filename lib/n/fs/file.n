@@ -9,7 +9,7 @@
 
 intf `Seeker =
 	isa io.`Reader
-	met! Seek offset:Int whence:Whence = Error, Uint
+	met# Seek offset:Int whence:Whence = Error, Uint
 
 inline struct File =
 	isa `Not_copyable io.`Reader io.`Writer
