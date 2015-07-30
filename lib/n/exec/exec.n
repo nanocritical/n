@@ -162,7 +162,7 @@ Cmd met# init_pipes = Error
 
 	if not self.using_pout
 		if not self.Stdout?
-			self#buf_stdout_discard = bufio.Writer.Mk #self#stderr_discard
+			self#buf_stdout_discard = bufio.Writer.Mk #self#stdout_discard
 			self#Stdout = #self#buf_stdout_discard
 		self#stdout_copier#Reset self.Stdout self#pout_rd
 
