@@ -44,6 +44,7 @@ inline struct Cmd =
 	using_pin	:Bool
 	using_pout	:Bool
 	using_perr	:Bool
+	perr_is_pout	:Bool
 
 	stdin_empty	:bufio.Bytes_reader
 	stdout_discard	:ioutil.Discard
@@ -140,19 +141,13 @@ Cmd met# init_pipes = Error
 	-- We check if Stdin_pipe et al. have already setup the pipes.
 
 	if not self.pin_wr? or not self.pin_wr.Fd.Is_valid
-		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
-		self#pin_rd = fs.File.Open_fd rd
-		self#pin_wr = fs.File.Open_fd wr
+		self#prepare_stdin_pipe
 
 	if not self.pout_rd? or not self.pout_rd.Fd.Is_valid
-		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
-		self#pout_rd = fs.File.Open_fd rd
-		self#pout_wr = fs.File.Open_fd wr
+		self#prepare_stdout_pipe
 
 	if not self.perr_rd? or not self.perr_rd.Fd.Is_valid
-		let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
-		self#perr_rd = fs.File.Open_fd rd
-		self#perr_wr = fs.File.Open_fd wr
+		self#prepare_stderr_pipe
 
 	if not self.using_pin
 		if not self.Stdin?
@@ -270,25 +265,40 @@ Cmd met# On e:ev.Event = Error
 	-- TODO(e): on CLOSE, report when there is not yet written content for
 	-- stdin.
 
--- If establishing pipes, Stdin, Stdout, Stderr are unused.
-Cmd met# Stdin_pipe = Error, #fs.File
+Cmd met# prepare_stdin_pipe
 	let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
 	self#pin_rd = fs.File.Open_fd rd
 	self#pin_wr = fs.File.Open_fd wr
+
+-- If establishing pipes, Stdin, Stdout, Stderr are unused.
+Cmd met# Stdin_pipe = Error, #fs.File
+	self#prepare_stdin_pipe
 	self#using_pin = true
 	return OK, self#pin_wr
 
-Cmd met# Stdout_pipe = Error, #fs.File
+Cmd met# prepare_stdout_pipe
 	let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
 	self#pout_rd = fs.File.Open_fd rd
 	self#pout_wr = fs.File.Open_fd wr
+
+Cmd met# Stdout_pipe = Error, #fs.File
+	self#prepare_stdout_pipe
 	self#using_pout = true
 	return OK, self#pout_rd
 
-Cmd met# Stderr_pipe = Error, #fs.File
+Cmd met# prepare_stderr_pipe ?reuse_stdout:?Bool
+	if reuse_stdout else false
+		self#perr_rd = self#pout_rd
+		self#perr_wr = self#pout_wr
+		self#perr_is_pout = true
+		return
+
 	let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
 	self#perr_rd = fs.File.Open_fd rd
 	self#perr_wr = fs.File.Open_fd wr
+
+Cmd met# Stderr_pipe ?reuse_stdout:?Bool = Error, #fs.File
+	self#prepare_stderr_pipe reuse_stdout=reuse_stdout
 	self#using_perr = true
 	return OK, self#perr_rd
 
@@ -299,7 +309,7 @@ Cmd met! on_status status:Status
 		never = self!poll!Register {Fd=self.pin_wr.Fd Ask={CLOSE}}
 	if self.pout_rd? and self.pout_rd.Fd.Is_valid
 		never = self!poll!Register {Fd=self.pout_rd.Fd Ask={CLOSE}}
-	if self.perr_rd? and self.perr_rd.Fd.Is_valid
+	if self.perr_rd? and self.perr_rd.Fd.Is_valid and not self.perr_is_pout
 		never = self!poll!Register {Fd=self.perr_rd.Fd Ask={CLOSE}}
 
 	if self.Completion?
