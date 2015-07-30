@@ -759,19 +759,35 @@ inline Slice_impl shallow met$ First = $t
 inline Slice_impl shallow met$ Last = $t
 	return self$[self.cnt - 1]
 
+inline (fun t:`Any) slice_show_one st:#`Fmt_state x:*t
+	if t isa `Show
+		x.Show st
+	elif t isa Optional
+		if not (x*)?
+			"(nil)".Show st
+		else
+			"?".Show st
+			slice_show_one st (x* else {})
+	elif t isa (`Any_nullable_ref `Any)
+		if not (x*)?
+			"(nil)".Show st
+		else
+			slice_show_one st x*
+	elif t isa `Any_any_ref
+		slice_show_one st x*
+	else
+		let px = (Voidref.From_ptr x).Uintptr
+		"<".Show st
+		px.Show st
+		">".Show st
+
 inline Slice_impl met Show st:#`Fmt_state
 	"{".Show st
 	foreach i over self.All
 		if i != 0
 			" ".Show st
 		let x = self.[i]
-		if t isa `Show
-			x.Show st
-		else
-			let px = (Voidref.From_ptr x).Uintptr
-			"<".Show st
-			px.Show st
-			">".Show st
+		(slice_show_one t) st x
 	"}".Show st
 
 inline Slice_impl met Operator_eq other:*this = Bool
