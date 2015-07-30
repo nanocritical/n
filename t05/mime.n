@@ -1,0 +1,5 @@
+from n import *
+import n.mime
+
+fun Main = I32
+	return 0

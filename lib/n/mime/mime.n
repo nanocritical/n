@@ -1,13 +1,32 @@
 from n import *
 import n.path
 
-fun Type_by_extension ext:path.Path = r:Stringbuf
-	if ext == ".css" -> r#Set "text/css; charset=utf-8"
-	if ext == ".gif" -> r#Set "image/gif"
-	if ext == ".htm" -> r#Set "text/html; charset=utf-8"
-	if ext == ".html" -> r#Set "text/html; charset=utf-8"
-	if ext == ".jpg" -> r#Set "image/jpeg"
-	if ext == ".js" -> r#Set "application/x-javascript"
-	if ext == ".pdf" -> r#Set "application/pdf"
-	if ext == ".png" -> r#Set "image/png"
-	if ext == ".xml" -> r#Set "text/xml; charset=utf-8"
+fun Type_by_extension ext:path.Path ?extra:?*(Map Stringbuf Stringbuf) = r:Stringbuf
+	let loext = ext.String.To_lower
+	if loext == ".css" -> r#Set "text/css; charset=utf-8"
+	elif loext == ".gif" -> r#Set "image/gif"
+	elif loext == ".htm" -> r#Set "text/html; charset=utf-8"
+	elif loext == ".html" -> r#Set "text/html; charset=utf-8"
+	elif loext == ".jpg" -> r#Set "image/jpeg"
+	elif loext == ".js" -> r#Set "application/x-javascript"
+	elif loext == ".pdf" -> r#Set "application/pdf"
+	elif loext == ".png" -> r#Set "image/png"
+	elif loext == ".xml" -> r#Set "text/xml; charset=utf-8"
+
+	elif extra?
+		let v = extra.[loext]
+		if v?
+			r = v
+
+example by_ext
+	assert Type_by_extension ".pdf" == "application/pdf"
+	assert Type_by_extension ".PDF" == "application/pdf"
+
+	let map:(Map Stringbuf Stringbuf) such
+		(map#Store ".pdf")#Set "error"
+	assert Type_by_extension ".PDF" extra=map == "application/pdf"
+
+	let map2:(Map Stringbuf Stringbuf) such
+		(map2#Store ".xxx")#Set "you know"
+		(map2#Store ".XXX")#Set "error"
+	assert Type_by_extension ".XXX" extra=map2 == "you know"
