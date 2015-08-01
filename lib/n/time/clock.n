@@ -91,3 +91,25 @@ Sysclock met! Restore_measurements
 
 Sysclock met Measure = Stats
 	return measure_all_absolute - self.zero
+
+fun Sleep duration:Duration
+	assert duration > 0
+	let ds = duration / S
+	let dns = duration - (ds * S)
+	var s = ds.I64.Unsigned
+	var ns = dns.I64.Unsigned
+
+	while true
+		let err, left_s, left_ns = syscall.Nanosleep s ns
+		if err == OK
+			break
+		if err == syscall.EINTR
+			Eprn "sleep eintr"
+			s = left_s
+			ns = left_ns
+			continue
+		never = err
+
+Sysclock met Sleep_until t:Time
+	let duration = t.Sub self.Now
+	Sleep duration

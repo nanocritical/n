@@ -1307,6 +1307,13 @@ fun Strftime b:[!]U8 format:String tm:*Tm = r:[!]U8
 	let ret = strftime dst#Unsafe_rawdata dst.Count (cstring.Mk format).Rawdata tm
 	return b![.. b.Count + ret]
 
+extern fun nanosleep sec:U64 nsec:U64 left_sec:#U64 left_nsec:#U64 = int
+
+fun Nanosleep sec:U64 nsec:U64 = Error, left_sec:U64, left_nsec:U64
+	let ret = nanosleep sec nsec #left_sec #left_nsec
+	if ret == 0
+		return OK, 0, 0
+	return convert_error errno, left_sec, left_nsec
 
 extern fun posix_openpt flags:int = int
 extern fun grantpt fd:int = int

@@ -896,6 +896,20 @@ NB(Uint) SY(strftime)(NB(U8) *s, NB(Uint) max, NB(U8) *format, struct SY(Tm) *tm
   return strftime((char *)s, max, (const char *)format, &sys);
 }
 
+static SY_int SY(nanosleep)(NB(U64) sec, NB(U64) nsec, NB(U64) *left_sec, NB(U64) *left_nsec) {
+  struct timespec req = { .tv_sec = sec, .tv_nsec = nsec };
+  struct timespec rem = { 0 };
+  int ret = nanosleep(&req, &rem);
+  if (ret == 0) {
+    return 0;
+  }
+
+  _$Nlatestsyscallerrno = errno;
+  *left_sec = rem.tv_sec;
+  *left_nsec = rem.tv_nsec;
+  return ret;
+}
+
 static SY_int SY(posix_openpt)(SY_int flags) {
   int ret = posix_openpt(flags);
   _$Nlatestsyscallerrno = errno;
