@@ -1,0 +1,167 @@
+-- Some support to run a process so that the process sees its input and
+-- outputs as pseudo ttys.
+
+Cmd met# Pseudo_tty ?separate_stderr:?Bool = Error
+	let except, master = syscall.Posix_openpt syscall.O_RDWR|syscall.O_NOCTTY
+	except = syscall.Grantpt master
+	except = syscall.Unlockpt master
+	let except, slave_fn = syscall.Ptsname_r master
+	let except, slave = fs.Open (path.Mk slave_fn.String) flags={READ WRITE}
+
+	self#pin_rd = slave
+	self#pin_wr = fs.File.Open_fd master
+	self#pout_rd = fs.File.Open_fd master
+	self#pout_wr = slave
+
+	block
+		let except, f = syscall.Fcntl_void master syscall.F_GETFL
+		except, _ = syscall.Fcntl_i32 master syscall.F_SETFL f|syscall.O_NONBLOCK
+
+	if separate_stderr else false
+		let except, master2 = syscall.Posix_openpt syscall.O_RDWR|syscall.O_NOCTTY
+		except = syscall.Grantpt master2
+		except = syscall.Unlockpt master2
+		let except, slave2_fn = syscall.Ptsname_r master2
+
+		block
+			let except, f = syscall.Fcntl_void master syscall.F_GETFL
+			except, _ = syscall.Fcntl_i32 master syscall.F_SETFL f|syscall.O_NONBLOCK
+
+		let except, slave2_wr = fs.Open (path.Mk slave2_fn.String) flags={WRITE}
+		self#perr_rd = fs.File.Open_fd master2
+		self#perr_wr = slave2_wr
+	else
+		self#perr_rd = self.pout_rd
+		self#perr_wr = self.pout_wr
+		self#perr_is_pout = true
+
+	self#tty_mode = true
+
+-- If establishing pipes, Stdin, Stdout, Stderr are unused.
+Cmd met# Pseudo_tty_pipes ?separate_stderr:?Bool = Error, stdin:#fs.File, stdout:#fs.File, stderr:#fs.File
+	except = self#Pseudo_tty separate_stderr=separate_stderr
+	self#using_pin = true
+	self#using_pout = true
+	self#using_perr = true
+	return OK, self.pin_wr, self.pout_rd, self.perr_rd
+
+
+example cmd_is_not_tty
+	var poll:ev.Poll
+	except = poll#Init
+
+	var cmd = {Path="/usr/bin/tty" Args={"/usr/bin/tty" "-s"}
+		\ Stdin=#(bufio.Reader.Mk #(bufio.Mk_string_reader "stdin\n"))}:Cmd
+
+	except = cmd#Run #poll
+	except = ev.Loop #poll
+
+	assert not cmd.Status.Success
+	assert cmd.Status.Exit == 1
+
+example cmd_is_tty
+	var poll:ev.Poll
+	except = poll#Init
+
+	var cmd = {Path="/usr/bin/tty" Args={"/usr/bin/tty" "-s"}
+		\ Stdin=#(bufio.Reader.Mk #(bufio.Mk_string_reader "stdin\n"))}:Cmd
+
+	except = cmd#Pseudo_tty separate_stderr=false
+
+	except = cmd#Run #poll
+	except = ev.Loop #poll
+
+	assert cmd.Status.Success
+	assert cmd.Status.Exit == 0
+
+-- In this test, we're not starting bash as an interactive shell. This is not
+-- the point.
+example cmd_tty
+	var poll:ev.Poll
+	except = poll#Init
+
+	var buf:Stringbuf
+	var bbuf = bufio.Writer.Mk #buf
+	var buf2:Stringbuf
+	var bbuf2 = bufio.Writer.Mk #buf2
+	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo stdout; >&2 echo stderr"}
+		\ Stdin=#(bufio.Reader.Mk #(bufio.Mk_string_reader "stdin\n"))
+		\ Stdout=#bbuf}:Cmd
+
+	except = cmd#Pseudo_tty separate_stderr=false
+
+	except = cmd#Run #poll
+	except = ev.Loop #poll
+
+	-- Note, in tty mode, stdin is echoed to stdout by the kernel.
+	assert buf.Index "stdin" >= 0
+	assert buf.Index "stdout" >= 0
+	assert buf.Index "stderr" >= 0
+
+	assert cmd.Status.Success
+	assert cmd.Status.Exit == 0
+
+example cmd_tty_separate
+	var poll:ev.Poll
+	except = poll#Init
+
+	var buf:Stringbuf
+	var bbuf = bufio.Writer.Mk #buf
+	var buf2:Stringbuf
+	var bbuf2 = bufio.Writer.Mk #buf2
+	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo -n stdout; >&2 echo -n stderr"}
+		\ Stdin=#(bufio.Reader.Mk #(bufio.Mk_string_reader "stdin\n"))
+		\ Stdout=#bbuf Stderr=#bbuf2}:Cmd
+
+	except = cmd#Pseudo_tty separate_stderr=true
+
+	except = cmd#Run #poll
+	except = ev.Loop #poll
+
+	-- Note, in tty mode, stdin is echoed to stdout by the kernel.
+	assert buf.Index "stdin\r\n" >= 0 -- Did you know that there would a \r here?
+	assert buf.Index "stdout" >= 0
+	assert buf2 == "stderr"
+
+	assert cmd.Status.Success
+	assert cmd.Status.Exit == 0
+
+-- TODO(e): Won't progress if we don't have the "exit" in the input. So it
+-- isn't really interactive yet.
+example cmd_tty_interactive_bash
+	var poll:ev.Poll
+	except = poll#Init
+
+	var buf:Stringbuf
+	var bbuf = bufio.Writer.Mk #buf
+	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-i"}
+		\ Stdin=#(bufio.Reader.Mk #(bufio.Mk_string_reader "echo stdout; >&2 echo stderr\rexit\r"))
+		\ Stdout=#bbuf}:Cmd
+
+	except = cmd#Pseudo_tty separate_stderr=false
+
+	except = cmd#Run #poll
+	except = ev.Loop #poll
+
+	assert buf.Index "echo" >= 0
+	assert buf.Index "stdout" >= 0
+	assert buf.Index "stderr" >= 0
+
+	assert cmd.Status.Success
+	assert cmd.Status.Exit == 0
+
+example cmd_nonblocking_buffers
+	var poll:ev.Poll
+	except = poll#Init
+
+	var buf:Stringbuf
+	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo -n test"}
+		\ Stdout=#(bufio.Writer.Mk #buf) Stderr=#(bufio.Writer.Mk #buf)}:Cmd
+
+	except = cmd#Run #poll
+	except = ev.Loop #poll
+
+	assert cmd.Status.Success
+	assert buf == "test"
+
+

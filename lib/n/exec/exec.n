@@ -6,7 +6,9 @@ import n.io
 import n.io.ioutil
 import n.fs
 import n.ev
+import n.path
 import n.logging
+
 
 within logging.Log
 
@@ -47,6 +49,7 @@ inline struct Cmd =
 	using_pout	:Bool
 	using_perr	:Bool
 	perr_is_pout	:Bool
+	tty_mode	:Bool
 
 	stdin_empty	:bufio.Bytes_reader
 	stdout_discard	:ioutil.Discard
@@ -276,7 +279,10 @@ Cmd met# on_pin e:ev.Event = Error
 		\ )
 		let _, fill_err = self#Stdin#Fill
 		let _, err = self!stdin_copier#Copy
-		if err == io.EOF
+		if err == io.EOF and self.tty_mode
+			never = self!poll!Unregister {Fd=self.pin_wr.Fd Ask={WRITE}}
+			drop = err
+		elif err == io.EOF
 			never = self!poll!Register {Fd=self.pin_wr.Fd Ask={CLOSE}}
 		elif err == bufio.NEED_FILL
 			except = fill_err
@@ -284,24 +290,32 @@ Cmd met# on_pin e:ev.Event = Error
 			except = err
 
 Cmd met# on_pout e:ev.Event = Error
-	if READ in e.Got and e.Fd == self.pout_rd.Fd
+	if (READ in e.Got and e.Fd == self.pout_rd.Fd)
+		\ or (self.tty_mode and HUP in e.Got and e.Fd == self.pout_rd.Fd)
 		let _, err = self!stdout_copier#Copy
 		let flush_err = self#Stdout#Flush
 		if flush_err == io.WOULD_BLOCK
 			-- FIXME(e): we're not registered to watch whatever is
 			-- behind self.Stdout. So we may never finish flushing.
 			except = flush_err
+		if self.tty_mode and err == syscall.EIO
+			-- This appears to be how a tty says EOF.
+			err = io.EOF
 		if err != io.EOF
 			except = err
 
 Cmd met# on_perr e:ev.Event = Error
-	if READ in e.Got and e.Fd == self.perr_rd.Fd and not self.perr_is_pout
+	if (READ in e.Got and e.Fd == self.perr_rd.Fd and not self.perr_is_pout)
+		\ or (self.tty_mode and HUP in e.Got and e.Fd == self.pout_rd.Fd and not self.perr_is_pout)
 		let _, err = self!stderr_copier#Copy
 		let flush_err = self#Stderr#Flush
 		if flush_err == io.WOULD_BLOCK
 			-- FIXME(e): we're not registered to watch whatever is
 			-- behind self.Stderr. So we may never finish flushing.
 			except = flush_err
+		if self.tty_mode and err == syscall.EIO
+			-- This appears to be how a tty says EOF.
+			err = io.EOF
 		if err != io.EOF
 			except = err
 
