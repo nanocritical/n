@@ -37,6 +37,8 @@ inline struct Cmd =
 
 	Stdin	:?#bufio.`Fillable_reader
 	Stdout	:?#bufio.`Flushable_writer
+	-- If Stderr === Stdout, a single pipe is created and used for both
+	-- stdout and stderr of the child.
 	Stderr	:?#bufio.`Flushable_writer
 
 	Completion	:?#`Completion_handler
@@ -73,26 +75,63 @@ example cmd_failure
 	except = poll#Init
 
 	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "exit 1"}}:Cmd
-	let except = cmd#Run #poll
 
+	except = cmd#Run #poll
 	except = ev.Loop #poll
 
 	assert not cmd.Status.Success
 	assert cmd.Status.Exit == 1
 
-example cmd_nonblocking_buffers
+example cmd_stdout_only
 	var poll:ev.Poll
 	except = poll#Init
 
 	var buf:Stringbuf
-	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo -n test"}
-		\ Stdout=#(bufio.Writer.Mk #buf) Stderr=#(bufio.Writer.Mk #buf)}:Cmd
-	let except = cmd#Run #poll
+	var bbuf = bufio.Writer.Mk #buf
+	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo stdout; >&2 echo stderr"}
+		\ Stdout=#bbuf}:Cmd
 
+	except = cmd#Run #poll
 	except = ev.Loop #poll
 
 	assert cmd.Status.Success
-	assert buf == "test"
+	assert cmd.Status.Exit == 0
+	assert buf.Index "stdout" >= 0
+	assert buf.Index "stderr" < 0
+
+example cmd_stderr_only
+	var poll:ev.Poll
+	except = poll#Init
+
+	var buf:Stringbuf
+	var bbuf = bufio.Writer.Mk #buf
+	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo stdout; >&2 echo stderr"}
+		\ Stderr=#bbuf}:Cmd
+
+	except = cmd#Run #poll
+	except = ev.Loop #poll
+
+	assert cmd.Status.Success
+	assert cmd.Status.Exit == 0
+	assert buf.Index "stdout" < 0
+	assert buf.Index "stderr" >= 0
+
+example cmd_same_stdout_stderr
+	var poll:ev.Poll
+	except = poll#Init
+
+	var buf:Stringbuf
+	var bbuf = bufio.Writer.Mk #buf
+	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo stdout; >&2 echo stderr"}
+		\ Stdout=#bbuf Stderr=#bbuf}:Cmd
+
+	except = cmd#Run #poll
+	except = ev.Loop #poll
+
+	assert cmd.Status.Success
+	assert cmd.Status.Exit == 0
+	assert buf.Index "stdout" >= 0
+	assert buf.Index "stderr" >= 0
 
 struct example_handler =
 	isa ev.`Handler
@@ -132,7 +171,7 @@ example cmd_nonblocking_pipes
 	except = poll!Register {Fd=input.Fd Ask={WRITE} Handler=#h}
 	except = poll!Register {Fd=output.Fd Ask={READ} Handler=#h}
 
-	let except = cmd#Run #poll
+	except = cmd#Run #poll
 	except = ev.Loop #poll
 
 	assert cmd.Status.Success
@@ -145,13 +184,13 @@ Cmd met# init_pipes = Error
 	-- We check if Stdin_pipe et al. have already setup the pipes.
 
 	if not self.pin_wr? or not self.pin_wr.Fd.Is_valid
-		self#prepare_stdin_pipe
+		except = self#prepare_stdin_pipe
 
 	if not self.pout_rd? or not self.pout_rd.Fd.Is_valid
-		self#prepare_stdout_pipe
+		except = self#prepare_stdout_pipe
 
 	if not self.perr_rd? or not self.perr_rd.Fd.Is_valid
-		self#prepare_stderr_pipe
+		except = self#prepare_stderr_pipe reuse_stdout=(self.Stderr === self.Stdout)
 
 	if not self.using_pin
 		if not self.Stdin?
@@ -188,7 +227,7 @@ Cmd met# Run poll:#ev.Poll = Error within the_nanny
 			never = self#poll!Register {Fd=self.pin_wr.Fd Ask={WRITE} Handler=self}
 		if not self.using_pout
 			never = self#poll!Register {Fd=self.pout_rd.Fd Ask={READ} Handler=self}
-		if not self.using_perr
+		if not self.using_perr and not self.perr_is_pout
 			never = self#poll!Register {Fd=self.perr_rd.Fd Ask={READ} Handler=self}
 
 		except = the_nanny#Wait_for self
@@ -230,8 +269,7 @@ Cmd met# Run poll:#ev.Poll = Error within the_nanny
 		Log#Error "failed to exec '%s': %s" self.Path err
 		syscall.Exit 1
 
-Cmd met# On e:ev.Event = Error
-	Log#Debug "%s" e
+Cmd met# on_pin e:ev.Event = Error
 	if not ERROR in e.Got and (
 		\ (WRITE in e.Got and e.Fd == self.pin_wr.Fd)
 		\ or (MANUAL in e.Got and self.pin_wr.Fd.Is_valid) -- Maybe we already closed it.
@@ -244,20 +282,35 @@ Cmd met# On e:ev.Event = Error
 			except = fill_err
 		else
 			except = err
+
+Cmd met# on_pout e:ev.Event = Error
 	if READ in e.Got and e.Fd == self.pout_rd.Fd
 		let _, err = self!stdout_copier#Copy
 		let flush_err = self#Stdout#Flush
 		if flush_err == io.WOULD_BLOCK
+			-- FIXME(e): we're not registered to watch whatever is
+			-- behind self.Stdout. So we may never finish flushing.
 			except = flush_err
 		if err != io.EOF
 			except = err
-	if READ in e.Got and e.Fd == self.perr_rd.Fd
+
+Cmd met# on_perr e:ev.Event = Error
+	if READ in e.Got and e.Fd == self.perr_rd.Fd and not self.perr_is_pout
 		let _, err = self!stderr_copier#Copy
 		let flush_err = self#Stderr#Flush
 		if flush_err == io.WOULD_BLOCK
+			-- FIXME(e): we're not registered to watch whatever is
+			-- behind self.Stderr. So we may never finish flushing.
 			except = flush_err
 		if err != io.EOF
 			except = err
+
+Cmd met# On e:ev.Event = Error
+	Log#Debug "%s" e
+
+	except = self#on_pin e
+	except = self#on_pout e
+	except = self#on_perr e
 
 	if CLOSE in e.Got and e.Fd == self.pin_wr.Fd
 		never = self!pin_wr!Close
@@ -269,40 +322,40 @@ Cmd met# On e:ev.Event = Error
 	-- TODO(e): on CLOSE, report when there is not yet written content for
 	-- stdin.
 
-Cmd met# prepare_stdin_pipe
+Cmd met# prepare_stdin_pipe = Error
 	let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
 	self#pin_rd = fs.File.Open_fd rd
 	self#pin_wr = fs.File.Open_fd wr
 
 -- If establishing pipes, Stdin, Stdout, Stderr are unused.
 Cmd met# Stdin_pipe = Error, #fs.File
-	self#prepare_stdin_pipe
+	except = self#prepare_stdin_pipe
 	self#using_pin = true
 	return OK, self#pin_wr
 
-Cmd met# prepare_stdout_pipe
+Cmd met# prepare_stdout_pipe = Error
 	let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
 	self#pout_rd = fs.File.Open_fd rd
 	self#pout_wr = fs.File.Open_fd wr
 
 Cmd met# Stdout_pipe = Error, #fs.File
-	self#prepare_stdout_pipe
+	except = self#prepare_stdout_pipe
 	self#using_pout = true
 	return OK, self#pout_rd
 
-Cmd met# prepare_stderr_pipe ?reuse_stdout:?Bool
+Cmd met# prepare_stderr_pipe ?reuse_stdout:?Bool = Error
 	if reuse_stdout else false
-		self#perr_rd = self#pout_rd
-		self#perr_wr = self#pout_wr
+		self#perr_rd = self.pout_rd
+		self#perr_wr = self.pout_wr
 		self#perr_is_pout = true
-		return
+		return OK
 
 	let except, rd, wr = syscall.Pipe2 syscall.O_NONBLOCK
 	self#perr_rd = fs.File.Open_fd rd
 	self#perr_wr = fs.File.Open_fd wr
 
 Cmd met# Stderr_pipe ?reuse_stdout:?Bool = Error, #fs.File
-	self#prepare_stderr_pipe reuse_stdout=reuse_stdout
+	except = self#prepare_stderr_pipe reuse_stdout=reuse_stdout
 	self#using_perr = true
 	return OK, self#perr_rd
 
