@@ -137,6 +137,10 @@ example cmd_nonblocking_pipes
 
 	assert cmd.Status.Success
 
+Cmd met# Dtor within the_nanny
+	if not self.Status?
+		drop = the_nanny#Unwait_for self
+
 Cmd met# init_pipes = Error
 	-- We check if Stdin_pipe et al. have already setup the pipes.
 
@@ -352,6 +356,25 @@ nanny met# Wait_for cmd:!Cmd = Error
 
 	(self!poll_usecnt#Store {Ref=cmd.poll})# += 1
 
+nanny met# Unwait_for cmd:!Cmd = Error
+	let pcmd = self!pids![cmd.Pid]
+	if not pcmd?
+		Log#Warning "nanny: trying to unwait for an unknown process with PID '%s'" cmd.Pid
+		return OK
+
+	-- Keep as a marker.
+	pcmd# = nil
+
+	except = self#decrement_poll_usecnt cmd
+
+nanny met# decrement_poll_usecnt cmd:!Cmd = Error
+	let usecnt = self.poll_usecnt.[{Ref=cmd.poll}]
+	assert usecnt?
+	if usecnt* == 1
+		Log#Debug "remove signalfd from poll"
+		_ = self!poll_usecnt#Delete {Ref=cmd.poll}
+		except = cmd.poll!Unregister_all {Fd=self.signalfd}
+
 nanny met# On e:ev.Event = Error
 	Log#Debug "%s" e
 	if not READ in e.Got
@@ -391,11 +414,10 @@ nanny met# On e:ev.Event = Error
 			let cmd = pcmd*
 			_ = self!pids#Delete pid.Unsigned
 
+			if not cmd?
+				-- This nil mark was left by Unwait_for.
+				continue
+
 			cmd!on_status <- Status.From_sys status
 
-			let usecnt = self.poll_usecnt.[{Ref=cmd.poll}]
-			assert usecnt?
-			if usecnt* == 1
-				Log#Debug "remove signalfd from poll"
-				_ = self!poll_usecnt#Delete {Ref=cmd.poll}
-				except = cmd.poll!Unregister_all {Fd=self.signalfd}
+			except = self#decrement_poll_usecnt cmd
