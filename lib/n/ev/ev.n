@@ -131,7 +131,23 @@ Poll met! Register e:Event = Error
 
 	let sys_event = syscall.Epoll_event.Mk events rawdata
 
-	except = syscall.Epoll_ctl self.epfd op e.Fd sys_event
+	except = syscall.Epoll_ctl self.epfd op pe.Fd sys_event
+
+Poll met! Unregister e:Event = Error
+	let perm_e = self!fds![e.Fd]
+	if not perm_e?
+		return INVAL
+
+	let pe = perm_e#
+	_ = pe#Ask#Remove_all e.Ask
+
+	let sys_events_defaults = syscall.EPOLLERR | syscall.EPOLLHUP | syscall.EPOLLET
+	let events = sys_events_defaults such
+		for f over pe.Ask.Iter
+			events |= events_to_sys_events f
+	let rawdata = (unsafe.Cast ?#Event ?#U8) pe
+	let sys_event = syscall.Epoll_event.Mk 0 rawdata
+	except = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_MOD pe.Fd sys_event
 
 Poll met! Unregister_all e:Event = Error
 	let perm_e = self!fds![e.Fd]
