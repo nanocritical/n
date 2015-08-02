@@ -6,12 +6,19 @@ import n.bufio
 
 let EOF = {Why=*"EOF: End of file"}:Error
 let SHORT_READ = {Why=*"SHORT_READ: Short read"}:Error
+
+-- Should only return SHORT_WRITE if *some* progress was made. A writer is
+-- entitled to continuously retry Write as long as it gets SHORT_WRITE.
+--
+-- In particular, Copier and Write_at_least, Write_full will retry on
+-- SHORT_WRITE.
 let SHORT_WRITE = {Why=*"SHORT_WRITE: Short write"}:Error
 let SHORT_BUFFER = {Why=*"SHORT_BUFFER: Short buffer"}:Error
 let UNEXPECTED_EOF = {Why=*"UNEXPECTED_EOF: Unexpected EOF"}:Error
 
 -- We just tried to perform system I/O, but it would have blocked/hanged the
 -- process. Should only be returned by the syscall module.
+-- Should only be returned if *no* progress was made.
 -- Use case when used in conjunction with edge-triggered polling.
 let WOULD_BLOCK = {Why=*"WOULD_BLOCK: Operation would block"}:Error
 
@@ -27,7 +34,7 @@ intf `Reader =
 
 intf `Writer =
 	-- Returns a slice of b with the content not yet written, if any.
-	-- Short writes must return an non-OK error.
+	-- Short writes must return an non-OK error. See SHORT_WRITE.
 	met# Write b:[]U8 = []U8, Error
 
 intf `Closer =
@@ -58,7 +65,7 @@ fun Read_full b:[!]U8 r:#`Reader = [!]U8, Error
 
 fun Write_at_least w:#`Writer b:[]U8 min_count:Uint = []U8, err:Error
 	let target = b.Count - (Min b.Count min_count)
-	while b.Count > target and err == OK
+	while b.Count > target and (err == OK or err == SHORT_WRITE)
 		b, err = w#Write b
 
 	if b.Count <= target
@@ -130,7 +137,7 @@ Copier met! Copy ?max:?Uint = written:Uint, err:Error
 		elif rd_err != OK
 			err = rd_err
 			break
-		elif wr_err != OK
+		elif wr_err != OK and wr_err != SHORT_WRITE
 			err = wr_err
 			break
 		elif read == 0

@@ -84,8 +84,11 @@ intf `Writer =
 -- method is mandatory to propagate any write.
 intf `Flushable_writer =
 	isa `Writer
-	-- Propagate write of up to `max` bytes. Return any underlying error.
-	-- An incomplete flush, like a partial write, must return an error.
+	-- Propagate write of up to `max` bytes. Return any underlying error,
+	-- except on io.SHORT_WRITE, when the implementation should continue as
+	-- long as progress is made.
+	-- An incomplete flush, like a partial write, must return an error, but
+	-- by the above, it won't be SHORT_WRITE.
 	met# Flush ?max:?Uint = Error
 
 	-- Number of buffered bytes, available to `Flush`.
