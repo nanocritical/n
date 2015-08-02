@@ -1,0 +1,21 @@
+from n import *
+
+struct t =
+	isa `Copyable `Not_moveable
+	y	:*t
+
+t met# Copy_ctor other:*this
+	self#y = self
+
+t met check
+	assert self.y === self
+
+fun f x:t
+	x.check
+
+fun Main = I32
+	let x = {}:t such
+		x#y = *x
+	x.check
+	f x
+	return 0
