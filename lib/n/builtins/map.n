@@ -341,11 +341,6 @@ Map met Operator_eq other:*this = Bool
 Map met Operator_ne other:*this = Bool
 	return not self.Operator_eq other
 
-(fun t:`Any) show_ptr st:#`Fmt_state x:*t
-	"<".Show st
-	((Cast *t Voidref) x).Uintptr.Show st
-	">".Show st
-
 Map met Show st:#`Fmt_state
 	"{".Show st
 	var i = 0:Uint
@@ -353,15 +348,9 @@ Map met Show st:#`Fmt_state
 		if i > 0
 			", ".Show st
 		"(".Show st
-		if K isa `Show
-			k.Show st
-		else
-			show_ptr st k
+		generic_show st k
 		", ".Show st
-		if T isa `Show
-			v.Show st
-		else
-			show_ptr st v
+		generic_show st v
 		")".Show st
 		i += 1
 	"}".Show st
@@ -490,10 +479,7 @@ Set met Show st:#`Fmt_state
 	for x over self.Iter
 		if i > 0
 			" ".Show st
-		if x isa `Show
-			x.Show st
-		else
-			show_ptr st x
+		generic_show st x
 		i += 1
 	"}".Show st
 
