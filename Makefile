@@ -7,8 +7,9 @@ O ?= 0
 P ?=
 I ?=
 S ?=
+SKIP_EXAMPLES ?=
 
-default:: examples.run ncc0
+default:: ncc0 $(if $(SKIP_EXAMPLES),,examples.run)
 
 SRC = bootstrap
 DEPS = .deps
@@ -52,7 +53,7 @@ examples: $(call objects-for-sources,$(examples-sources)) $(examples-generated-s
 	$Q$(CC) -g $(CFLAGS) -o $@ $^
 
 examples.run: examples
-	$Q./$<
+	$Q./$< && touch examples.run
 
 ncc0-sources := bootstrap/ncc0.main.c $(sources)
 ncc0: $(call objects-for-sources,$(ncc0-sources))
