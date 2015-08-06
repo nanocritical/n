@@ -225,9 +225,6 @@ struct server_conn_handler =
 
 	on_done_handler		:on_done_handler
 
-	ev_readwrite	:ev.Event
-	ev_close	:ev.Event
-
 server_conn_handler met debug ?_Ncodeloc:?Codeloc ...s:(Vararg ?*`Show)
 	Log#Debug "%s: %s" _Ncodeloc=_Ncodeloc self.conn.Fd (fmt.S ...s)
 
@@ -238,10 +235,8 @@ server_conn_handler met# init server:#Server conn:#tcp.Conn = Error
 	self#conn = conn
 	self#bufr = bufio.Reader.Mk self#conn
 	self#bufw = bufio.Writer.Mk self#conn
-	self#ev_readwrite = {Fd=self.conn.Fd Ask={READ WRITE RDHUP} Handler=self}
-	self#ev_close = {Fd=self.conn.Fd Ask={CLOSE} Handler=self}
 
-	except = self.server.poll!Register self.ev_readwrite
+	except = self.server.poll!Register self.conn.Fd {READ WRITE RDHUP} self
 
 server_conn_handler met# recycle
 	self.debug
@@ -389,7 +384,7 @@ server_conn_handler met# On e:ev.Event = err:Error
 		self#recycle
 
 	if self.state == CLOSE
-		except = self.server.poll#Register self.ev_close
+		except = self.server.poll#Schedule_close self.conn.Fd
 
 server_conn_handler met# waiting_header = Error
 	while true
@@ -514,7 +509,6 @@ struct Server =
 	poll		:#ev.Poll
 
 	listening	:tcp.Socket
-	ev_accept	:ev.Event
 	Handlers	:(Buf ?#`Server)
 
 Server fun Mk poll:#ev.Poll ?handler:?#`Server = r:this
@@ -525,8 +519,7 @@ Server fun Mk poll:#ev.Poll ?handler:?#`Server = r:this
 Server met# Listen addr:tcp.Addr = Error
 	except = self#listening#Listen addr
 
-	self!ev_accept = {Fd=self.listening.Fd Ask={READ} Handler=self}
-	except = self.poll!Register self.ev_accept
+	except = self.poll!Register self.listening.Fd {READ} self
 
 Server met# On e:ev.Event = Error
 	while true

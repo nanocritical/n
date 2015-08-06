@@ -169,9 +169,6 @@ struct client_conn_handler =
 
 	handler		:?#`Client_handler
 
-	ev_readwrite	:ev.Event
-	ev_close	:ev.Event
-
 client_conn_handler met debug ?_Ncodeloc:?Codeloc ...s:(Vararg ?*`Show)
 	Log#Debug "%s: %s" _Ncodeloc=_Ncodeloc self.conn.Fd (fmt.S ...s)
 
@@ -218,9 +215,7 @@ client_conn_handler met# initiate_connection = Error
 	connect_err, self#conn = self#socket#Connect addr
 
 	if connect_err == OK or connect_err == syscall.EINPROGRESS
-		self#ev_readwrite = {Fd=self.conn.Fd Ask={READ WRITE RDHUP} Handler=self}
-		self#ev_close = {Fd=self.conn.Fd Ask={CLOSE} Handler=self}
-		except = self.coh.client.poll!Register self.ev_readwrite
+		except = self.coh.client.poll!Register self.conn.Fd {READ WRITE RDHUP} self
 
 	if connect_err == OK
 		self#state = WAITING_CONN
@@ -257,7 +252,7 @@ client_conn_handler met# recycle
 		self#state = CLOSE
 		return
 
-	drop = self.coh.client.poll!Unregister_all self.ev_readwrite
+	drop = self.coh.client.poll!Unregister self.conn.Fd (Enumset ev.Events).ALL
 	self#request#Dtor
 	self#response#Dtor
 	self#handler = nil
@@ -357,7 +352,7 @@ client_conn_handler met# On e:ev.Event = err:Error
 		self#recycle
 
 	if self.state == CLOSE
-		except = self.coh.client.poll#Register self.ev_close
+		except = self.coh.client.poll#Schedule_close self.conn.Fd
 
 client_conn_handler met# waiting_conn connect_err:?Error = Error
 	self.debug self.state

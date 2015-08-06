@@ -54,24 +54,26 @@ inline struct Poll =
 	fds		:(Map syscall.Fd ?#Event)
 	manuals		:(Buf ?#`Handler)
 	closes		:(Set syscall.Fd)
+
 	epfd		:syscall.Fd
-	buf		:(Buf syscall.Epoll_event)
-	pending		:[!]syscall.Epoll_event
+	sys_buf		:(Buf syscall.Epoll_event)
+	sys_pending	:[!]syscall.Epoll_event
+
 	sleeping	:Bool
 	Current_handler	:?#`Handler
 
 Poll met# Init = Error
-	assert self.buf.Count == 0
+	assert self.sys_buf.Count == 0
 
 	except, self!epfd = syscall.Epoll_create1 0
-	self!buf#Reserve 128
+	self!sys_buf#Reserve 128
 
 Poll met Has_waiters = Bool
-	return self.fds.Count != 0 or self.pending.Count != 0
+	return self.fds.Count != 0 or self.sys_pending.Count != 0
 
 -- If non-zero, Wait will return an event immediately and will not block.
 Poll met Pending_events_count = Uint
-	return self.pending.Count
+	return self.sys_pending.Count
 
 fun events_to_sys_events r:Events = U32
 	match r
@@ -94,33 +96,33 @@ fun sys_events_to_events events:U32 = r:(Enumset Events)
 	if syscall.EPOLLRDHUP & events != 0
 		r |= {RDHUP}
 
-Poll met! Register e:Event = Error
-	if e.Ask.Count == 0
+Poll met! Register source:syscall.Fd ask:(Enumset Events) handler:?#`Handler = Error
+	if ask.Count == 0
 		return OK
 
-	if MANUAL in e.Ask
-		self!manuals#Push# = e.Handler
+	if MANUAL in ask
+		self!manuals#Push# = handler
 
-	if CLOSE in e.Ask
-		assert self.fds.[e.Fd]?
-		_ = self!closes#Add e.Fd
+	if CLOSE in ask
+		assert self.fds.[source]?
+		_ = self!closes#Add source
 
-	let just_pseudo = e.Ask <= {MANUAL CLOSE}
+	let just_pseudo = ask <= {MANUAL CLOSE}
 	if just_pseudo
 		return OK
 
-	let added, perm_e = self!fds#Try_store e.Fd
+	let added, perm_e = self!fds#Try_store source
 	and op = syscall.EPOLL_CTL_MOD such
 		if added
 			perm_e# = Alloc Event
 			op = syscall.EPOLL_CTL_ADD
 
 	let pe = perm_e#
-	pe!Fd = e.Fd
-	_ = pe#Ask#Add_all e.Ask
+	pe!Fd = source
+	_ = pe#Ask#Add_all ask
 
-	assert not pe.Handler? or pe.Handler === e.Handler -- FIXME(e): only one Handler supported.
-	pe#Handler = e.Handler
+	assert not pe.Handler? or pe.Handler === handler -- FIXME(e): only one Handler supported.
+	pe#Handler = handler
 
 	let sys_events_defaults = syscall.EPOLLERR | syscall.EPOLLHUP | syscall.EPOLLET
 	let events = sys_events_defaults such
@@ -133,13 +135,16 @@ Poll met! Register e:Event = Error
 
 	except = syscall.Epoll_ctl self.epfd op pe.Fd sys_event
 
-Poll met! Unregister e:Event = Error
-	let perm_e = self!fds![e.Fd]
+Poll met! Unregister source:syscall.Fd un_ask:(Enumset Events) = Error
+	if un_ask == (Enumset Events).ALL
+		return self!unregister_all source
+
+	let perm_e = self!fds![source]
 	if not perm_e?
 		return INVAL
 
 	let pe = perm_e#
-	_ = pe#Ask#Remove_all e.Ask
+	_ = pe#Ask#Remove_all un_ask
 
 	let sys_events_defaults = syscall.EPOLLERR | syscall.EPOLLHUP | syscall.EPOLLET
 	let events = sys_events_defaults such
@@ -149,22 +154,25 @@ Poll met! Unregister e:Event = Error
 	let sys_event = syscall.Epoll_event.Mk 0 rawdata
 	except = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_MOD pe.Fd sys_event
 
-Poll met! Unregister_all e:Event = Error
-	let perm_e = self!fds![e.Fd]
+Poll met! unregister_all source:syscall.Fd = Error
+	let perm_e = self!fds![source]
 	if not perm_e?
 		return INVAL
 
 	Free perm_e*
-	_ = self!fds#Delete e.Fd
+	_ = self!fds#Delete source
 
 	-- Old Linux does not accept a nil event.
 	let sys_event = syscall.Epoll_event.Mk 0 nil
-	never = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_DEL e.Fd sys_event
+	never = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_DEL source sys_event
 
 Poll met! Schedule_manually h:#`Handler = Error
 	assert not self.sleeping -- FIXME(e): multithread or multi loop: use an eventfd in the pool
-	let err = self!Register {Ask={MANUAL} Handler=h}
+	let err = self!Register {} {MANUAL} h
 	return err
+
+Poll met! Schedule_close source:syscall.Fd = Error
+	return self!Register source {CLOSE} nil
 
 Poll met! process_manuals = Error
 	-- Processing manual handlers may add more to manuals, so we steal it:
@@ -197,7 +205,7 @@ Poll met! process_closes = closed_some:Bool
 		let e = pe*
 		if e.Handler?
 			let e_close = {Fd=e.Fd Got={CLOSE} Handler=e.Handler}:Event
-			drop = self!Unregister_all e
+			drop = self!unregister_all e.Fd
 			-- Do not use e, it was just freed.
 
 			self#Current_handler = e_close.Handler
@@ -213,7 +221,7 @@ Poll met! process_closes = closed_some:Bool
 				-- Handler did not close it, so we do it.
 				drop = syscall.Close #e_close#Fd
 		else
-			drop = self!Unregister_all e
+			drop = self!unregister_all e.Fd
 			drop = syscall.Close fd
 
 		closed_some = true
@@ -227,20 +235,20 @@ fun pseudo_would_block = Error
 Poll met! sys_wait timeout:?time.Duration = Error
 	Log#Debug ""
 
-	assert self.pending.Count == 0
+	assert self.sys_pending.Count == 0
 	self#sleeping = true
-	let err, res = syscall.Epoll_pwait self.epfd self!buf![..]
+	let err, res = syscall.Epoll_pwait self.epfd self!sys_buf![..]
 		\ (timeout?.Millisec else -1) nil
 	self#sleeping = false
 	if err == syscall.EINTR
 		return pseudo_would_block
 
-	self!pending = res
+	self!sys_pending = res
 
 	Log#Debug "%s %s" res.Count
 
 Poll met! Wait ?timeout:?time.Duration = Error, e:Event
-	if self.pending.Count == 0
+	if self.sys_pending.Count == 0
 		var closed_some
 		while self.manuals.Count + self.closes.Count != 0
 			closed_some = self!process_closes or closed_some
@@ -260,11 +268,11 @@ Poll met! Wait ?timeout:?time.Duration = Error, e:Event
 		except = err
 
 	-- We tried to get more events. Let's see if we did:
-	if self.pending.Count == 0
+	if self.sys_pending.Count == 0
 		return OK, NONE
 
-	let sys_e = self.pending.[0]
-	self!pending = self.pending.[1 ..]
+	let sys_e = self.sys_pending.[0]
+	self!sys_pending = self.sys_pending.[1 ..]
 
 	let perm_e = (unsafe.Cast ?#U8 ?#Event) sys_e.Rawdata
 	e = perm_e*
