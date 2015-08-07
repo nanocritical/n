@@ -157,7 +157,7 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_NOT_RETURN_BY_COPY] = "`Not_return_by_copy",
   [ID_TBI_ENUM] = "`Enum",
   [ID_TBI_UNION] = "`Union",
-  [ID_TBI_UNION_TRIVIAL_CTOR] = "`Union_trivial_ctor",
+  [ID_TBI_UNION_FROM_TAG_CTOR] = "`Union_from_tag_ctor",
   [ID_TBI_RANGE] = "Range",
   [ID_TBI_BOUNDS] = "Bounds",
   [ID_TBI_COLLECTION] = "`Collection",
@@ -512,7 +512,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_NOT_RETURN_BY_COPY = gctx->builtin_typs_by_name[ID_TBI_NOT_RETURN_BY_COPY];
   TBI_ENUM = gctx->builtin_typs_by_name[ID_TBI_ENUM];
   TBI_UNION = gctx->builtin_typs_by_name[ID_TBI_UNION];
-  TBI_UNION_TRIVIAL_CTOR = gctx->builtin_typs_by_name[ID_TBI_UNION_TRIVIAL_CTOR];
+  TBI_UNION_FROM_TAG_CTOR = gctx->builtin_typs_by_name[ID_TBI_UNION_FROM_TAG_CTOR];
   TBI_RANGE = gctx->builtin_typs_by_name[ID_TBI_RANGE];
   TBI_BOUNDS = gctx->builtin_typs_by_name[ID_TBI_BOUNDS];
   TBI_COLLECTION = gctx->builtin_typs_by_name[ID_TBI_COLLECTION];

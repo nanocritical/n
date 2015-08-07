@@ -565,7 +565,7 @@ static void add_auto_member(struct module *mod,
   if (typ_is_trivial(inferred_intf)
       || typ_equal(inferred_intf, TBI_ENUM)
       || typ_equal(inferred_intf, TBI_UNION)
-      || typ_equal(inferred_intf, TBI_UNION_TRIVIAL_CTOR)) {
+      || typ_equal(inferred_intf, TBI_UNION_FROM_TAG_CTOR)) {
     enum builtingen bg = BG__NOT;
 
     switch (tit_ident(mi)) {
@@ -1147,17 +1147,30 @@ error step_autointf_infer_intfs(struct module *mod, struct node *node,
   infer_top(&inferred, node);
 
 skip:
-  if (inferred.trivial_ctor || typ_isa(node->typ, TBI_TRIVIAL_CTOR)) {
-    if (node->as.DEFTYPE.kind == DEFTYPE_UNION) {
-      if (node->as.DEFTYPE.default_choice != NULL) {
-        add_auto_isa(mod, node, TBI_UNION_TRIVIAL_CTOR);
-      }
-    } else {
+
+  if (node->as.DEFTYPE.kind != DEFTYPE_UNION) {
+    if (inferred.trivial_ctor || typ_isa(node->typ, TBI_TRIVIAL_CTOR)) {
       add_auto_isa(mod, node, TBI_TRIVIAL_CTOR);
+    } else if (inferred.default_ctor || typ_isa(node->typ, TBI_DEFAULT_CTOR)) {
+      add_auto_isa(mod, node, TBI_DEFAULT_CTOR);
     }
-  } else if (inferred.default_ctor || typ_isa(node->typ, TBI_DEFAULT_CTOR)) {
-    add_auto_isa(mod, node, TBI_DEFAULT_CTOR);
+  } else {
+    const struct node *default_choice = node->as.DEFTYPE.default_choice;
+    // infer() treats all DEFCHOICE symmetrically, but for ctor interfaces
+    // on a union, we actually only need to consider default_choice, if
+    // there is one; except for `Union_from_tag_ctor where are fields are of
+    // equal importance.
+    if (inferred.trivial_ctor || typ_isa(node->typ, TBI_TRIVIAL_CTOR)) {
+      // All fields are `Trivial_ctor.
+      add_auto_isa(mod, node, TBI_UNION_FROM_TAG_CTOR);
+    } else if (default_choice != NULL && typ_isa(default_choice->typ, TBI_TRIVIAL_CTOR)) {
+      add_auto_isa(mod, node, TBI_TRIVIAL_CTOR);
+    } else if (inferred.default_ctor || typ_isa(node->typ, TBI_DEFAULT_CTOR)
+               || (default_choice != NULL && typ_isa(default_choice->typ, TBI_TRIVIAL_CTOR))) {
+      add_auto_isa(mod, node, TBI_DEFAULT_CTOR);
+    }
   }
+
   if (inferred.trivial_dtor || typ_isa(node->typ, TBI_TRIVIAL_DTOR)) {
     add_auto_isa(mod, node, TBI_TRIVIAL_DTOR);
   } else if (inferred.default_dtor || typ_isa(node->typ, TBI_DEFAULT_DTOR)) {

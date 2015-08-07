@@ -973,7 +973,8 @@ intf `Union =
 	alias Tag_type = `Integer
 	met Tag = final.Tag_type
 
-intf `Union_trivial_ctor =
+-- TODO(e): Could make this work with non-trivial `Default_ctor as well.
+intf `Union_from_tag_ctor =
 	isa `Union `Trivial_ctor
 	fun From_tag value:final.Tag_type = final
 

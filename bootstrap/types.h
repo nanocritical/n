@@ -319,7 +319,7 @@ extern struct typ *TBI_RETURN_BY_COPY;
 extern struct typ *TBI_NOT_RETURN_BY_COPY;
 extern struct typ *TBI_ENUM;
 extern struct typ *TBI_UNION;
-extern struct typ *TBI_UNION_TRIVIAL_CTOR;
+extern struct typ *TBI_UNION_FROM_TAG_CTOR;
 extern struct typ *TBI_RANGE;
 extern struct typ *TBI_BOUNDS;
 extern struct typ *TBI_COLLECTION;
