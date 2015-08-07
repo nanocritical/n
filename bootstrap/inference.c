@@ -3103,6 +3103,10 @@ static ERROR type_inference_typeconstraint_defchoice_convert(struct module *mod,
   set_typ(&node->typ, subs_first(right)->typ);
   node->flags |= subs_last(node)->flags;
 
+  const struct node *except[] = { left, NULL };
+  e = catchup(mod, except, node, CATCHUP_REWRITING_CURRENT);
+  EXCEPT(e);
+
   return 0;
 }
 
