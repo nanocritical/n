@@ -32,7 +32,10 @@ extern struct __mercurial__ =
 
 intf `Any =
 	-- While all types implement these 2, they return nil if the types
-	-- are not exported inline.
+	-- are not exported inline. TODO(e): visibility rules are TBD: it's
+	-- debattable whether these numbers should ever be hidden. We could
+	-- also make these methods part of a difference interface to
+	-- indicate that a type wishes to publish this information.
 	fun Sizeof = ?Uint
 	fun Alignof = ?Uint
 
@@ -45,9 +48,16 @@ intf `Copyable =
 intf `Not_copyable =
 intf `Copyable_but_owned =
 	isa `Copyable -- FIXME
--- FIXME: `Trivial_copy should have other:*this, as it only needs `Any.sizeof.
--- And there should be a copy_slice operation over `Trivial_copy* That's kinda
--- the point.
+
+-- TODO(e): Declaring something like `Trivial_move is essentially unsafe in
+-- general. Therefore we should split the two concepts: isa declarations
+-- that are purely (optional) confirmations -- autointf still does its job,
+-- and checks that its inferences are consistent with the isa declaration;
+-- and isa declarations that are autointf overrides. We will therefore have
+-- `Trivial_move and unsafe.`Trivial_move, etc.
+
+-- TODO(e): There should be a Copy_slice operation over `Trivial_copy.
+-- That's kinda the point.
 intf `Trivial_copy =
 	isa `Copyable `Trivial_dtor `Trivial_move
 intf `Trivial_copy_but_owned =
