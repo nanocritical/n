@@ -1,0 +1,311 @@
+from n import *
+import n.syscall
+
+-- Use syscall.Fd as a way to test that Dtor, Copy_ctor, Move balance out
+-- each others.
+
+alias F = syscall.Fd
+
+fun T x:*F count:Uint ?_Ncodeloc:?*Codeloc
+	if x.refc != count.Trim_u32
+		Message_at "" _Ncodeloc
+		Eprn "current" x.refc "expected" count
+		assert false
+
+fun mk = x:F
+	-- I32.MAX so that if it gets closed (and it shouldn't), close(2) will return an error.
+	x = syscall.Fd.Mk I32.MAX
+
+fun wipe x:#F
+	x#fd# = -1
+
+intf `testable =
+	isa `Copyable
+	met# reset x:*F
+
+(fun U:`Copyable) id3 obj:*U = res:*U
+	res = obj
+
+(fun U:`Copyable) id2 obj:U = res:U
+	let tmp = obj
+	return (id3 tmp)*
+
+(fun U:`Copyable) id obj:U = U
+	return id2 obj
+
+
+(fun U:`testable) scenario1 x:*F add:Uint
+	T x 1
+	block
+		let y:U such y#reset x
+		T x 1+add
+		let z = y
+		T x 1+2*add
+		block
+			let zz = id y
+			T x 1+3*add
+		T x 1+2*add
+	T x 1
+
+(fun U:`testable) scenario2 x:*F add:Uint
+	T x 1
+	block
+		let xx = id <- id <- id <- id x
+		-- +3 because the temporaries for the 3 rightmost
+		-- intermediate values live until the end of this block.
+		T x 1+1+3
+		let y:U such y#reset x
+		T x 1+1+3+add
+	T x 1
+
+
+struct a =
+	isa `testable
+	x	:F
+a met# reset x:*F
+	self#x = x
+
+example ta
+	var x = mk
+	T x 1
+	(scenario1 a) x 1
+	(scenario2 a) x 1
+	T x 1
+	wipe #x
+	T x 1
+
+
+struct b =
+	isa `testable
+	x	:(Uint, F)
+b met# reset x:*F
+	self#x = (42, x*)
+
+example tb
+	var x = mk
+	(scenario1 b) x 1
+	(scenario2 b) x 1
+	wipe #x
+
+
+struct c =
+	isa `testable
+	x	:(F, Uint, F)
+c met# reset x:*F
+	self#x = (x*, 42, x*)
+
+example tc
+	var x = mk
+	(scenario1 c) x 2
+	(scenario2 c) x 2
+	wipe #x
+
+
+struct d =
+	isa `testable
+	x	:(Buf F)
+d met# reset x:*F
+	self#x#Clear
+	foreach _ over 0 .. 100
+		self#x#Push# = x
+
+example td
+	var x = mk
+	(scenario1 d) x 100
+	(scenario2 d) x 100
+	wipe #x
+
+
+struct e =
+	isa `testable
+	x0	:(Buf F)
+	x	:[]F
+e met# reset x:*F
+	self#x0#Clear
+	foreach _ over 0 .. 100
+		self#x0#Push# = x
+	self#x = self.x0.Slice
+
+example te
+	var x = mk
+	(scenario1 e) x 100
+	(scenario2 e) x 100
+	wipe #x
+
+
+struct f =
+	isa `testable
+	x	:(Map Uint F)
+f met# reset x:*F
+	foreach i over 0 .. 100
+		(self#x#Store i)# = x
+
+example tf
+	var x = mk
+	(scenario1 f) x 100
+	(scenario2 f) x 100
+
+	block
+		let y:f such y#reset x
+		T x 101
+		let v = y.x.Copy_to_buf
+		T x 201
+	T x 1
+
+	wipe #x
+
+
+struct f_large =
+	isa `testable
+	x	:(Map Uint F)
+f_large met# reset x:*F
+	foreach i over 0 .. 10_000
+		(self#x#Store i)# = x
+
+example tf_large
+	var x = mk
+	(scenario1 f_large) x 10_000
+	(scenario2 f_large) x 10_000
+	wipe #x
+
+
+struct askey =
+	isa `Hashable32
+	key	:F
+
+askey met Hash32 = U32
+	return self.key.Sys_number.Hash32
+
+struct g =
+	isa `testable
+	x	:(Map askey F)
+g met# reset x:*F
+	(self#x#Store {key=x})# = x
+
+example tg
+	var x = mk
+	(scenario1 g) x 2
+	(scenario2 g) x 2
+
+	block
+		let y:g such y#reset x
+		T x 3
+		let v = y.x.Copy_to_buf
+		T x 5
+	T x 1
+
+	wipe #x
+
+
+struct h =
+	isa `testable
+	x	:(Set askey)
+h met# reset x:*F
+	let added = self#x#Add {key=x}
+	assert added
+
+example th
+	var x = mk
+	(scenario1 h) x 1
+	(scenario2 h) x 1
+
+	block
+		let y:h such y#reset x
+		T x 2
+		let v = y.x.Copy_to_buf
+		T x 3
+	T x 1
+
+	wipe #x
+
+
+struct i =
+	isa `testable
+	x	:(Buf g)
+i met# reset x:*F
+	foreach _ over 0 .. 100
+		let y = self#x#Push
+		y#reset x
+
+example ti
+	var x = mk
+	(scenario1 i) x 200
+	(scenario2 i) x 200
+	wipe #x
+
+
+struct k =
+	isa `testable
+	x	:?F
+k met# reset x:*F
+	self#x = x*
+
+example tk
+	var x = mk
+	(scenario1 k) x 1
+	(scenario2 k) x 1
+	wipe #x
+
+
+--struct l =
+--	isa `testable
+--	x	:???F
+--l met# reset x:*F
+--	let x1 = ?x*
+--	let x2 = ?x1
+--	self#x = x2
+--
+--example tl
+--	var x = mk
+--	(scenario1 l) x 1
+--	(scenario2 l) x 1
+--	wipe #x
+
+
+struct m =
+	isa `testable
+	x	:(Uint, ?F)
+m met# reset x:*F
+	self#x = (42, ?x*)
+
+example tm
+	var x = mk
+	(scenario1 m) x 1
+	(scenario2 m) x 1
+	wipe #x
+
+
+struct n =
+	isa `testable
+	x	:(Buf (Uint, ?F))
+n met# reset x:*F
+	self#x#Clear
+	foreach i over 0 .. 100
+		self#x#Push# = (i, ?x*)
+
+example tn
+	var x = mk
+	(scenario1 n) x 100
+	(scenario2 n) x 100
+	wipe #x
+
+
+struct o =
+	isa `testable
+	x	:a
+o met# reset x:*F
+	self#x = {x=x}
+	self#x = id {x=x}:a
+
+example to
+	var x = mk
+	T x 1
+	(scenario1 o) x 1
+	(scenario2 o) x 1
+	T x 1
+	wipe #x
+	T x 1
+
+
+fun Main = I32
+	return 0

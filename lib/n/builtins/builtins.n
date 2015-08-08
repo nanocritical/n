@@ -222,6 +222,8 @@ extern struct Nullable_mercurial_ref t:`Any =
 -- turned into `Any.
 intf `Inherit what:`Any t:`Any =
 
+-- FIXME(e): ???syscall.Fd is not instantiable.
+
 inline struct Optional t:`Copyable =
 	isa (`Inherit `Return_by_copy t)
 	X	:t
