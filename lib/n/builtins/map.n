@@ -355,6 +355,11 @@ Map met Show st:#`Fmt_state
 		i += 1
 	"}".Show st
 
+Map met Copy_to_buf = r:(Buf (K, T))
+	for k, v over self.Iter
+		r#Push# = k, v*
+
+
 (struct K:`Map_key T:`Copyable) Map_iter H:(Map K T) RT:`Any_any_ref =
 	isa (`Iterator (K, RT)) `Trivial_copy `Trivial_ctor
 	iter	:(sptable_iter H.unit_type)
@@ -485,6 +490,11 @@ Set met Show st:#`Fmt_state
 
 Set met Iter = it:(Set_iter T)
 	it#iter = self.map.Iter
+
+Set met Copy_to_buf = r:(Buf T)
+	for x over self.Iter
+		r#Push# = x
+
 
 struct Set_iter T:`Map_key =
 	isa (`Iterator T) `Trivial_copy `Trivial_ctor
