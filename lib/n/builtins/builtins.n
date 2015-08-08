@@ -67,7 +67,7 @@ intf `Return_by_copy =
 intf `Not_return_by_copy =
 
 intf `Moveable =
-	met# Move = final
+	met# Move = other:final
 intf `Not_moveable =
 intf `Trivial_move =
 	isa `Moveable

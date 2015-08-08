@@ -2324,10 +2324,13 @@ static void print_deffun(struct out *out, bool header, enum forward fwd,
               idents_value(mod->gctx, id_ap));
     }
 
-    if (node_ident(node) == ID_COPY_CTOR
-        && par->which == DEFTYPE
+    if (par->which == DEFTYPE
         && par->as.DEFTYPE.kind == DEFTYPE_UNION) {
-      pf(out, "self->Tag = other->Tag;\n");
+      if (node_ident(node) == ID_COPY_CTOR) {
+        pf(out, "self->Tag = other->Tag;\n");
+      } else if (node_ident(node) == ID_MOVE) {
+        pf(out, "other.Tag = self->Tag;\n");
+      }
     }
 
     rtr_helpers(out, mod, node, false);
