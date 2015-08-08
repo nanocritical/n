@@ -215,7 +215,7 @@ client_conn_handler met# initiate_connection = Error
 	connect_err, self#conn = self#socket#Connect addr
 
 	if connect_err == OK or connect_err == syscall.EINPROGRESS
-		except = self.coh.client.poll!Register self.conn.Fd {READ WRITE RDHUP} self
+		except = self.coh.client.poll!Register self.conn.Fd:ev.Source.FD {READ WRITE RDHUP} self
 
 	if connect_err == OK
 		self#state = WAITING_CONN
@@ -252,7 +252,7 @@ client_conn_handler met# recycle
 		self#state = CLOSE
 		return
 
-	drop = self.coh.client.poll!Unregister self.conn.Fd (Enumset ev.Events).ALL
+	drop = self.coh.client.poll!Unregister self.conn.Fd:ev.Source.FD (Enumset ev.Events).ALL self
 	self#request#Dtor
 	self#response#Dtor
 	self#handler = nil
@@ -352,7 +352,7 @@ client_conn_handler met# On e:ev.Event = err:Error
 		self#recycle
 
 	if self.state == CLOSE
-		except = self.coh.client.poll#Schedule_close self.conn.Fd
+		except = self.coh.client.poll#Schedule_close self.conn.Fd:ev.Source.FD
 
 client_conn_handler met# waiting_conn connect_err:?Error = Error
 	self.debug self.state

@@ -25,20 +25,54 @@ enum Events =
 intf `Handler =
 	met# On ev:Event = Error
 
+intf `Pollable =
+	met Source = Source
+
+
+struct user_source =
+	noop
+
+inline union Source =
+	isa `Has_equality `Hashable32 `Show
+	| DRY = 0
+	| USER -> @user_source
+	| FD -> syscall.Fd
+
+Source met Hash32 = U32
+	match self
+	| DRY -> return 1
+	| USER -> return (unsafe.Voidref.From_ptr self.USER).Uintptr.Hash32
+	| FD -> return self.FD.Hash32
+
+Source met Operator_eq other:*this = Bool
+	if self.Tag != other.Tag
+		return false
+	match self
+	| DRY -> return true
+	| USER -> return self === other
+	| FD -> return self.FD == other.FD
+
+Source met Operator_ne other:*this = Bool
+	return not self == other
+
+Source met Show st:#fmt.`Fmt_state
+	match self
+	| DRY -> "DRY".Show st
+	| USER -> (unsafe.Voidref.From_ptr self.USER).Uintptr.Show st
+	| FD -> self.FD.Show st
+
+
 inline struct Event =
 	isa `Show `Has_equality
-	Fd	:syscall.Fd
-	-- If HUP is in Ask, the Fd will be placed on a closing list, and
-	-- closed after all polled events are done processing. In the meantime
-	-- further events on the Fd will be ignored.
+	Source	:Source
 	Ask	:(Enumset Events)
 	Got	:(Enumset Events)
-	Handler	:?#`Handler
+	Handler	:?@#`Handler
 
 	let NONE = {}:this
 
 Event met Operator_eq other:*this = Bool
-	return self.Fd == other.Fd
+	return self.Source == other.Source
 		\ and self.Ask == other.Ask
 		\ and self.Got == other.Got
 		\ and self.Handler === other.Handler
@@ -47,20 +81,34 @@ Event met Operator_ne other:*this = Bool
 	return not self == other
 
 Event met Show st:#fmt.`State
-	fmt.F st "%s on %s" self.Got self.Fd
+	fmt.F st "%s on %s" self.Got self.Source
 
+
+struct sinks =
+	source		:Source
+	total_ask	:(Enumset Events)
+	handlers	:(Map (Ref_as_key ?@#`Handler) (Enumset Events))
+	-- Only one handler can be registered for CLOSE.
+	closer		:?@#`Handler
 
 inline struct Poll =
-	fds		:(Map syscall.Fd ?#Event)
-	manuals		:(Buf ?#`Handler)
-	closes		:(Set syscall.Fd)
+	sinks_for_source:(Map Source ?@#sinks)
+
+	manuals		:(Buf ?@#`Handler)
+	closes		:(Set Source)
 
 	epfd		:syscall.Fd
 	sys_buf		:(Buf syscall.Epoll_event)
 	sys_pending	:[!]syscall.Epoll_event
 
+	-- We still have handlers to call for that source.
+	pending_got	:(Enumset Events)
+	pending_source	:Source
+	pending_handlers:(Buf (?@#`Handler, (Enumset Events)))
+
 	sleeping	:Bool
-	Current_handler	:?#`Handler
+
+	Current_handler	:?@#`Handler
 
 Poll met# Init = Error
 	assert self.sys_buf.Count == 0
@@ -69,11 +117,11 @@ Poll met# Init = Error
 	self!sys_buf#Reserve 128
 
 Poll met Has_waiters = Bool
-	return self.fds.Count != 0 or self.sys_pending.Count != 0
+	return self.sinks_for_source.Count != 0 or self.Has_pending_events
 
 -- If non-zero, Wait will return an event immediately and will not block.
-Poll met Pending_events_count = Uint
-	return self.sys_pending.Count
+Poll met Has_pending_events = Bool
+	return self.pending_handlers.Count != 0 or self.sys_pending.Count != 0
 
 fun events_to_sys_events r:Events = U32
 	match r
@@ -96,95 +144,128 @@ fun sys_events_to_events events:U32 = r:(Enumset Events)
 	if syscall.EPOLLRDHUP & events != 0
 		r |= {RDHUP}
 
-Poll met! Register source:syscall.Fd ask:(Enumset Events) handler:?#`Handler = Error
+sinks met! init source:Source
+	self!source = source
+	_ = self!total_ask!Add_all {ERROR HUP}
+
+sinks met! register ask:(Enumset Events) handler:?@#`Handler
+	_ = self!total_ask!Add_all ask
+
+	let stored_ask = self#handlers#Store {Ref=handler}
+	_ = stored_ask!Add_all {ERROR HUP}
+	_ = stored_ask!Add_all ask
+
+sinks met! unregister un_ask:(Enumset Events) handler:?@#`Handler
+	_ = self!total_ask!Remove_all un_ask
+
+	if handler?
+		-- Applies to a single handler.
+		let ask = self!handlers![{Ref=handler}]
+		assert ask?
+		_ = ask!Remove_all un_ask
+	else
+		for _, ask over self!handlers!Iter
+			_ = ask!Remove_all un_ask
+
+Poll met! Register source:Source ask:(Enumset Events) handler:?@#`Handler = Error
 	if ask.Count == 0
 		return OK
 
 	if MANUAL in ask
 		self!manuals#Push# = handler
 
-	if CLOSE in ask
-		assert self.fds.[source]?
-		_ = self!closes#Add source
-
-	let just_pseudo = ask <= {MANUAL CLOSE}
+	let just_pseudo = ask <= {MANUAL}
 	if just_pseudo
 		return OK
 
-	let added, perm_e = self!fds#Try_store source
+	let added, p_sks = self!sinks_for_source#Try_store source
 	and op = syscall.EPOLL_CTL_MOD such
 		if added
-			perm_e# = Alloc Event
+			p_sks# = Alloc sinks
+			(p_sks*)!init source
 			op = syscall.EPOLL_CTL_ADD
 
-	let pe = perm_e#
-	pe!Fd = source
-	_ = pe#Ask#Add_all ask
+	let sks = p_sks#
+	sks!register ask handler
 
-	assert not pe.Handler? or pe.Handler === handler -- FIXME(e): only one Handler supported.
-	pe#Handler = handler
+	if CLOSE in ask and handler?
+		if sks.closer? and sks.closer !== handler
+			Log#Error "Only one handler for CLOSE allowed"
+			return INVAL
+		sks!closer = handler
+
+	if source !=| FD
+		return OK
 
 	let sys_events_defaults = syscall.EPOLLERR | syscall.EPOLLHUP | syscall.EPOLLET
 	let events = sys_events_defaults such
-		for f over pe.Ask.Iter
+		for f over sks.total_ask.Iter
 			events |= events_to_sys_events f
 
-	let rawdata = (unsafe.Cast ?#Event ?#U8) pe
-
+	let rawdata = (unsafe.Cast ?@#sinks ?#U8) sks
 	let sys_event = syscall.Epoll_event.Mk events rawdata
+	except = syscall.Epoll_ctl self.epfd op source.FD sys_event
 
-	except = syscall.Epoll_ctl self.epfd op pe.Fd sys_event
+Poll met! sys_unregister_all source:Source
+	if source ==| FD
+		-- Old Linux does not accept a nil event.
+		let sys_event = syscall.Epoll_event.Mk 0 nil
+		never = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_DEL source.FD sys_event
 
-Poll met! Unregister source:syscall.Fd un_ask:(Enumset Events) = Error
+-- Unless you call Unregister with an explicit (Enumset Events).ALL, the source
+-- will not be removed, still receiving ERROR and HUP.
+-- If handler is nil, applies to handler for that source.
+Poll met! Unregister source:Source un_ask:(Enumset Events) handler:?@#`Handler = Error
 	if un_ask == (Enumset Events).ALL
-		return self!unregister_all source
+		if not source in self.sinks_for_source
+			return INVAL
+		self!sys_unregister_all source
+		let sks = self!remove_sinks source
+		Free sks
+		return OK
 
-	let perm_e = self!fds![source]
-	if not perm_e?
+	let p_sks = self!sinks_for_source![source]
+	if not p_sks?
 		return INVAL
 
-	let pe = perm_e#
-	_ = pe#Ask#Remove_all un_ask
+	let sks = p_sks#
+	sks!unregister un_ask handler
+
+	if CLOSE in un_ask
+		sks!closer = nil
+
+	if source !=| FD
+		return OK
 
 	let sys_events_defaults = syscall.EPOLLERR | syscall.EPOLLHUP | syscall.EPOLLET
 	let events = sys_events_defaults such
-		for f over pe.Ask.Iter
+		for f over sks.total_ask.Iter
 			events |= events_to_sys_events f
-	let rawdata = (unsafe.Cast ?#Event ?#U8) pe
+	let rawdata = (unsafe.Cast ?@#sinks ?#U8) sks
 	let sys_event = syscall.Epoll_event.Mk 0 rawdata
-	except = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_MOD pe.Fd sys_event
+	except = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_MOD source.FD sys_event
 
-Poll met! unregister_all source:syscall.Fd = Error
-	let perm_e = self!fds![source]
-	if not perm_e?
+Poll met! Schedule_manually h:@#`Handler = Error
+	assert not self.sleeping -- FIXME(e): multithread or multi loop: use an eventfd in the pool
+	return self!Register {} {MANUAL} h
+
+Poll met! Schedule_close source:Source = Error
+	if not source in self.sinks_for_source
 		return INVAL
 
-	Free perm_e*
-	_ = self!fds#Delete source
-
-	-- Old Linux does not accept a nil event.
-	let sys_event = syscall.Epoll_event.Mk 0 nil
-	never = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_DEL source sys_event
-
-Poll met! Schedule_manually h:#`Handler = Error
-	assert not self.sleeping -- FIXME(e): multithread or multi loop: use an eventfd in the pool
-	let err = self!Register {} {MANUAL} h
-	return err
-
-Poll met! Schedule_close source:syscall.Fd = Error
-	return self!Register source {CLOSE} nil
+	_ = self!closes#Add source
 
 Poll met! process_manuals = Error
 	-- Processing manual handlers may add more to manuals, so we steal it:
 	let manuals = self!manuals#Move
-	var keep:(Buf ?#`Handler)
+	var keep:(Buf ?@#`Handler)
 	foreach ph over manuals
 		let h = ph*
 		if not h?
 			continue
-		self#Current_handler = h
+		self!Current_handler = h
 		let err = h#On {Got={MANUAL} Handler=h}
-		self#Current_handler = nil
+		self!Current_handler = nil
 		if err == io.WOULD_BLOCK
 			keep#Push# = h
 			continue
@@ -193,38 +274,61 @@ Poll met! process_manuals = Error
 
 	self!manuals#Append keep.Slice
 
+Poll met! remove_sinks source:Source = @#sinks
+	let sks = self.sinks_for_source.[source]*
+	_ = self!sinks_for_source#Delete source
+	return sks
+
+sinks met! close poll:!Poll = did_close:Bool
+	-- Assume it's going to be closed below and that source will become
+	-- invalid (if it's a FD).
+	-- sks is self, but with different mutability.
+	let sks = poll!remove_sinks self.source
+
+	if not self.closer?
+		if self.source ==| FD
+			drop = syscall.Close self.source.FD
+		return true
+
+	let e_close = {Source=self.source Got={CLOSE} Handler=self.closer}:Event
+
+	poll!Current_handler = e_close.Handler
+	let err = e_close.Handler#On e_close
+	poll!Current_handler = nil
+
+	var not_closing = false
+	if err == io.WOULD_BLOCK
+		not_closing = true
+	elif err != OK
+		Log#Warning "Handler error on CLOSE: %s" err
+
+	if not_closing
+		-- Put it back.
+		(poll!sinks_for_source#Store self.source)# = sks
+		return false
+
+	if self.source ==| FD and self.source.FD.Is_valid
+		-- Handler did not close it, so we do it.
+		drop = syscall.Close self.source.FD
+
+	return true
+
 Poll met! process_closes = closed_some:Bool
-	-- Processing close handlers may add more to closes, so we steal it:
-	let closes = self!closes#Move
-	for fd over closes.Iter
-		let pe = self.fds.[fd]
-		if not pe?
-			Log#Warning "spurious fd on close list: %s" fd
+	-- Processing close handlers may add more to closes, so we make a copy.
+	let closes = self.closes.Copy_to_buf
+	self!closes#Clear
+
+	foreach source over closes
+		let p_sks = self.sinks_for_source.[source]
+		if not p_sks?
+			Log#Warning "spurious source on close list: %s" source
 			continue
 
-		let e = pe*
-		if e.Handler?
-			let e_close = {Fd=e.Fd Got={CLOSE} Handler=e.Handler}:Event
-			drop = self!unregister_all e.Fd
-			-- Do not use e, it was just freed.
-
-			self#Current_handler = e_close.Handler
-			let err = e_close.Handler#On e_close
-			self#Current_handler = nil
-
-			if err == io.WOULD_BLOCK
-				continue
-			if err != OK
-				Log#Warning "Handler error on CLOSE: %s" err
-
-			if e_close.Fd.Is_valid
-				-- Handler did not close it, so we do it.
-				drop = syscall.Close #e_close#Fd
-		else
-			drop = self!unregister_all e.Fd
-			drop = syscall.Close fd
-
-		closed_some = true
+		let sks = p_sks*
+		let did_close = sks!close self
+		if did_close
+			Free sks
+			closed_some = true
 
 -- In a few places, we introduce a pseudo io.WOULD_BLOCK that does not come
 -- from a syscall. In general that's a terrible idea, but here it let's us
@@ -248,6 +352,9 @@ Poll met! sys_wait timeout:?time.Duration = Error
 	Log#Debug "%s %s" res.Count
 
 Poll met! Wait ?timeout:?time.Duration = Error, e:Event
+	if self.pending_handlers.Count != 0
+		return OK, self!pop_pending
+
 	if self.sys_pending.Count == 0
 		var closed_some
 		while self.manuals.Count + self.closes.Count != 0
@@ -255,7 +362,7 @@ Poll met! Wait ?timeout:?time.Duration = Error, e:Event
 
 			except = self!process_manuals
 
-		if closed_some and not self.Has_waiters and self.Pending_events_count == 0
+		if closed_some and not self.Has_waiters and not self.Has_pending_events
 			-- Give the caller a chance to notice that there are no
 			-- waiters anymore. If we're called again, then we'll block
 			-- on the syscall.
@@ -274,10 +381,37 @@ Poll met! Wait ?timeout:?time.Duration = Error, e:Event
 	let sys_e = self.sys_pending.[0]
 	self!sys_pending = self.sys_pending.[1 ..]
 
-	let perm_e = (unsafe.Cast ?#U8 ?#Event) sys_e.Rawdata
-	e = perm_e*
-	e!Got = sys_events_to_events sys_e.Events
+	let sks = (unsafe.Cast ?#U8 ?@#sinks) sys_e.Rawdata
 
+	let pending_got = sys_events_to_events sys_e.Events
+
+	if sks.handlers.Count == 0 or sks.total_ask & pending_got == {}
+		self!pending_got = {}
+		self!pending_source = {}
+		self!pending_handlers#Clear
+		return OK, NONE
+
+	self!pending_got = pending_got
+	self!pending_source = sks.source
+	self!pending_handlers#Reserve sks.handlers.Count
+	for handler, ask over sks.handlers.Iter
+		let got = ask & self.pending_got
+		if got.Count == 0
+			continue
+		(self!pending_handlers#Push)# = (handler.Ref, got)
+
+	return OK, self!pop_pending
+
+Poll met! pop_pending = e:Event
+	if self.pending_handlers.Count == 0
+		return NONE
+
+	let handler, got = self.pending_handlers.Last*
+	self!pending_handlers#Pop
+
+	e!Source = self.pending_source
+	e!Handler = handler
+	e!Got = got
 
 fun Loop poll:#Poll ?continue_despite_handler_error:?Bool = Error
 	while poll.Has_waiters
@@ -285,6 +419,8 @@ fun Loop poll:#Poll ?continue_despite_handler_error:?Bool = Error
 		if wait_err == io.WOULD_BLOCK
 			continue
 		except = wait_err
+		if e == NONE
+			continue
 
 		poll#Current_handler = e.Handler
 		let err = e.Handler#On e

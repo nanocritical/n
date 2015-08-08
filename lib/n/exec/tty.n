@@ -82,8 +82,6 @@ example cmd_tty
 
 	var buf:Stringbuf
 	var bbuf = bufio.Writer.Mk #buf
-	var buf2:Stringbuf
-	var bbuf2 = bufio.Writer.Mk #buf2
 	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo stdout; >&2 echo stderr"}
 		\ Stdin=#(bufio.Reader.Mk #(bufio.Mk_string_reader "stdin\n"))
 		\ Stdout=#bbuf}:Cmd

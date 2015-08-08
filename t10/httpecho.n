@@ -48,24 +48,7 @@ fun test = Error
 	var server:echo_server
 	except = server#init #poll
 
-	-- This logic could go in a function that must be called in the form:
-	-- while true
-	--	except = poll!Loop
-	while true
-		let wait_err, e = poll!Wait
-		if wait_err == io.WOULD_BLOCK
-			continue
-		except = wait_err
-
-		if e == NONE
-			break
-
-		let err = e.Handler#On e
-		if err == io.WOULD_BLOCK
-			continue
-
-		if err != OK
-			Log#Error "%s" err
+	except = ev.Loop #poll
 
 fun Main = I32
 	if test != OK

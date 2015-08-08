@@ -14,7 +14,7 @@ intf `Seeker =
 inline struct File =
 	isa `Not_copyable io.`Reader io.`Writer
 		\ io.`Read_closer io.`Write_closer
-		\ `Seeker
+		\ `Seeker ev.`Pollable
 		-- io.`Reader_at io.`Writer_at
 	fs	:?!`Fs
 	fd	:syscall.Fd
@@ -35,6 +35,9 @@ File fun Open_fd fd:syscall.Fd = f:#this
 
 File met Is_open = Bool
 	return self.fd.Is_valid
+
+File met Source = ev.Source
+	return self.fd:ev.Source.FD
 
 File met Fd = syscall.Fd
 	return self.fd

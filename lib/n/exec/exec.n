@@ -147,13 +147,11 @@ struct example_handler =
 example_handler met# On e:ev.Event = Error
 	Log#Debug "%s" e
 	if HUP in e.Got or ERROR in e.Got
-		never = self.poll!Schedule_close e.Fd
-	if CLOSE in e.Got and e.Fd == self.i.Fd
-		never = self.i!Close
+		never = self.poll!Schedule_close e.Source
 	if WRITE in e.Got
 		_, except = self.i!Write "test".Bytes
 		-- Close to let command exit.
-		never = self.poll!Schedule_close e.Fd
+		never = self.poll!Schedule_close e.Source
 	if READ in e.Got
 		var buf:Stringbuf
 		buf#Reserve 4
@@ -171,8 +169,8 @@ example cmd_nonblocking_pipes
 	let except, output = cmd#Stdout_pipe
 	let h = {i=input o=output poll=#poll}:example_handler
 
-	except = poll!Register input.Fd {WRITE} #h
-	except = poll!Register output.Fd {READ} #h
+	except = poll!Register input.Fd:ev.Source.FD {WRITE} #h
+	except = poll!Register output.Fd:ev.Source.FD {READ} #h
 
 	except = cmd#Run #poll
 	except = ev.Loop #poll
@@ -227,11 +225,11 @@ Cmd met# Run poll:#ev.Poll = Error within the_nanny
 		never = self#perr_wr!Close
 
 		if not self.using_pin
-			never = self#poll!Register self.pin_wr.Fd {WRITE} self
+			never = self#poll!Register self.pin_wr.Fd:ev.Source.FD {WRITE CLOSE} self
 		if not self.using_pout
-			never = self#poll!Register self.pout_rd.Fd {READ} self
+			never = self#poll!Register self.pout_rd.Fd:ev.Source.FD {READ CLOSE} self
 		if not self.using_perr and not self.perr_is_pout
-			never = self#poll!Register self.perr_rd.Fd {READ} self
+			never = self#poll!Register self.perr_rd.Fd:ev.Source.FD {READ CLOSE} self
 
 		except = the_nanny#Wait_for self
 		return OK
@@ -274,24 +272,24 @@ Cmd met# Run poll:#ev.Poll = Error within the_nanny
 
 Cmd met# on_pin e:ev.Event = Error
 	if not ERROR in e.Got and (
-		\ (WRITE in e.Got and e.Fd == self.pin_wr.Fd)
+		\ (WRITE in e.Got and e.Source.FD == self.pin_wr.Fd)
 		\ or (MANUAL in e.Got and self.pin_wr.Fd.Is_valid) -- Maybe we already closed it.
 		\ )
 		let _, fill_err = self#Stdin#Fill
 		let _, err = self!stdin_copier#Copy
 		if err == io.EOF and self.tty_mode
-			never = self!poll!Unregister self.pin_wr.Fd {WRITE}
+			never = self!poll!Unregister self.pin_wr.Fd:ev.Source.FD {WRITE} self
 			drop = err
 		elif err == io.EOF
-			never = self!poll!Schedule_close self.pin_wr.Fd
+			never = self!poll!Schedule_close self.pin_wr.Fd:ev.Source.FD
 		elif err == bufio.NEED_FILL
 			except = fill_err
 		else
 			except = err
 
 Cmd met# on_pout e:ev.Event = Error
-	if (READ in e.Got and e.Fd == self.pout_rd.Fd)
-		\ or (self.tty_mode and HUP in e.Got and e.Fd == self.pout_rd.Fd)
+	if (READ in e.Got and e.Source.FD == self.pout_rd.Fd)
+		\ or (HUP in e.Got and e.Source.FD == self.pout_rd.Fd)
 		let _, err = self!stdout_copier#Copy
 		let flush_err = self#Stdout#Flush
 		if flush_err == io.WOULD_BLOCK
@@ -303,10 +301,12 @@ Cmd met# on_pout e:ev.Event = Error
 			err = io.EOF
 		if err != io.EOF
 			except = err
+		if err == io.EOF
+			never = self!poll!Schedule_close self.pout_rd.Fd:ev.Source.FD
 
 Cmd met# on_perr e:ev.Event = Error
-	if (READ in e.Got and e.Fd == self.perr_rd.Fd and not self.perr_is_pout)
-		\ or (self.tty_mode and HUP in e.Got and e.Fd == self.pout_rd.Fd and not self.perr_is_pout)
+	if (READ in e.Got and e.Source.FD == self.perr_rd.Fd and not self.perr_is_pout)
+		\ or (HUP in e.Got and e.Source.FD == self.perr_rd.Fd and not self.perr_is_pout)
 		let _, err = self!stderr_copier#Copy
 		let flush_err = self#Stderr#Flush
 		if flush_err == io.WOULD_BLOCK
@@ -318,6 +318,8 @@ Cmd met# on_perr e:ev.Event = Error
 			err = io.EOF
 		if err != io.EOF
 			except = err
+		if err == io.EOF
+			never = self!poll!Schedule_close self.perr_rd.Fd:ev.Source.FD
 
 Cmd met# On e:ev.Event = Error
 	Log#Debug "%s" e
@@ -326,11 +328,11 @@ Cmd met# On e:ev.Event = Error
 	except = self#on_pout e
 	except = self#on_perr e
 
-	if CLOSE in e.Got and e.Fd == self.pin_wr.Fd
+	if CLOSE in e.Got and e.Source.FD == self.pin_wr.Fd
 		never = self!pin_wr!Close
-	if CLOSE in e.Got and e.Fd == self.pout_rd.Fd
+	if CLOSE in e.Got and e.Source.FD == self.pout_rd.Fd
 		never = self!pout_rd!Close
-	if CLOSE in e.Got and e.Fd == self.perr_rd.Fd
+	if CLOSE in e.Got and e.Source.FD == self.perr_rd.Fd
 		never = self!perr_rd!Close
 
 	-- TODO(e): on CLOSE, report when there is not yet written content for
@@ -376,13 +378,6 @@ Cmd met# Stderr_pipe ?reuse_stdout:?Bool = Error, #fs.File
 Cmd met! on_status status:Status
 	self!Status = status
 
-	if self.pin_wr? and self.pin_wr.Fd.Is_valid
-		never = self!poll!Schedule_close self.pin_wr.Fd
-	if self.pout_rd? and self.pout_rd.Fd.Is_valid
-		never = self!poll!Schedule_close self.pout_rd.Fd
-	if self.perr_rd? and self.perr_rd.Fd.Is_valid and not self.perr_is_pout
-		never = self!poll!Schedule_close self.perr_rd.Fd
-
 	if self.Completion?
 		self.Completion#On_completion self
 
@@ -414,7 +409,7 @@ nanny met# Wait_for cmd:!Cmd = Error
 		except, self!signalfd = syscall.Signalfd (syscall.Fd.Mk -1)
 			\ mask syscall.SFD_CLOEXEC|syscall.SFD_NONBLOCK
 
-	except = cmd!poll!Register self.signalfd {READ} self
+	except = cmd!poll!Register self.signalfd:ev.Source.FD {READ} self
 
 	let added, pcmd = self!pids#Try_store cmd.Pid
 	if not added
@@ -440,7 +435,7 @@ nanny met# decrement_poll_usecnt cmd:!Cmd = Error
 	if usecnt* == 1
 		Log#Debug "remove signalfd from poll"
 		_ = self!poll_usecnt#Delete {Ref=cmd.poll}
-		except = cmd.poll!Unregister self.signalfd (Enumset ev.Events).ALL
+		except = cmd.poll!Unregister self.signalfd:ev.Source.FD (Enumset ev.Events).ALL self
 
 nanny met# On e:ev.Event = Error
 	Log#Debug "%s" e

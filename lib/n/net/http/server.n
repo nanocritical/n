@@ -236,7 +236,7 @@ server_conn_handler met# init server:#Server conn:#tcp.Conn = Error
 	self#bufr = bufio.Reader.Mk self#conn
 	self#bufw = bufio.Writer.Mk self#conn
 
-	except = self.server.poll!Register self.conn.Fd {READ WRITE RDHUP} self
+	except = self.server.poll!Register self.conn.Fd:ev.Source.FD {READ WRITE RDHUP CLOSE} self
 
 server_conn_handler met# recycle
 	self.debug
@@ -384,7 +384,7 @@ server_conn_handler met# On e:ev.Event = err:Error
 		self#recycle
 
 	if self.state == CLOSE
-		except = self.server.poll#Schedule_close self.conn.Fd
+		except = self.server.poll#Schedule_close self.conn.Fd:ev.Source.FD
 
 server_conn_handler met# waiting_header = Error
 	while true
@@ -519,7 +519,7 @@ Server fun Mk poll:#ev.Poll ?handler:?#`Server = r:this
 Server met# Listen addr:tcp.Addr = Error
 	except = self#listening#Listen addr
 
-	except = self.poll!Register self.listening.Fd {READ} self
+	except = self.poll!Register self.listening.Fd:ev.Source.FD {READ} self
 
 Server met# On e:ev.Event = Error
 	while true

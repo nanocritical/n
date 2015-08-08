@@ -4,7 +4,7 @@ import n.path
 import n.io
 import n.time
 import n.crypto.cryptorand
-import n.fs
+import n.ev
 import n.fmt
 import n.bench
 
