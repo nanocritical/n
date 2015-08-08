@@ -163,6 +163,86 @@ static ERROR step_init_insert_automagic(struct module *mod, struct node *node,
   return 0;
 }
 
+// We flatten INIT into a series of assignments so that Copy_ctor can be
+// inserted properly.
+static STEP_NM(step_flatten_init,
+               NM(INIT));
+static ERROR step_flatten_init(struct module *mod, struct node *node,
+                               void *user, bool *stop) {
+  if (mod->state->fun_state == NULL || !mod->state->fun_state->in_block) {
+    return 0;
+  }
+  if (node->as.INIT.is_array
+      || node->as.INIT.is_range
+      || node->as.INIT.is_bounds
+      || node->as.INIT.is_defchoice_external_payload_constraint
+      || node->as.INIT.for_tag != ID__NONE
+      || subs_count(node) == 0) {
+    return 0;
+  }
+
+  struct node *init_par = parent(node);
+  const struct node *target;
+  if (init_par->which == DEFNAME) {
+    target = subs_first_const(init_par);
+  } else if (init_par->which == BIN && init_par->as.BIN.operator == TASSIGN) {
+    struct node *left = subs_first(init_par);
+    if (left->which == UN && OP_KIND(left->as.UN.operator) == OP_UN_DEREF) {
+      target = subs_first_const(left);
+    } else {
+      target = left;
+    }
+  } else if (init_par->which == RETURN) {
+    // Either this is return through ref and we will set node's
+    // INIT.target_expr, or it's `Return_by_copy and therefore
+    // `Trivial_copy, therefore we don't need to flatten the INIT.
+    return 0;
+  } else {
+    assert(false && "unexpected, to say the least");
+  }
+
+  struct node *stat = find_current_statement(node);
+  struct node *par = parent(stat);
+  struct node *new_stat = node_new_subnode(mod, par);
+  node_subs_remove(par, new_stat);
+  node_subs_insert_after(par, stat, new_stat);
+  node_set_which(new_stat, BLOCK);
+
+  GSTART();
+
+  const struct node **except = calloc(subs_count(node)/2 + 1, sizeof(struct node *));
+  size_t n = 0;
+
+  struct node *nxt = subs_first(node);
+  while (nxt != NULL) {
+    struct node *f = nxt;
+    struct node *expr = next(f);
+    nxt = next(expr); // Save now, we will move expr.
+
+    node_subs_remove(node, f);
+    node_subs_remove(node, expr);
+
+    G0(ass, new_stat, BIN,
+       ass->as.BIN.operator = TASSIGN;
+       G(acc, BIN,
+         acc->as.BIN.operator = TSHARP;
+         acc->as.BIN.is_generated = true;
+         struct node *t = node_new_subnode(mod, acc);
+         node_deepcopy(mod, t, target);
+         node_subs_append(acc, f));
+       node_subs_append(ass, expr));
+
+    except[n++] = expr;
+  }
+
+  error e = catchup(mod, except, new_stat, CATCHUP_BELOW_CURRENT);
+  EXCEPT(e);
+
+  free(except);
+
+  return 0;
+}
+
 static enum token_type operator_call_arg_refop(const struct typ *tfun, size_t n) {
   const struct typ *arg0 = typ_generic_functor_const(typ_function_arg_const(tfun, n));
   assert(arg0 != NULL && typ_is_reference(arg0));
@@ -1162,6 +1242,7 @@ static ERROR passbody1(struct module *mod, struct node *root,
     DOWN_STEP(step_check_no_definc_left);
     ,
     UP_STEP(step_init_insert_automagic);
+    UP_STEP(step_flatten_init);
     UP_STEP(step_operator_call_inference);
     UP_STEP(step_ctor_call_inference);
     UP_STEP(step_array_ctor_call_inference);
