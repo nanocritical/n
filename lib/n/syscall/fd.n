@@ -54,7 +54,6 @@ Fd met# Dtor
 
 	self#refc# -= 1
 
-	return -- FIXME(e): disabled because of codegen bug
 	if self.refc == 0
 		let sys_fd = self.Sys_number
 
