@@ -578,7 +578,9 @@ static ERROR step_from_number_literal_call_inference(struct module *mod, struct 
   // Steal it:
   s->as.STRING.value = node->as.NUMBER.value;
 
+  struct typ *t = node->typ;
   node_set_which(node, CALL);
+  set_typ(&node->typ, t);
 
   struct typ *tfun = typ_member(saved_typ, ID_FROM_NUMBER_LITERAL);
   GSTART();
