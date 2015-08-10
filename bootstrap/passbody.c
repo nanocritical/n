@@ -109,6 +109,49 @@ static ERROR step_check_no_definc_left(struct module *mod, struct node *node,
   return 0;
 }
 
+// Once converted into INIT we share the rest of the compilation logic with
+// structs (tuples are structs, after all).
+static STEP_NM(step_tuple_values_into_init,
+               NM(TUPLE));
+static ERROR step_tuple_values_into_init(struct module *mod, struct node *node,
+                                         void *user, bool *stop) {
+  if (mod->state->fun_state == NULL || !mod->state->fun_state->in_block) {
+    return 0;
+  }
+  if (node->flags & NODE_IS_TYPE) {
+    return 0;
+  }
+
+  node_set_which(node, INIT);
+
+  const struct node **except = calloc(subs_count(node) + 1, sizeof(struct node *));
+  size_t n = 0;
+  char name[32] = { 0 };
+
+  struct node *nxt = subs_first(node);
+  while (nxt != NULL) {
+    struct node *expr = nxt;
+    nxt = next(expr); // Save now, we will move expr.
+
+    snprintf(name, ARRAY_SIZE(name), "X%zu", n);
+
+    struct node *f = mk_node(mod, node, IDENT);
+    f->as.IDENT.name = idents_add_string(mod->gctx, name, strlen(name));
+    node_subs_remove(node, f);
+    node_subs_insert_before(node, expr, f);
+
+    except[n] = expr;
+    n += 1;
+  }
+
+  error e = catchup(mod, except, node, CATCHUP_REWRITING_CURRENT);
+  EXCEPT(e);
+
+  free(except);
+
+  return 0;
+}
+
 // Finish the job from unify_with_defincomplete_entrails().
 static STEP_NM(step_init_insert_automagic,
                NM(INIT));
@@ -163,6 +206,12 @@ static ERROR step_init_insert_automagic(struct module *mod, struct node *node,
   return 0;
 }
 
+static const struct node *retval_name(struct module *mod) {
+  const struct node *retval = module_retval_get(mod);
+  assert(subs_count_atleast(retval, 1));
+  return subs_first_const(retval);
+}
+
 // We flatten INIT into a series of assignments so that Copy_ctor can be
 // inserted properly.
 static STEP_NM(step_flatten_init,
@@ -175,17 +224,25 @@ static ERROR step_flatten_init(struct module *mod, struct node *node,
   if (node->as.INIT.is_array
       || node->as.INIT.is_range
       || node->as.INIT.is_bounds
-      || node->as.INIT.is_defchoice_external_payload_constraint
-      || node->as.INIT.for_tag != ID__NONE
       || subs_count(node) == 0) {
     return 0;
   }
 
+  struct node *stat = find_current_statement(node);
+  struct node *par_stat = parent(stat);
+  struct node *new_stat = node_new_subnode(mod, par_stat);
+  node_subs_remove(par_stat, new_stat);
+  node_set_which(new_stat, BLOCK);
+
   struct node *init_par = parent(node);
   const struct node *target;
   if (init_par->which == DEFNAME) {
+    node_subs_insert_after(par_stat, stat, new_stat);
+
     target = subs_first_const(init_par);
   } else if (init_par->which == BIN && init_par->as.BIN.operator == TASSIGN) {
+    node_subs_insert_after(par_stat, stat, new_stat);
+
     struct node *left = subs_first(init_par);
     if (left->which == UN && OP_KIND(left->as.UN.operator) == OP_UN_DEREF) {
       target = subs_first_const(left);
@@ -193,20 +250,13 @@ static ERROR step_flatten_init(struct module *mod, struct node *node,
       target = left;
     }
   } else if (init_par->which == RETURN) {
-    // Either this is return through ref and we will set node's
-    // INIT.target_expr, or it's `Return_by_copy and therefore
-    // `Trivial_copy, therefore we don't need to flatten the INIT.
-    return 0;
+    node_subs_insert_before(par_stat, stat, new_stat);
+
+    target = retval_name(mod);
+    init_par->as.RETURN.forced_return_through_ref = true;
   } else {
     assert(false && "unexpected, to say the least");
   }
-
-  struct node *stat = find_current_statement(node);
-  struct node *par = parent(stat);
-  struct node *new_stat = node_new_subnode(mod, par);
-  node_subs_remove(par, new_stat);
-  node_subs_insert_after(par, stat, new_stat);
-  node_set_which(new_stat, BLOCK);
 
   GSTART();
 
@@ -217,9 +267,17 @@ static ERROR step_flatten_init(struct module *mod, struct node *node,
   while (nxt != NULL) {
     struct node *f = nxt;
     struct node *expr = next(f);
-    nxt = next(expr); // Save now, we will move expr.
+    assert(expr != NULL || node->as.INIT.is_defchoice_external_payload_constraint);
+    nxt = expr != NULL ? next(expr) : NULL; // Save now, we will move expr.
 
-    node_subs_remove(node, f);
+    if (node->as.INIT.is_defchoice_external_payload_constraint) {
+      expr = f;
+      f = NULL;
+    }
+
+    if (f != NULL) {
+      node_subs_remove(node, f);
+    }
     node_subs_remove(node, expr);
 
     G0(ass, new_stat, BIN,
@@ -228,8 +286,24 @@ static ERROR step_flatten_init(struct module *mod, struct node *node,
          acc->as.BIN.operator = TSHARP;
          acc->as.BIN.is_generated = true;
          struct node *t = node_new_subnode(mod, acc);
+
+         if (node->as.INIT.is_defchoice_external_payload_constraint) {
+           struct node *tag = mk_node(mod, acc, IDENT);
+           tag->as.IDENT.name = node->as.INIT.for_tag;
+         } else if (node->as.INIT.for_tag != ID__NONE) {
+           struct node *tag_acc = t;
+           node_set_which(tag_acc, BIN);
+           tag_acc->as.BIN.operator = TSHARP;
+           t = node_new_subnode(mod, tag_acc);
+           struct node *tag = mk_node(mod, tag_acc, IDENT);
+           tag->as.IDENT.name = node->as.INIT.for_tag;
+         }
+
          node_deepcopy(mod, t, target);
-         node_subs_append(acc, f));
+         if (f != NULL) {
+           node_subs_append(acc, f);
+         });
+
        node_subs_append(ass, expr));
 
     except[n++] = expr;
@@ -239,6 +313,15 @@ static ERROR step_flatten_init(struct module *mod, struct node *node,
   EXCEPT(e);
 
   free(except);
+
+  if (init_par->which == RETURN) {
+    node_set_which(node, target->which);
+
+    node_deepcopy(mod, node, target);
+
+    error e = catchup(mod, NULL, node, CATCHUP_BEFORE_CURRENT_SAME_TOP);
+    EXCEPT(e);
+  }
 
   return 0;
 }
@@ -1047,12 +1130,6 @@ static void block_like_insert_value_assign(struct module *mod, struct node *node
   }
 }
 
-static const struct node *retval_name(struct module *mod) {
-  const struct node *retval = module_retval_get(mod);
-  assert(subs_count_atleast(retval, 1));
-  return subs_first_const(retval);
-}
-
 static STEP_NM(step_store_return_through_ref_expr,
                NM(RETURN) | NM(DEFNAME) | NM(BIN));
 static ERROR step_store_return_through_ref_expr(struct module *mod, struct node *node,
@@ -1241,6 +1318,7 @@ static ERROR passbody1(struct module *mod, struct node *root,
     DOWN_STEP(step_check_no_literals_left);
     DOWN_STEP(step_check_no_definc_left);
     ,
+    UP_STEP(step_tuple_values_into_init);
     UP_STEP(step_init_insert_automagic);
     UP_STEP(step_flatten_init);
     UP_STEP(step_operator_call_inference);

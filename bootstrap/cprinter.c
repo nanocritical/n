@@ -545,11 +545,15 @@ static void print_un(struct out *out, const struct module *mod, const struct nod
       pf(out, ").X");
       break;
     case TPREQMARK:
-      pf(out, "(");
-      print_typ(out, mod, node->typ);
-      pf(out, "){ .X = (");
-      print_expr(out, mod, term, parent_op);
-      pf(out, "), .Nonnil = 1 }");
+      if (typ_isa(node->typ, TBI_TRIVIAL_COPY)) {
+        pf(out, "(");
+        print_typ(out, mod, node->typ);
+        pf(out, "){ .X = (");
+        print_expr(out, mod, term, parent_op);
+        pf(out, "), .Nonnil = 1 }");
+      } else {
+        assert(false && "should have been converted into an INIT");
+      }
       break;
     default:
       assert(false);
@@ -938,12 +942,8 @@ static void print_init(struct out *out, const struct module *mod,
 
   if (node->as.INIT.is_defchoice_external_payload_constraint) {
     pf(out, ";\n");
-    print_expr(out, mod, node->as.INIT.target_expr, TDOT);
-    pf(out, ".");
-    const ident tag = node->as.INIT.for_tag;
-    print_union_access_path(out, mod, node->typ, tag);
-    pf(out, " = ");
-    print_expr(out, mod, subs_first_const(node), T__NOT_STATEMENT);
+    // Any initialization of the union member is done by an assign, see
+    // step_flatten_init.
     return;
   }
 

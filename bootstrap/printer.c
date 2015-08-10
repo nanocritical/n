@@ -279,8 +279,7 @@ static void print_init(FILE *out, const struct module *mod, const struct node *n
 
     fprintf(out, "}");
   } else if (node->as.INIT.is_defchoice_external_payload_constraint) {
-    print_expr(out, mod, subs_first_const(node), T__NOT_STATEMENT);
-    fprintf(out, ":%s.%s",
+    fprintf(out, "{}:%s.%s",
             idents_value(mod->gctx, typ_definition_ident(node->typ)),
             idents_value(mod->gctx, node->as.INIT.for_tag));
   } else {
