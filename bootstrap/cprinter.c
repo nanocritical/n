@@ -696,6 +696,33 @@ static void print_call_fun(struct out *out, const struct module *mod,
   pf(out, ".dyntable->%s", idents_value(mod->gctx, typ_definition_ident(tfun)));
 }
 
+// For arguments passed by-value, the caller makes a copy and passes it in
+// to the callee, which becomes responsible for it.
+//
+// These two principles must apply:
+// - callee must dtor if non-`Trivial_dtor;
+// - pass throug a ref if non-`Trivial_move.
+//
+// To keep things simple, we reuse `Return_by_copy (which we could rename to
+// pass-by-copy). Anything non-`Return_by_copy that is passed by-value will
+// be dtor by the callee and passed through a ref in C.
+static bool callconv_callees(const struct typ *t) {
+  return !typ_isa(t, TBI_RETURN_BY_COPY);
+}
+
+#define CALLCONV_CALLEES_PREFIX "_$Ncallees_"
+
+static void print_defer_dtor_callees(struct out *out, const struct module *mod,
+                                     const struct node *arg) {
+  pf(out, "NLANG_DEFER_VIA_REF(");
+  struct tit *it = typ_definition_one_member(arg->typ, ID_DTOR);
+  print_typ(out, mod, tit_typ(it));
+  tit_next(it);
+  pf(out, "__$Ndynwrapper, " CALLCONV_CALLEES_PREFIX);
+  print_expr(out, mod, subs_first_const(arg), T__CALL);
+  pf(out, ");\n");
+}
+
 static void print_call(struct out *out, const struct module *mod,
                        const struct node *node, uint32_t parent_op) {
   const struct node *fun = subs_first_const(node);
@@ -800,6 +827,10 @@ static void print_call(struct out *out, const struct module *mod,
     }
 
     print_call_vararg_count(&did_retval_throughref, out, mod, dfun, node, arg, n - 1);
+
+    if (callconv_callees(arg->typ)) {
+      pf(out, "&");
+    }
 
     print_expr(out, mod, arg, T__CALL);
     n += 1;
@@ -982,6 +1013,20 @@ static void print_ident_locally_shadowed(struct out *out, const struct node *def
   }
 }
 
+static void print_ident_arg_prefix(struct out *out, const struct module *mod,
+                                   const struct node *defarg) {
+  assert(defarg->which == DEFARG);
+  const struct node *fun = nparent_const(defarg, 2);
+  const bool is_self = fun->which == DEFMETHOD && prev_const(defarg) == NULL;
+  const bool is_vararg = defarg->as.DEFARG.is_vararg;
+  if (!is_self && !is_vararg) {
+    // Arguments (including return values) are accessed through a macro,
+    // which name starts with _Narg_, to avoid conflicts with anything in
+    // a subscope, especially names of fields in accessors.
+    pf(out, "_Narg_");
+  }
+}
+
 static void print_ident(struct out *out, const struct module *mod, const struct node *node) {
   assert(node->which == IDENT);
   assert(node_ident(node) != ID_ANONYMOUS);
@@ -992,13 +1037,8 @@ static void print_ident(struct out *out, const struct module *mod, const struct 
   }
 
   const struct node *def = node->as.IDENT.def;
-  if (def != NULL && def->which == DEFARG && def->as.DEFARG.is_retval
-      && parent_const(def)->which == TUPLE
-      && node_ident(def) != ID_NRETVAL) {
-    // Named return values in tuples are accessed through a macro, which
-    // name starts with _nretval_, to avoid conflicts with anything in a
-    // subscope.
-    pf(out, "%s_", idents_value(mod->gctx, ID_NRETVAL));
+  if (def != NULL && def->which == DEFARG) {
+    print_ident_arg_prefix(out, mod, def);
   }
 
   print_scope_last_name(out, mod, node);
@@ -1772,10 +1812,15 @@ static void print_defarg(struct out *out, const struct module *mod, const struct
 
   pf(out, " ");
 
-  if (return_through_ref) {
-    pf(out, "*_$Nrtr_");
-  } else if (!dynwrapper && !typ_isa(node->typ, TBI_TRIVIAL_DTOR)) {
-    pf(out, "_$Nwilldtor_");
+  const struct node *fun = nparent_const(node, 2);
+  const bool is_self = fun->which == DEFMETHOD && prev_const(node) == NULL;
+
+  if (!is_self) {
+    if (return_through_ref) {
+      pf(out, "*_$Nrtr_");
+    } else if (callconv_callees(node->typ)) {
+      pf(out, "*%s", dynwrapper ? "" : CALLCONV_CALLEES_PREFIX);
+    }
   }
 
   print_expr(out, mod, subs_first_const(node), T__STATEMENT);
@@ -1903,7 +1948,7 @@ static void print_rtr_helpers_start(struct out *out, const struct module *mod,
     size_t n = 0;
     FOREACH_SUB_CONST(x, last) {
       if (x->which == DEFARG) {
-        pf(out, "#define _nretval_");
+        pf(out, "#define ");
         print_expr(out, mod, subs_first_const(x), T__STATEMENT);
         pf(out, " ((");
         print_expr(out, mod, first, T__STATEMENT);
@@ -1931,7 +1976,7 @@ static void print_rtr_helpers_end(struct out *out, const struct module *mod,
   if (last->which == TUPLE) {
     FOREACH_SUB_CONST(x, last) {
       if (x->which == DEFARG) {
-        pf(out, "#undef _nretval_");
+        pf(out, "#undef ");
         print_expr(out, mod, subs_first_const(x), T__STATEMENT);
         pf(out, "\n");
       }
@@ -1979,6 +2024,7 @@ static void rtr_helpers(struct out *out, const struct module *mod,
 static void print_rtr_name(struct out *out, const struct module *mod,
                            const struct node *node) {
   const struct node *retval = node_fun_retval_const(node);
+  print_ident_arg_prefix(out, mod, retval);
   pf(out, "%s", idents_value(mod->gctx, node_ident(retval)));
 }
 
@@ -2001,24 +2047,24 @@ static void print_deffun_builtingen(struct out *out, const struct module *mod, c
   case BG_TRIVIAL_DTOR_DTOR:
     break;
   case BG_TRIVIAL_COPY_COPY_CTOR:
-    pf(out, "memmove(self, other, sizeof(*self));\n");
+    pf(out, "memmove(self, _Narg_other, sizeof(*self));\n");
     break;
   case BG_TRIVIAL_COMPARE_OPERATOR_COMPARE:
-    pf(out, "return memcmp(self, other, sizeof(*self));\n");
+    pf(out, "return memcmp(self, _Narg_other, sizeof(*self));\n");
     break;
   case BG_ENUM_FROM_TAG:
     assert(par->which == DEFTYPE);
     if (par->as.DEFTYPE.kind == DEFTYPE_ENUM) {
-      pf(out, "return value;\n");
+      pf(out, "return _Narg_value;\n");
     } else {
       if (typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
         pf(out, "return ");
       } else {
-        pf(out, "_nretval = ");
+        pf(out, "_Narg__nretval = ");
       }
       pf(out, "(");
       print_typ(out, mod, par->typ);
-      pf(out, "){ .%s = value };\n", idents_value(mod->gctx, ID_TAG));
+      pf(out, "){ .%s = _Narg_value };\n", idents_value(mod->gctx, ID_TAG));
     }
     break;
   case BG_ENUM_TAG:
@@ -2288,20 +2334,20 @@ static void print_deffun(struct out *out, bool header, enum forward fwd,
       pf(out, "NLANG_CLEANUP_ZERO(self);\n");
     }
 
+    rtr_helpers(out, mod, node, true);
+
     const struct node *funargs = subs_at_const(node, IDX_FUNARGS);
     FOREACH_SUB_CONST(arg, funargs) {
-      if (next_const(arg) == NULL) {
+      if (next_const(arg) == NULL || arg->as.DEFARG.is_vararg) {
         break;
       }
-      if (!typ_isa(arg->typ, TBI_TRIVIAL_DTOR)) {
-        print_defer_dtor(out, mod, arg->typ);
-        print_typ(out, mod, arg->typ);
+      if (callconv_callees(arg->typ)) {
+        print_defer_dtor_callees(out, mod, arg);
+
         const char *narg = idents_value(mod->gctx, node_ident(arg));
-        pf(out, " %s = _$Nwilldtor_%s;\n", narg, narg);
+        pf(out, "#define _Narg_%s (*" CALLCONV_CALLEES_PREFIX "_Narg_%s)\n", narg, narg);
       }
     }
-
-    rtr_helpers(out, mod, node, true);
 
     const ssize_t first_vararg = node_fun_first_vararg(node);
     ident id_ap = ID__NONE;
@@ -2327,9 +2373,19 @@ static void print_deffun(struct out *out, bool header, enum forward fwd,
     if (par->which == DEFTYPE
         && par->as.DEFTYPE.kind == DEFTYPE_UNION) {
       if (node_ident(node) == ID_COPY_CTOR) {
-        pf(out, "self->Tag = other->Tag;\n");
+        pf(out, "self->Tag = _Narg_other->Tag;\n");
       } else if (node_ident(node) == ID_MOVE) {
-        pf(out, "other.Tag = self->Tag;\n");
+        pf(out, "_Narg_other.Tag = self->Tag;\n");
+      }
+    }
+
+    FOREACH_SUB_CONST(arg, funargs) {
+      if (next_const(arg) == NULL || arg->as.DEFARG.is_vararg) {
+        break;
+      }
+      if (callconv_callees(arg->typ)) {
+        const char *narg = idents_value(mod->gctx, node_ident(arg));
+        pf(out, "#undef _Narg_%s\n", narg);
       }
     }
 

@@ -5,10 +5,16 @@
 
 #ifdef NLANG_DEFINE_TYPES
 
+struct n$builtins$dtor_via_ref {
+  void *obj;
+  n$builtins$Void (*dtor)(void *self);
+};
+
 struct n$builtins$cleaner {
   void *p;
   size_t sz;
 };
+
 
 typedef struct _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ NB(byteslice);
 typedef struct _$Ngen_n$builtins$Optional$$n$builtins$Uint_genN$_ NB(optuint);
@@ -30,6 +36,16 @@ struct NB(Varargint) {
 #ifdef NLANG_DECLARE_FUNCTIONS
 
 #define NLANG_DEFER(dtor) __attribute__((__cleanup__(dtor)))
+
+// Hopefully the compiler will see through this dance and it will get
+// inlined, but if not, we will have to generate appropriate fully-typed
+// methods.
+
+#define NLANG_DEFER_VIA_REF(dt, x) \
+  __attribute__((__cleanup__(n$builtins$invoke_dtor_via_ref))) \
+  struct n$builtins$dtor_via_ref __Ndtorcallees_##x = { .obj = (x), .dtor = (dt) }
+
+static inline void n$builtins$invoke_dtor_via_ref(struct n$builtins$dtor_via_ref *c);
 
 #define NLANG_CLEANUP_ZERO(x) \
   __attribute__((__cleanup__(n$builtins$clean_zero))) \
@@ -167,6 +183,10 @@ n$builtins$Void n$bench$Example$Dtor(struct n$bench$Example *);
 #endif
 
 #ifdef NLANG_DEFINE_FUNCTIONS
+
+static inline void n$builtins$invoke_dtor_via_ref(struct n$builtins$dtor_via_ref *c) {
+  c->dtor(c->obj);
+}
 
 static inline void n$builtins$clean_zero(struct n$builtins$cleaner *c) {
   memset(c->p, 0, c->sz);

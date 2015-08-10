@@ -3326,6 +3326,10 @@ error step_type_inference(struct module *mod, struct node *node,
   case DEFARG:
     PUSH_STATE(node->as.DEFARG.phi_state);
 
+    // Necessary so we can recognize this IDENT as pointing to an arg.
+    assert(subs_first(node)->which == IDENT);
+    subs_first(node)->as.IDENT.def = node;
+
     set_typ(&node->typ, subs_at(node, 1)->typ);
     if (node->as.DEFARG.is_optional) {
       if (!typ_is_nullable_reference(node->typ) && !typ_is_optional(node->typ)) {
