@@ -2231,9 +2231,6 @@ fun Example_except name:String err:Error
 		return
 	Eprn sep="" "Failed example: " name ": " err
 
-fun Break
-	return
-
 let sysheap:mem.Sysheap
 fun ensure_visible_sysheap_dyn = *`Heap
 	return *sysheap
