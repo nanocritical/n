@@ -1516,7 +1516,7 @@ static void print_defname_cleanup(struct out *out, const struct module *mod,
   } else if (typ_isa(node->typ, TBI_TRIVIAL_DTOR)) {
     // Includes references.
     return;
-  } else if (node->flags & NODE_IS_MOVED_AWAY) {
+  } else if (node->flags & NODE_IS_CALLEES) {
     return;
   } else if (node_ident(node) == ID_OTHERWISE) {
     return;

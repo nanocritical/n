@@ -2389,25 +2389,6 @@ static ERROR type_inference_explicit_unary_call(struct module *mod, struct node 
     if (typ_definition_ident(*ft) == ID_MOVE) {
       // FIXME(e): Properly detect that it's actually `Any.Move
       node->flags |= NODE_IS_MOVE_TARGET;
-
-      if (self->which == IDENT
-          && self->as.IDENT.def->which == DEFNAME
-          && self->as.IDENT.def->as.DEFNAME.ssa_user == self) {
-        struct node *self_def = self->as.IDENT.def;
-        self_def->flags |= NODE_IS_MOVED_AWAY;
-
-        struct node *self_expr = subs_last(self_def);
-        if (self_expr->which == UN
-            && self_expr->as.UN.operator == TREFSHARP) {
-          struct node *self_val = subs_first(self_expr);
-          if (self_val->which == IDENT
-              && self_val->as.IDENT.def->which == DEFNAME
-              && self_val->as.IDENT.def->as.DEFNAME.ssa_user == self_val) {
-            struct node *self_val_def = self_val->as.IDENT.def;
-            self_val_def->flags |= NODE_IS_MOVED_AWAY;
-          }
-        }
-      }
     }
   }
 
@@ -3225,11 +3206,6 @@ error step_type_inference(struct module *mod, struct node *node,
     if (try_remove_unnecessary_ssa_defname(mod, node)) {
       set_typ(&node->typ, TBI_VOID);
       break;
-    }
-
-    if (node->as.DEFNAME.ssa_user != NULL
-        && (subs_last(node)->flags & NODE_IS_MOVE_TARGET)) {
-      node->flags |= NODE_IS_MOVED_AWAY;
     }
 
     if (node->flags & NODE_IS_TYPE) {

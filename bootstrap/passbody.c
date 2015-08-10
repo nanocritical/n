@@ -758,7 +758,7 @@ static ERROR arg_copy_call_inference(struct module *mod, struct node *node,
 
   // Now that the Copy_ctor has been inferred, the result belongs to the
   // callee (etc.), not us. Let's make sure we don't Dtor it.
-  defn->flags |= NODE_IS_MOVED_AWAY;
+  defn->flags |= NODE_IS_CALLEES;
 
   e = catchup(mod, NULL, narg, CATCHUP_BELOW_CURRENT);
   EXCEPT(e);
@@ -773,11 +773,6 @@ static ERROR try_replace_with_copy(struct module *mod, struct node *node,
   }
 
   if (expr_is_return_through_ref(NULL, mod, expr)) {
-    return 0;
-  }
-
-  if ((node->flags | expr->flags) & NODE_IS_MOVED_AWAY) {
-    // It's OK to trivial copy temporaries: it's a move.
     return 0;
   }
 
