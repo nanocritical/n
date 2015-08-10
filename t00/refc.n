@@ -1,27 +1,117 @@
 from n import *
-import n.syscall
+import n.unsafe
+import n.fmt
 
--- Use syscall.Fd as a way to test that Dtor, Copy_ctor, Move balance out
--- each others.
+-- Keeps track of which copy of X contributed what increment/decrement to
+-- X.refc. Each copy of X should eventually contribute as much increment and
+-- decrement. Useful for tracking down problems.
+struct contribs =
+	map	:(Map (Ref_as_key ?*X) (Int, Int))
 
-alias F = syscall.Fd
+contribs met check
+	for r, c over self.map.Iter
+		let plus, minus = c
+		if plus == - minus
+			continue
+		_ = r
+--		Eprn (unsafe.Voidref.From_ptr r.Ref).Uintptr "\t" plus "\t" minus
+		assert plus >= - minus
 
-fun T x:*F count:Uint ?_Ncodeloc:?*Codeloc
+contribs met print_all
+	Eprn "-------------------------------"
+	for r, c over self.map.Iter
+		let plus, minus = c
+		Eprn (unsafe.Voidref.From_ptr r.Ref).Uintptr "\t" plus "\t" minus
+	Eprn "==============================="
+
+contribs met# rec who:*X delta:Int
+	let p = self#map#Store {Ref=who}
+	if delta > 0
+		p!X0 += delta
+	else
+		p!X1 += delta
+	assert p.X0 >= -p.X1
+
+
+-- X is an instrumented non-`Trivial_copy, non-`Trivial_move and
+-- non-`Trivial_dtor type to try to validate the inference of copy ctor,
+-- move, and dtor.
+struct X =
+	isa `Has_equality `Show `Hashable32
+	refc	:?#U32
+	me	:?#this
+	con	:?#contribs
+
+X fun Mk = r:this
+	r#refc = Alloc U32
+	r#refc# = 1
+	r#me = #r
+	r#con = Alloc contribs
+	r#con#rec r +1
+
+X met# Dtor
+	assert not self.me? or self === self.me
+	if not self.refc?
+		return
+
+	self#refc# -= 1
+	self#con#rec self -1
+
+	if self.refc == 0
+		Free self.refc
+		Free self.con
+
+X met# Copy_ctor other:*this
+	assert not other.me? or other === other.me
+	self#refc = other.refc
+	self#con = other.con
+	if not self.refc?
+		return
+	self#refc# += 1
+	self#con#rec self +1
+	assert not self.me? or self === self.me
+
+X met# Move = ret:this
+	assert not self.me? or self === self.me
+	ret#refc = self.refc
+	ret#con = self.con
+	ret#me = #ret
+	assert #ret === ret.me
+	self#refc = nil
+	self#con#rec self -1
+	ret#con#rec ret +1
+
+X met Hash32 = U32
+	if not self.me?
+		return (0:Uintptr).Hash32
+	return (unsafe.Voidref.From_ptr self.me).Uintptr.Hash32
+
+X met Operator_eq other:*this = Bool
+	return self.me? and other.me? and self.me == other.me
+
+X met Operator_ne other:*this = Bool
+	return not self == other
+
+X met Show st:#fmt.`State
+	(unsafe.Voidref.From_ptr self.me).Uintptr.Show st
+
+
+fun T x:*X count:Uint ?_Ncodeloc:?*Codeloc
 	if x.refc != count.Trim_u32
 		Message_at "" _Ncodeloc
 		Eprn "current" x.refc "expected" count
 		assert false
 
-fun mk = x:F
+fun mk = x:X
 	-- I32.MAX so that if it gets closed (and it shouldn't), close(2) will return an error.
-	x = syscall.Fd.Mk I32.MAX
+	x = X.Mk
 
-fun wipe x:#F
-	x#fd# = -1
+fun wipe x:#X
+	x.con.check
 
 intf `testable =
 	isa `Copyable
-	met# reset x:*F
+	met# reset x:*X
 
 (fun U:`Copyable) id3 obj:*U = res:*U
 	res = obj
@@ -34,7 +124,7 @@ intf `testable =
 	return id2 obj
 
 
-(fun U:`testable) scenario1 x:*F add:Uint
+(fun U:`testable) scenario1 x:*X add:Uint
 	T x 1
 	block
 		let y:U such y#reset x
@@ -47,7 +137,7 @@ intf `testable =
 		T x 1+2*add
 	T x 1
 
-(fun U:`testable) scenario2 x:*F add:Uint
+(fun U:`testable) scenario2 x:*X add:Uint
 	T x 1
 	block
 		let xx = id <- id <- id <- id x
@@ -61,8 +151,8 @@ intf `testable =
 
 struct a =
 	isa `testable
-	x	:F
-a met# reset x:*F
+	x	:X
+a met# reset x:*X
 	self#x = x
 
 example ta
@@ -77,8 +167,8 @@ example ta
 
 struct b =
 	isa `testable
-	x	:(Uint, F)
-b met# reset x:*F
+	x	:(Uint, X)
+b met# reset x:*X
 	self#x = (42, x*)
 
 example tb
@@ -90,8 +180,8 @@ example tb
 
 struct c =
 	isa `testable
-	x	:(F, Uint, F)
-c met# reset x:*F
+	x	:(X, Uint, X)
+c met# reset x:*X
 	self#x = (x*, 42, x*)
 
 example tc
@@ -103,8 +193,8 @@ example tc
 
 struct d =
 	isa `testable
-	x	:(Buf F)
-d met# reset x:*F
+	x	:(Buf X)
+d met# reset x:*X
 	self#x#Clear
 	foreach _ over 0 .. 100
 		self#x#Push# = x
@@ -118,9 +208,9 @@ example td
 
 struct e =
 	isa `testable
-	x0	:(Buf F)
-	x	:[]F
-e met# reset x:*F
+	x0	:(Buf X)
+	x	:[]X
+e met# reset x:*X
 	self#x0#Clear
 	foreach _ over 0 .. 100
 		self#x0#Push# = x
@@ -135,8 +225,8 @@ example te
 
 struct f =
 	isa `testable
-	x	:(Map Uint F)
-f met# reset x:*F
+	x	:(Map Uint X)
+f met# reset x:*X
 	foreach i over 0 .. 100
 		(self#x#Store i)# = x
 
@@ -157,12 +247,13 @@ example tf
 
 struct f_large =
 	isa `testable
-	x	:(Map Uint F)
-f_large met# reset x:*F
+	x	:(Map Uint X)
+f_large met# reset x:*X
 	foreach i over 0 .. 10_000
 		(self#x#Store i)# = x
 
 example tf_large
+	return OK
 	var x = mk
 	(scenario1 f_large) x 10_000
 	(scenario2 f_large) x 10_000
@@ -171,15 +262,15 @@ example tf_large
 
 struct askey =
 	isa `Hashable32
-	key	:F
+	key	:X
 
 askey met Hash32 = U32
-	return self.key.Sys_number.Hash32
+	return self.key.Hash32
 
 struct g =
 	isa `testable
-	x	:(Map askey F)
-g met# reset x:*F
+	x	:(Map askey X)
+g met# reset x:*X
 	(self#x#Store {key=x})# = x
 
 example tg
@@ -200,7 +291,7 @@ example tg
 struct h =
 	isa `testable
 	x	:(Set askey)
-h met# reset x:*F
+h met# reset x:*X
 	let added = self#x#Add {key=x}
 	assert added
 
@@ -222,7 +313,7 @@ example th
 struct i =
 	isa `testable
 	x	:(Buf g)
-i met# reset x:*F
+i met# reset x:*X
 	foreach _ over 0 .. 100
 		let y = self#x#Push
 		y#reset x
@@ -236,8 +327,8 @@ example ti
 
 struct k =
 	isa `testable
-	x	:?F
-k met# reset x:*F
+	x	:?X
+k met# reset x:*X
 	self#x = x*
 
 example tk
@@ -247,10 +338,11 @@ example tk
 	wipe #x
 
 
+-- FIXME(e): triple-optional is problematic.
 --struct l =
 --	isa `testable
---	x	:???F
---l met# reset x:*F
+--	x	:???X
+--l met# reset x:*X
 --	let x1 = ?x*
 --	let x2 = ?x1
 --	self#x = x2
@@ -264,8 +356,8 @@ example tk
 
 struct m =
 	isa `testable
-	x	:(Uint, ?F)
-m met# reset x:*F
+	x	:(Uint, ?X)
+m met# reset x:*X
 	self#x = (42, ?x*)
 
 example tm
@@ -277,8 +369,8 @@ example tm
 
 struct n =
 	isa `testable
-	x	:(Buf (Uint, ?F))
-n met# reset x:*F
+	x	:(Buf (Uint, ?X))
+n met# reset x:*X
 	self#x#Clear
 	foreach i over 0 .. 100
 		self#x#Push# = (i, ?x*)
@@ -293,7 +385,7 @@ example tn
 struct o =
 	isa `testable
 	x	:a
-o met# reset x:*F
+o met# reset x:*X
 	self#x = {x=x}
 	self#x = id {x=x}:a
 
@@ -302,6 +394,37 @@ example to
 	T x 1
 	(scenario1 o) x 1
 	(scenario2 o) x 1
+	T x 1
+	wipe #x
+	T x 1
+
+
+union p =
+	isa `testable
+	| XXX = 0 -> X
+	| A -> a
+	| B -> b
+	| C -> c
+	| D -> d
+	| E -> e
+	| F -> f
+	| G -> g
+	| H -> h
+	| I -> i
+	--| J -> j
+	| K -> k
+	--| L -> l
+	| M -> m
+	| N -> n
+
+p met# reset x:*X
+	self# = x*:this.XXX
+
+example tp
+	var x = mk
+	T x 1
+	(scenario1 p) x 1
+	(scenario2 p) x 1
 	T x 1
 	wipe #x
 	T x 1

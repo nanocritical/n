@@ -1279,6 +1279,23 @@ static ERROR step_add_arg_dtor_topdep(struct module *mod, struct node *node,
   return 0;
 }
 
+static STEP_NM(step_debug_check_assign_copy,
+               NM(BIN));
+static ERROR step_debug_check_assign_copy(struct module *mod, struct node *node,
+                                          void *user, bool *stop) {
+  DSTEP(mod, node);
+  if (node->as.BIN.operator != TASSIGN) {
+    return 0;
+  }
+  if (mod->state->fun_state == NULL || !mod->state->fun_state->in_block) {
+    return 0;
+  }
+
+  struct node *expr = subs_last(node);
+  assert(typ_isa(expr->typ, TBI_TRIVIAL_MOVE) || expr_is_return_through_ref(NULL, mod, expr));
+  return 0;
+}
+
 error passbody0(struct module *mod, struct node *root,
                 void *user, ssize_t shallow_last_up) {
   // first
@@ -1332,6 +1349,8 @@ static ERROR passbody1(struct module *mod, struct node *root,
     UP_STEP(step_add_dyn_topdep);
     UP_STEP(step_add_newtype_pretend_wrapper_topdep);
     UP_STEP(step_add_arg_dtor_topdep);
+
+    UP_STEP(step_debug_check_assign_copy);
     ,
     FINALLY_STEP(step_pop_state);
     );
