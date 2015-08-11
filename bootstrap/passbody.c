@@ -791,6 +791,26 @@ static ERROR try_replace_with_copy(struct module *mod, struct node *node,
     EXCEPT(e);
     break;
   case CALL:
+    {
+      struct node *arg = expr;
+      if (arg->which == IDENT && arg->as.IDENT.def != NULL) {
+        struct node *arg_def = arg->as.IDENT.def;
+        if (arg_def->which == DEFNAME && arg_def->as.DEFNAME.ssa_user == arg
+            && (arg_def->flags & NODE_IS_MOVE_TARGET)) {
+          assert(!arg_def->as.DEFNAME.ssa_only_removable_if_void);
+          // let <arg_def> = x#Move
+          // CALL <node> <arg>
+          // arg is the result of a move, and the only user of it, let's just
+          // make it callee's and we have nothing more to do. See t00/move.n
+          // and alloc accounting.
+          arg_def->flags |= NODE_IS_CALLEES;
+          return 0;
+        }
+      }
+    }
+    e = arg_copy_call_inference(mod, node, expr);
+    EXCEPT(e);
+    break;
   case INIT:
   case TUPLE:
     e = arg_copy_call_inference(mod, node, expr);
