@@ -2040,6 +2040,8 @@ static void print_deffun_builtingen(struct out *out, const struct module *mod, c
 
   rtr_helpers(out, mod, node, true);
 
+  const struct typ *rettyp = typ_function_return_const(node->typ);
+
   const enum builtingen bg = node_toplevel_const(node)->builtingen;
   switch (bg) {
   case BG_TRIVIAL_CTOR_CTOR:
@@ -2053,19 +2055,21 @@ static void print_deffun_builtingen(struct out *out, const struct module *mod, c
     pf(out, "return memcmp(self, _Narg_other, sizeof(*self));\n");
     break;
   case BG_ENUM_FROM_TAG:
+    // FIXME(e): validate tag
     assert(par->which == DEFTYPE);
-    if (par->as.DEFTYPE.kind == DEFTYPE_ENUM) {
-      pf(out, "return _Narg_value;\n");
+    if (typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
+      pf(out, "return (");
     } else {
-      if (typ_isa(node->typ, TBI_RETURN_BY_COPY)) {
-        pf(out, "return ");
-      } else {
-        pf(out, "_Narg__nretval = ");
-      }
-      pf(out, "(");
-      print_typ(out, mod, par->typ);
-      pf(out, "){ .%s = _Narg_value };\n", idents_value(mod->gctx, ID_TAG));
+      pf(out, "_Narg__nretval = (");
     }
+    print_typ(out, mod, rettyp);
+    pf(out, "){ .X = (");
+    if (par->as.DEFTYPE.kind == DEFTYPE_ENUM) {
+      pf(out, "_Narg_value");
+    } else {
+      pf(out, "(THIS()){ .%s = _Narg_value }", idents_value(mod->gctx, ID_TAG));
+    }
+    pf(out, "), .Nonnil = 1 };\n");
     break;
   case BG_ENUM_TAG:
     assert(par->which == DEFTYPE);

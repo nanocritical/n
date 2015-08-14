@@ -978,7 +978,7 @@ intf `Enum =
 	let COUNT:Uint
 	let BWALL:U64
 
-	fun From_tag value:final.Tag_type = final
+	fun From_tag value:final.Tag_type = ?final
 	met Tag = final.Tag_type
 
 intf `Union =
@@ -988,7 +988,7 @@ intf `Union =
 -- TODO(e): Could make this work with non-trivial `Default_ctor as well.
 intf `Union_from_tag_ctor =
 	isa `Union `Trivial_ctor
-	fun From_tag value:final.Tag_type = final
+	fun From_tag value:final.Tag_type = ?final
 
 alias Error_range = Error -- FIXME ::|OK|INVAL_RANGE
 

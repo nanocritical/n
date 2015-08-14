@@ -99,7 +99,9 @@ Enumset_iterator met! Next = ?T
 	if self.ffs == 0
 		return nil
 	let val = if T isa `Trivial_ctor -> self.ffs-1;; else self.ffs
-	let r = T.From_tag <- (Force_convert T.Tag_type) val
+	let pr = T.From_tag <- (Force_convert T.Tag_type) val
+	assert pr?
+	let r:T such r = pr
 	self!m &= ~{r}
 	self!ffs = math.Bit_ffs self.m.Bits
 	return r
