@@ -25,7 +25,8 @@ Bytes_reader met Peek ?max:?Uint = []U8
 	return self.cur.[.. (Min self.cur.Count (max else Uint.MAX))]
 
 Bytes_reader met! Skip_buffered count:Uint
-	self!cur = self.cur.[(Min count self.cur.Count) ..]
+	assert count <= self.cur.Count
+	self!cur = self.cur.[count ..]
 
 Bytes_reader met Peek_string ?max:?Uint = String
 	return String.From_bytes <- self.Peek max=max
@@ -164,4 +165,5 @@ Stringbuf_reader met Peek ?max:?Uint = []U8
 Stringbuf_reader met! Skip_buffered count:Uint
 	if self.Pos >= self.S.Count
 		return
+	assert count <= self.S.Count - self.Pos
 	self!Pos += Min count self.S.Count-self.Pos

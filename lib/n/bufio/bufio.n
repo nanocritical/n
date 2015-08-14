@@ -32,7 +32,7 @@ intf `Reader =
 	-- If max is unspecified, assume Uint.MAX.
 	met Peek ?max:?Uint = []U8
 
-	-- Advance the buffer past the lesser of `count` or `Buffered` bytes.
+	-- Advance the buffer past count bytes.
 	met! Skip_buffered count:Uint
 
 -- A `Fillable_reader not only provides a Fill method, but declares that calling this
@@ -166,7 +166,8 @@ Reader met! Skip_buffered count:Uint
 	if self.bufr?
 		self!bufr!Skip_buffered count
 		return
-	self!pending = self.pending.[(Min count self.pending.Count) ..]
+	assert count <= self.pending.Count
+	self!pending = self.pending.[count ..]
 
 -- Convenience method.
 -- Does not Fill more data. Does not advance.
@@ -526,7 +527,6 @@ Limited_reader met Peek ?max:?Uint = []U8
 	return self.R.Peek max=(Min self.Left (max else Uint.MAX))
 
 Limited_reader met! Skip_buffered count:Uint
-	assert count <= self.Buffered
 	return self!R!Skip_buffered count
 
 Limited_reader met# Fill ?max:?Uint = just_filled:Uint, Error
