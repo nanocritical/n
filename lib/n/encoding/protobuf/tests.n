@@ -34,6 +34,7 @@ fun test_varint32 bs:Uint bytes:[]U8 value:U64 = Error
 		assert err == OVERFLOW
 		return OK
 	else
+		assert err == OK
 		assert res == value.Trim_u32
 
 	var bufw:Stringbuf

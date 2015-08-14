@@ -146,9 +146,8 @@ Reader met# Fill ?max:?Uint = just_filled:Uint, Error
 		return 0, io.EOF
 
 	self#buf#Copy_from self.pending.Bytes
-	just_filled = self.pending.Count
 	let written, fill_err = self!copier#Copy max=max
-	just_filled += written
+	just_filled = written
 	self#pending = self.buf.String
 
 	self#saw_eof = fill_err == io.EOF
