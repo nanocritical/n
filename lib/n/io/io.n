@@ -4,6 +4,7 @@
 from n import *
 import n.bufio
 import n.io.ioutil
+import n.fs
 
 let EOF = {Why=*"EOF: End of file"}:Error
 let SHORT_READ = {Why=*"SHORT_READ: Short read"}:Error
@@ -75,6 +76,29 @@ fun Write_at_least w:#`Writer b:[]U8 min_count:Uint = []U8, err:Error
 
 fun Write_full w:#`Writer b:[]U8 = []U8, Error
 	return Write_at_least w b b.Count
+
+
+fun Fast_forward r:#`Reader count:Uint = count_skipped:Uint, Error
+	if count == 0
+		return 0, OK
+
+	let bufr = (Dyncast bufio.Reader) r
+	if bufr?
+		r = bufr.R
+
+	let seeker = (Dyncast fs.`Seeker) r
+	if seeker?
+		let err, reached = seeker#Seek count.Signed CUR
+		if err != OK
+			return 0, err
+		if reached != count
+			return reached, EOF
+		return 0, OK
+
+	var discarder:Copier
+	discarder#Reset nil r
+	let written, err = discarder!Copy max=count
+	return written, err
 
 
 -- Copy until EOF on the read side.
