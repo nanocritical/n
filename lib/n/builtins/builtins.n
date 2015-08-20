@@ -2226,6 +2226,12 @@ fun Trace_never err:Error ?_Ncodeloc:?*Codeloc
 	Eprn "" err
 	Abort
 
+fun Main_except err:Error = I32
+	if err == OK
+		return 0
+	Eprn sep="" "Main failed with: " err
+	return 1
+
 fun Example_except name:String err:Error
 	if err == OK
 		return

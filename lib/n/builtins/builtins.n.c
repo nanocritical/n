@@ -42,6 +42,12 @@ void _$Nprelude(int *argc, char ***argv, char ***env) {
   n$crypto$cryptorand$Install_sys();
 }
 
+extern struct NB(Error) _$Nmain(void);
+
+int _$Ninvoke_main(void) {
+  return NB(Main_except)(_$Nmain());
+}
+
 void _$Npostlude(int *ret) {
 }
 

@@ -493,7 +493,7 @@ static inline NB(U8) *NB(Static_array_at_byte)(NB(U8) *p, NB(Uint) off) {
 
 NB(Void) *NB(Nonnil_void)(void);
 
-void n$builtins$Example_except();
+void NB(Example_except)();
 
 #define NLANG_EXAMPLE_EXCEPT(name, err) \
   n$builtins$Example_except((struct n$builtins$String)NLANG_STRING_LITERAL(name), err)

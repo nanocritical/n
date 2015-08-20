@@ -296,10 +296,11 @@ static ERROR program_link(const struct stage *stage) {
   }
   fprintf(run, "int _$Nmain(void);\n"
           "void _$Nprelude(int *argc, char ***argv, char ***env);\n"
+          "int _$Ninvoke_main(void);\n"
           "void _$Npostlude(int *ret);\n");
   fprintf(run, "int main(int argc, char **argv, char **env) {\n"
           "_$Nprelude(&argc, &argv, &env);\n"
-          "int ret = _$Nmain();\n"
+          "int ret = _$Ninvoke_main();\n"
           "_$Npostlude(&ret);\n"
           "return ret;\n"
           "}\n");
