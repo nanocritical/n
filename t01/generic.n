@@ -7,8 +7,10 @@ struct container t:`Copyable =
 (struct t:`Copyable) iter_container c:(container t) =
 	x	:*c
 
-fun Main = I32
+fun Main = Error
 	let v = {x=1}:(container I32)
 	let it = {x=*v}:(iter_container (container I32))
 	let _ = it
-	return v.x - 1
+	if v.x - 1 != 0
+		return INVAL
+	return OK

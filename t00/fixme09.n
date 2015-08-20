@@ -9,6 +9,7 @@ struct a =
 a fun `i.Foo = I32
 	return self.x
 
-extern fun Main = I32
+fun Main = Error
 	let y = {}:a
-	return y.Foo
+	if 0 != y.Foo
+		return INVAL

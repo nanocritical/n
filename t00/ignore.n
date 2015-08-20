@@ -1,5 +1,5 @@
 from n import *
 
-fun Main = I32
+fun Main = Error
 	let _ = 0:U32
-	return 0
+	return OK

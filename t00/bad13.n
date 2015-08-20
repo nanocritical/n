@@ -1,8 +1,9 @@
 from n import *
 
-fun Main = I32
+fun Main = Error
 	alias t = I32
 	such
 		t = I32
 	let x = 0:t
-	return x
+	if 0 != x
+		return INVAL

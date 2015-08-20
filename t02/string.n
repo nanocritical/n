@@ -5,8 +5,8 @@ let constant = 'test'
 fun foo = String
 	return 'test'
 
-fun Main = I32
+fun Main = Error
 	Prn constant
 	Prn 'test'
 	Prn foo
-	return 0
+	return OK

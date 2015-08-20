@@ -17,5 +17,6 @@ fun bar x:?*I32 a:Bool = I32
 		if a
 			return x*
 
-fun Main = I32
-	return foo + (bar 1 true)
+fun Main = Error
+	if 0 != foo + (bar 1 true)
+		return INVAL

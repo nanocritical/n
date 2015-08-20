@@ -10,8 +10,10 @@ t met get = I32
 t met! set x:I32
 	self!x = x
 
-fun Main = I32
+fun Main = Error
 	let tt = { x=0 }:t
 	such
 		tt!set 1
-	return tt.get - 1
+	if 0 != tt.get - 1
+		return INVAL
+	return OK

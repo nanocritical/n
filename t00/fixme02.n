@@ -3,5 +3,7 @@ from n import *
 fun returns_tmp = *I32
 	return *0:I32
 
-fun Main = I32
-	return (returns_tmp)*
+fun Main = Error
+	if 0 != (returns_tmp)*
+		return INVAL
+	return OK

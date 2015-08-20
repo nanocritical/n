@@ -1,8 +1,10 @@
 from n import *
 
-fun Main = I32
+fun Main = Error
 	let x = 0:I32
 	and y = 1
 	such
 		x ^= y
-	return x ^ 1
+	if 0 != x ^ 1
+		return INVAL
+	return OK

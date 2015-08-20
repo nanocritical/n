@@ -7,8 +7,8 @@ union either =
 	| i -> I32
 	| u -> U32
 
-fun Main = I32
+fun Main = Error
 	let ei = 42:either.i
 	let eu = 42:either.u
 	Prn ei eu
-	return 0
+	return OK

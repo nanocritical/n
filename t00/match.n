@@ -20,16 +20,16 @@ struct t =
 fun bor xt:*t = Bool
 	return xt.x == A
 
-fun Main = I32
+fun Main = Error
 	let xt = { x=A }
 	if not bor xt
-		return 1
+		return INVAL
 
 	let n = enu.A
 	if n != xt.x
-		return 1
+		return INVAL
 	let _ = Foo n
 	let _ = bar A
 	match n
-	| enu.A -> return 0
-	| enu.B -> return 1
+	| enu.A -> return OK
+	| enu.B -> return INVAL

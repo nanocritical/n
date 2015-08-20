@@ -1,15 +1,15 @@
 from n import *
 
-fun Main = I32
+fun Main = Error
 	let f = 0.0213
 	let g = f + 100.2 * .2
 	if g < 0.1:Float
-		return 1
+		return INVAL
 	elif g < 1
-		return 2
+		return INVAL
 	elif g < 1 + 2.0
-		return 3
+		return INVAL
 	elif g < 1 + 3
-		return 4
+		return INVAL
 	else
-		return 0
+		return OK

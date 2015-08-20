@@ -44,7 +44,7 @@ struct gg =
 	let GG = g.G
 let GGG = gg.GG
 
-fun Main = I32
+fun Main = Error
 	assert AAA1 == a1.A
 	assert AAA2 == a2.A.x
 	assert BBB == b.B

@@ -31,5 +31,5 @@ fun tests
 	Prn m
 	Prn {B C}:(Enumset en)
 
-fun Main = I32
+fun Main = Error
 	tests

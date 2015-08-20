@@ -57,11 +57,11 @@ struct i =
 i met relay ...v:(Vararg *I32)
 	relay ...v
 
-fun Main = I32
+fun Main = Error
 	if opts a=1 != 1
-		return 1
+		return INVAL
 	if opts a=1 != opts
-		return 1
+		return INVAL
 
 	assert 10 == fvar 0 b=1 2 3 4
 	assert 10 == fvar 0 b=1 ...{2 3 4}
@@ -99,4 +99,6 @@ fun Main = I32
 
 	let x = unarygen I32
 
-	return x + (opts a=0)
+	if 0 != x + (opts a=0)
+		return INVAL
+	return OK

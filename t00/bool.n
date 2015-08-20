@@ -1,6 +1,6 @@
 from n import *
 
-fun Main = I32
+fun Main = Error
 	if false and true
 		Eprn 'no'
 	if true and false
@@ -22,6 +22,6 @@ fun Main = I32
 	let x = false
 	and y = true
 	if x and y
-		return 1
+		return INVAL
 	else
-		return 0
+		return OK

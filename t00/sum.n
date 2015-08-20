@@ -53,12 +53,12 @@ fun wants_a x:#a
 let gx = {}:ext.A
 -- FIXME missing support for initializing non-trivial global union values
 
-fun Main = I32
+fun Main = Error
 	let e = en.A
 --  only_a e
 	match e
 	| A -> noop
-	| _ -> return 1
+	| _ -> return INVAL
 
 	--(let f = hen.BA
 	match f
@@ -95,4 +95,4 @@ fun Main = I32
 	assert zzz ==| D
 	assert zzz.D == 42
 
-	return 0
+	return OK

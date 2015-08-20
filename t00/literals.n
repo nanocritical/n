@@ -26,7 +26,7 @@ let struct_array_tuple_array_array = {
 	\   ({x=1 y="b" z=(1, "b")}, "b", {{} {x=1}}) }
 	\ }:[][](s, String, []s)
 
-fun Main = I32
+fun Main = Error
 	assert string_array.[0] == "a"
 	assert string_array.[1] == "b"
 	assert string_array.[2] == "c"

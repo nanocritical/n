@@ -1,6 +1,7 @@
 from n import *
 
-fun Main = I32
+fun Main = Error
 	assert '0' == 48:U8
 	let b = {}:Stringbuf such b#Cat "test" "a" "b"
-	return '123'.Bytes.Count.Trim_u32.Signed - 3
+	if 0 != '123'.Bytes.Count.Trim_u32.Signed - 3
+		return INVAL

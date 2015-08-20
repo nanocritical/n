@@ -3,8 +3,8 @@ from n import *
 fun bar p:?*?*I32
 	noop
 
-fun Main = I32
+fun Main = Error
 	let x = {}
 	bar *x
 	bar !x -- Should Error here, not in the generated C code.
-	return 0
+	return OK

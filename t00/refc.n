@@ -430,5 +430,5 @@ example tp
 	T x 1
 
 
-fun Main = I32
-	return 0
+fun Main = Error
+	return OK

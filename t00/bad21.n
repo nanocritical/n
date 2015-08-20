@@ -6,7 +6,7 @@ fun t = Bool
 fun foo a:Bool b:Bool = Bool
 	return a and b
 
-fun Main = I32
+fun Main = Error
 	if Likely <- not false
 		return 1
 	if foo true false
@@ -14,4 +14,4 @@ fun Main = I32
 	-- Bad:
 	if foo t not true
 		noop
-	return 0
+	return OK

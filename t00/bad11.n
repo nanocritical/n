@@ -3,7 +3,8 @@ from n import *
 struct c =
 	x	:I32
 
-fun Main = I32
+fun Main = Error
 	let y = { x=1 }:c
 	y.x = 0
-	return y.x
+	if 0 != y.x
+		return INVAL

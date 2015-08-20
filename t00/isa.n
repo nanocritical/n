@@ -24,7 +24,7 @@ fun static
 struct no_dyn_use_except_dyncast =
 	noop
 
-fun Main = I32
+fun Main = Error
 	static
 
 	assert positive 0:Uint
@@ -51,4 +51,4 @@ fun Main = I32
 	assert nil === (Dyncast no_dyn_use_except_dyncast) dany
 	assert nil === (Dyncast dany):?*no_dyn_use_except_dyncast
 
-	return 0
+	return OK

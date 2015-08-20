@@ -13,7 +13,9 @@ blah (met t:`Integer) `blah.decr x:t = t
 blah (met t:`Integer) decrf x:t = t
 	return x - 1
 
-fun Main = I32
+fun Main = Error
 	let b = { dummy=0 }:blah
 	let _ = (blah.decr U32) b 1
-	return (blah.decrf I32) b 1
+	if 0 != (blah.decrf I32) b 1
+		return INVAL
+	return OK

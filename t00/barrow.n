@@ -6,7 +6,8 @@ fun Foo x:I32 = I32
 fun bar x:I32 y:I32 = I32
 	return x + y
 
-fun Main = I32
+fun Main = Error
 	let z = Foo <- 0
 	let x = z + <- Foo <- 1
-	return (Foo <- bar 0 1) - x
+	if 0 != (Foo <- bar 0 1) - x
+		return INVAL

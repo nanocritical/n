@@ -58,9 +58,11 @@ fun do = I32 within f
 
 	return 0
 
-fun Main = I32
+fun Main = Error
 	let e1 = Alloc mye
 	let header = Alloc (Envheader !`e)
 	header#Env = e1
 	Globalenv_install e header
-	return do
+	if 0 != do
+		return INVAL
+	return OK

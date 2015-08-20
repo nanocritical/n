@@ -1,6 +1,6 @@
 from n import *
 
-fun Main = I32
+fun Main = Error
 	let j = 0:I32
 	such
 		let i = 0:I32
@@ -8,4 +8,6 @@ fun Main = I32
 			while i < 10
 				i += 1
 				j += 1
-	return j - 10
+	if 0 != j - 10
+		return INVAL
+	return OK

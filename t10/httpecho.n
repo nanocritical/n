@@ -41,7 +41,7 @@ echo met# On w:#http.`Response_writer r:#http.Request = Error
 	return OK
 
 
-fun test = Error
+fun Main = Error
 	var poll:ev.Poll
 	except = poll#Init
 
@@ -49,8 +49,3 @@ fun test = Error
 	except = server#init #poll
 
 	except = ev.Loop #poll
-
-fun Main = I32
-	if test != OK
-		return 1
-	return 0

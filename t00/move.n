@@ -14,7 +14,7 @@ fun bar x:tt = tt
 	assert x.c.X0.Count == 2 and x.c.X0.[0] == 0 and x.c.X0.[1] == 1
 	return x#Move
 
-fun Main = I32 within Heap
+fun Main = Error within Heap
 	var buf = {}:(Buf Uint)
 	(buf#Push)# = 0
 	(buf#Push)# = 1
@@ -129,4 +129,4 @@ fun Main = I32 within Heap
 		assert Heap.Measure.Allocated == 0
 		assert Heap.Measure.Freed == 0
 )--
-	return 0
+	return OK

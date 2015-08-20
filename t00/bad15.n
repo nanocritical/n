@@ -6,6 +6,8 @@ struct a =
 a met Foo = I32
 	return x -- lexical lookup should fail
 
-fun Main = I32
+fun Main = Error
 	let y = {}:a
-	return y.Foo
+	if 0 != y.Foo
+		return INVAL
+	return OK

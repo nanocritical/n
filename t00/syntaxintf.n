@@ -6,5 +6,5 @@ intf `Example =
 	(met! t:`Any) slice_realloc s:#[!]t count:Uint
 	(met! t:`Any) slice_free s:#[!]t
 
-fun Main = I32
-	return 0
+fun Main = Error
+	return OK

@@ -1,8 +1,9 @@
 from n import *
 
-fun Main = I32
+fun Main = Error
 	let j = 0
 	such
 		foreach i over 0 .. 10
 			j += i
-	return j.Trim_u32.Signed - 45
+	if 0 != j.Trim_u32.Signed - 45
+		return INVAL

@@ -1,4 +1,6 @@
 from n import *
 
-fun Main = I32
+fun Main = Error
 	noop -- lacks return
+	-- Well, we're shifting on that, we may just accept that it returns
+	-- the default (zero) value.

@@ -4,7 +4,7 @@ from n import *
 -- exported and non-exported methods and functions, as well as global
 -- constants.
 
-fun Main = I32
+fun Main = Error
 	var m = {}:(Map String Uint)
 	assert m.Count == 0
 	assert not m.["42"]?
@@ -12,4 +12,4 @@ fun Main = I32
 	(m#Store "42")# = 42
 	assert m.Count == 1
 	assert m.["42"] == 42
-	return 0
+	return OK

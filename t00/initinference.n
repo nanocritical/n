@@ -6,7 +6,7 @@ struct a =
 fun foo s:[]a = Void
 	noop
 
-fun Main = I32
+fun Main = Error
 	let s = { {x=0} }
 	foo s
-	return 0
+	return OK

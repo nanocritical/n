@@ -16,10 +16,10 @@ a met Operator_uminus = this
 fun decr x:!a
 	x! -= {x=1}
 
-fun Main = I32
+fun Main = Error
 	let x = {x=42}:a
 	let y = {x=1}:a such
 		y += x
 		decr !y
 	assert y.x == 42
-	return 0
+	return OK

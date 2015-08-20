@@ -3,7 +3,7 @@ from n import *
 fun sum x:I32 y:I32 = I32
 	return x + y
 
-fun Main = I32
+fun Main = Error
 	sum 0 - 1 0 + 2
 	sum 0-1 0+2
 	sum -1 +2

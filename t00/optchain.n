@@ -10,7 +10,7 @@ a met! clear
 a met$ getx = $I32
 	return $self$x
 
-fun Main = I32
+fun Main = Error
 	let xx = {x=1}:a
 	-- FIXME: operator precedence, parentheses shouldn't be needed.
 	assert (xx.y?.x)? == (xx.y)?
@@ -23,11 +23,11 @@ fun Main = I32
 
 	let v = xx.y?.x
 	if v? and v == 1
-		return 1
+		return INVAL
 
 	xx!y = !{x=1}:a
 	let w = xx.y?.x
 	if w? and w == 1
-		return 0
+		return OK
 
-	return 1
+	return INVAL

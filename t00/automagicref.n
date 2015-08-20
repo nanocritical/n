@@ -36,7 +36,7 @@ struct wants_opts =
 fun foo w:wants_opts = I32
 	return w.x
 
-fun Main = I32
+fun Main = Error
 	let h = holder.create 1:I32
 	let hh = (holder ?*I32).create *1:I32
 	let _ = h.x
@@ -113,4 +113,4 @@ fun Main = I32
 		let w = {x=x y=y}
 		assert foo w == 42
 
-	return 0
+	return OK

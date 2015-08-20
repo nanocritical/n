@@ -3,8 +3,10 @@ from n import *
 struct a =
 	_x	:I32
 
-fun Main = I32
+fun Main = Error
 	let b = {}:a
 	-- Weird parsing bug: (CALL b * x) because of tolerance to _ in
 	-- floating point numbers...
-	return b._x
+	if 0 != b._x
+		return INVAL
+	return OK

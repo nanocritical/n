@@ -19,11 +19,11 @@ fun set1 e:!u
 	| _
 		noop
 
-fun Main = I32
+fun Main = Error
 	let g = {}:u.A
 	match g
-	| B -> return 1
-	| C -> return 1
+	| B -> return INVAL
+	| C -> return INVAL
 	| _ -> noop
 
 	let f = {}:u.B
@@ -36,4 +36,5 @@ fun Main = I32
 	| B
 		assert e.B != 0
 
-	return (aux e) - 1
+	if 0 != (aux e) - 1
+		return INVAL

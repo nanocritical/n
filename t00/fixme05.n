@@ -18,5 +18,6 @@ fun Foo = nocopy
 		r!x = 0
 	return r
 
-fun Main = I32
-	return Foo.x
+fun Main = Error
+	if 0 != Foo.x
+		return INVAL

@@ -3,8 +3,8 @@ from n import *
 (fun t:`Any u:`Any) foo x:t y:u
 	noop
 
-fun Main = I32
+fun Main = Error
 	foo 0:Uint 0:Int
 	(foo Uint) 0 0:Int
 	(foo Uint Int) 0 0
-	return 0
+	return OK

@@ -1,6 +1,6 @@
 from n import *
 
-fun Main = I32
+fun Main = Error
 	Prn 'Hello, World!'
 	Prn sep=', ' 'Hello' 'World!'
 	Prn true
@@ -9,4 +9,4 @@ fun Main = I32
 	Prn nil:?*U8
 	Prn {0 1 2 3 4 5 6 7 8 9}:[]Uint
 	Prn (1:Uint, 2:Uint)
-	return 0
+	return OK

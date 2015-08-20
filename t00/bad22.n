@@ -2,5 +2,5 @@ from n import *
 
 example -> assert false
 
-fun Main = I32
-	return 0
+fun Main = Error
+	return OK

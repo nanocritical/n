@@ -10,9 +10,10 @@ fun noerror = I32
 			return 1
 	return x
 
-fun Main = I32
+fun Main = Error
 	let x = 2 + noerror
 	such
 		x = x + 1
 		x = (Max x 0) + 1
-	return x - 4
+	if 0:I32 != x - 4
+		return INVAL

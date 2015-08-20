@@ -16,7 +16,7 @@ fun named_deref ?p:?*U32 = U32
 fun nothing
 	noop
 
-fun Main = I32
+fun Main = Error
 	if true
 		noop
 	else
@@ -104,4 +104,4 @@ fun Main = I32
 		\ false;
 		\ true
 
-	return 0
+	return OK

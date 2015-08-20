@@ -16,7 +16,7 @@ struct wants_values =
 fun foo w:wants_values = I32
 	return w.x
 
-fun Main = I32
+fun Main = Error
 	let x = (Max I32) 0 1:I32
 	let xx = Max 0 1:I32
 
@@ -60,4 +60,6 @@ fun Main = I32
 		let w = {x=x y=y}
 		assert foo w == 42
 
-	return x + xx + p0 + p1 + y + yy + h.x + hhh.x - 7 -- + h1.x + hh.x - 2
+	if 0 != x + xx + p0 + p1 + y + yy + h.x + hhh.x - 7 -- + h1.x + hh.x - 2
+		return INVAL
+	return OK

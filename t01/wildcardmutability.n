@@ -12,7 +12,9 @@ fun wants_mercurial x:#I32 = I32
 fun$ id x:$I32 = $I32
 	return x
 
-fun Main = I32
+fun Main = Error
 	let x = { x=0 }:c
 	let mm = 0 such
-		return (x.get)* + (wants_mercurial x#get) + (wants_mercurial (id #mm))
+		if (x.get)* + (wants_mercurial x#get) + (wants_mercurial (id #mm)) != 0
+			return INVAL
+	return OK

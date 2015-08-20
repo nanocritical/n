@@ -15,5 +15,5 @@ example within logging.Log
 	Log#Debug "test"
 	assert m.Check stderr="Debug [bench.n:15 __Nexample1]: test\n"
 
-fun Main = I32
-	return 0
+fun Main = Error
+	return OK

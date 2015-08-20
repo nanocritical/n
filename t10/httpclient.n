@@ -39,7 +39,7 @@ handler met# On r:#http.Response w:#http.`Request_writer = Error
 
 	r#Done close=true
 
-fun test = Error
+fun Main = Error
 	var poll:ev.Poll
 	except = poll#Init
 
@@ -49,9 +49,4 @@ fun test = Error
 	except = client#Initiate_request "GET" url #{}:handler
 
 	except = ev.Loop #poll
-
-fun Main = I32
-	if test != OK
-		return 1
-	return 0
 -- I SEE MY END!

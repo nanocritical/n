@@ -3,10 +3,11 @@
 )--
 from n import *
 
-fun Main = I32
+fun Main = Error
 	let x = 1:I32
 	let y = 2 + x
-	return 0 + y
+	if 0 != 0 + y
+		return INVAL
 
 fun Main2 = I32
 	return 0

@@ -1,7 +1,9 @@
 from n import *
 
-fun Main = I32
+fun Main = Error
 	let m = 0xff_ff
 	let y = (m | m) ov+ (0 ov<< 1)
 	let x = 2 & (m | y)
-	return x - 2
+	if x-2 != 0:I32
+		return INVAL
+	return OK

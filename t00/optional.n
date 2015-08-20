@@ -18,7 +18,7 @@ fun fool ?x:?I32 = I32
 fun bark x:I32
 	assert x == 42
 
-fun Main = I32
+fun Main = Error
 	let a0 = foo
 	assert a0?
 	assert a0 == 42

@@ -37,14 +37,14 @@ fun rfoo pv:*`d = I32
 fun bar pv:*d = I32
 	return foo pv
 
-fun Main = I32
+fun Main = Error
 	let xd = { x=42 }:d
 	assert rfoo xd == 42
 	let xdc = { }:dc
 	assert rfoo xdc == 43
 	if foo xd != foo xdc
-		return 1
+		return INVAL
 	let pxd = *xd
 	if bar pxd != rfoo pxd
-		return 1
-	return 0
+		return INVAL
+	return OK

@@ -7,6 +7,8 @@ struct t =
 t met get = I32
 	return self.x
 
-fun Main = I32
+fun Main = Error
 	let tt = { x=0 }:t
-	return tt.get
+	if 0 != tt.get
+		return INVAL
+	return OK

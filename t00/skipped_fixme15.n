@@ -3,7 +3,7 @@ from n import *
 struct a t:`Any =
 	x	:t
 
-fun Main = I32
+fun Main = Error
 	var b = {x="42"}:(a Stringbuf)
 	let px = #b#x
 	if px* isa `Show
@@ -14,4 +14,4 @@ fun Main = I32
 		Prn px
 	else
 		assert false
-	return 0
+	return OK

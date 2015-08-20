@@ -27,10 +27,10 @@ fun check_empty_tuple = Error, ret:Stringbuf
 	assert ret.Count == 0
 	ret#Cat "test"
 
-fun Main = I32
+fun Main = Error
 	let y = bar
 	if y.x != bar2.x
-		return 1
+		return INVAL
 
 	let s = check_empty
 	assert s.s == "test"
@@ -54,4 +54,6 @@ fun Main = I32
 	err , t3 = check_empty_tuple
 	assert err == OK and t3 == "test"
 
-	return y.xx
+	if 0 != y.xx
+		return INVAL
+	return OK

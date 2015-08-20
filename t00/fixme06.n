@@ -1,5 +1,5 @@
 from n import *
 
-fun Main = I32
-	let x = 1:I32
-	return 1
+fun Main = Error
+	let x = 1:I32 -- should complain about unused
+	return INVAL

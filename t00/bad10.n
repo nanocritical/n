@@ -3,5 +3,5 @@ from n import *
 fun sum x:I32 y:I32 = I32
 	return x + y
 
-fun Main = I32
+fun Main = Error
 	sum (-1 +2)

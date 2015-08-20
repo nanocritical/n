@@ -4,7 +4,7 @@ union ext =
 	| A -> String
 	| D -> U32
 
-fun Main = I32
+fun Main = Error
 	var zzz:ext
 	-- FIXME(e): this code succeeds, but:
 	assert zzz#D == 0 -- 0. Should abort, Tag has (invalid) value 0.
@@ -15,4 +15,4 @@ fun Main = I32
 	let x = {}:ext.A
 	assert x#D == 0 -- Should abort.
 
-	return 0
+	return OK

@@ -124,9 +124,9 @@ example hashset
 	assert s == scopy
 	assert t != s
 
-fun Main = I32
+fun Main = Error
 	let m = {("42", 42) ("43", 43)}:(Map Stringbuf Uint)
 	Prn m
 	let s = {0 1 2 3 4}:(Set Uint)
 	Prn s
-	return 0
+	return OK

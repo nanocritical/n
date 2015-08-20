@@ -47,7 +47,7 @@ fun no_catch1 = Error
 fun no_catch2 = Error, I32
 	except = INVAL
 
-fun Main = I32
+fun Main = Error
 	assert inferred == Error.UNKNOWN
 	assert inferred != Error.OK
 	assert Foo == 1
@@ -57,7 +57,7 @@ fun Main = I32
 	assert no_catch2.X0 != OK
 	try
 		throw Error.INVAL
-		return 1
+		return INVAL_RANGE
 	catch err
 		Drop err
-		return 0
+		return OK

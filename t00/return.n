@@ -11,5 +11,6 @@ fun Foo x:I32 = n:copy
 fun chained x:I32 = n:copy
 	return Foo x
 
-fun Main = I32
-	return (chained 1).x - 1
+fun Main = Error
+	if 0 != (chained 1).x - 1
+		return INVAL

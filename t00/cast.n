@@ -4,5 +4,6 @@ import n.unsafe
 fun foo x:*U32 = *I32
 	return (unsafe.Cast *U32 *I32) x
 
-fun Main = I32
-	return (foo 1)* - 1
+fun Main = Error
+	if 0 != (foo 1)* - 1
+		return INVAL

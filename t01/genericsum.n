@@ -7,8 +7,10 @@ struct container t:`Numeric =
 container met! add x:t
 	self!x += x
 
-fun Main = I32
+fun Main = Error
 	let v = { x=0 }:(container I32)
 	such
 		v!add 1
-	return v.x - 1
+	if v.x - 1 != 0
+		return INVAL
+	return OK
