@@ -1,4 +1,5 @@
 t00/fixme06.n.o.c: In function ‘_$Nmain’:
-t00/fixme06.n.o.c:4926:16: warning: unused variable ‘x’ [-Wunused-variable]
+t00/fixme06.n.o.c:5059:16: warning: unused variable ‘x’ [-Wunused-variable]
  n$builtins$I32 x = 1LL;
                 ^
+Main failed with: Error: INVAL: Invalid value

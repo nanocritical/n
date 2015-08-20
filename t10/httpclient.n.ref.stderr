@@ -1,17 +1,16 @@
-Debug [ev.n:212 sys_wait]: 
-Debug [ev.n:224 sys_wait]: 1 
-Debug [client.n:304 On]: 6: WAITING_CONN {WRITE} on 6
-Debug [client.n:363 waiting_conn]: 6: WAITING_CONN
-Debug [client.n:376 handling_request]: 6: HANDLING_REQUEST
-Debug [client.n:388 flush]: 6: FLUSH
-Debug [ev.n:212 sys_wait]: 
-Debug [ev.n:224 sys_wait]: 1 
-Debug [client.n:304 On]: 6: WAITING_HEADER {READ WRITE} on 6
-except: lib/n/net/http/client.n:318: On: Error: WOULD_BLOCK: Operation would block
-Debug [ev.n:212 sys_wait]: 
-Debug [ev.n:224 sys_wait]: 1 
-Debug [client.n:304 On]: 6: WAITING_HEADER {READ WRITE} on 6
-Debug [client.n:422 handling_response]: 6: HANDLING_RESPONSE
-Debug [client.n:304 On]: 6: CLOSE {CLOSE} on 6
-Debug [client.n:272 Close]: 6: 
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [client.n:299 On]: 6: WAITING_CONN {WRITE} on 6
+Debug [client.n:358 waiting_conn]: 6: WAITING_CONN
+Debug [client.n:371 handling_request]: 6: HANDLING_REQUEST
+Debug [client.n:383 flush]: 6: FLUSH
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [client.n:299 On]: 6: WAITING_HEADER {READ WRITE} on 6
+except: lib/n/net/http/client.n:313: On: Error: WOULD_BLOCK: Operation would block
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [client.n:299 On]: 6: WAITING_HEADER {READ WRITE} on 6
+Debug [client.n:417 handling_response]: 6: HANDLING_RESPONSE
+Warning [client.n:461 Dtor]: 1 connections to host '' were still active
 Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close

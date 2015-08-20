@@ -1,45 +1,153 @@
-Debug [ev.n:212 sys_wait]: 
-Debug [ev.n:224 sys_wait]: 1 
-Debug [exec.n:235 On]: {WRITE} on 7
-Debug [exec.n:235 On]: {CLOSE} on 7
-Debug [ev.n:212 sys_wait]: 
-Debug [ev.n:224 sys_wait]: 3 
-Debug [exec.n:235 On]: {HUP} on 8
-Debug [exec.n:235 On]: {HUP} on 10
-Debug [exec.n:346 On]: {READ} on 6
-Debug [exec.n:389 On]: remove signalfd from poll
-Debug [exec.n:235 On]: {CLOSE} on 10
-Debug [exec.n:235 On]: {CLOSE} on 8
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:325 On]: {WRITE} on 7
+Debug [exec.n:325 On]: {CLOSE} on 7
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 2 
+Debug [exec.n:325 On]: {HUP} on 8
+Debug [exec.n:441 On]: {READ} on 6
+Debug [exec.n:436 decrement_poll_usecnt]: remove signalfd from poll
+Debug [exec.n:325 On]: {CLOSE} on 8
 Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close
-Debug [ev.n:212 sys_wait]: 
-Debug [ev.n:224 sys_wait]: 1 
-Debug [exec.n:235 On]: {WRITE} on 8
-Debug [exec.n:235 On]: {CLOSE} on 8
-Debug [ev.n:212 sys_wait]: 
-Debug [ev.n:224 sys_wait]: 1 
-Debug [exec.n:235 On]: {READ} on 9
-except: lib/n/exec/exec.n:254: On: Error: WOULD_BLOCK: Operation would block
-Debug [ev.n:212 sys_wait]: 
-Debug [ev.n:224 sys_wait]: 3 
-Debug [exec.n:235 On]: {HUP} on 9
-Debug [exec.n:235 On]: {HUP} on 11
-Debug [exec.n:346 On]: {READ} on 6
-Debug [exec.n:389 On]: remove signalfd from poll
-Debug [exec.n:235 On]: {CLOSE} on 9
-Debug [exec.n:235 On]: {CLOSE} on 11
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:325 On]: {WRITE} on 8
+Debug [exec.n:325 On]: {CLOSE} on 8
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 2 
+Debug [exec.n:325 On]: {READ} on 9
+except: lib/n/exec/exec.n:303: on_pout: Error: WOULD_BLOCK: Operation would block
+except: lib/n/exec/exec.n:328: On: Error: WOULD_BLOCK: Operation would block
+Debug [exec.n:325 On]: {READ} on 11
+Debug [exec.n:325 On]: {CLOSE} on 11
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 2 
+Debug [exec.n:325 On]: {HUP} on 9
+Debug [exec.n:441 On]: {READ} on 6
+Debug [exec.n:436 decrement_poll_usecnt]: remove signalfd from poll
+Debug [exec.n:325 On]: {CLOSE} on 9
 Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close
-Debug [ev.n:212 sys_wait]: 
-Debug [ev.n:224 sys_wait]: 1 
-Debug [exec.n:105 On]: {WRITE} on 8
-Debug [exec.n:105 On]: {CLOSE} on 8
-Debug [ev.n:212 sys_wait]: 
-Debug [ev.n:224 sys_wait]: 2 
-Debug [exec.n:105 On]: {READ HUP} on 9
-Debug [exec.n:235 On]: {HUP} on 11
-Debug [exec.n:105 On]: {CLOSE} on 9
-Debug [ev.n:212 sys_wait]: 
-Debug [ev.n:224 sys_wait]: 1 
-Debug [exec.n:346 On]: {READ} on 6
-Debug [exec.n:389 On]: remove signalfd from poll
-Debug [exec.n:235 On]: {CLOSE} on 11
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:325 On]: {WRITE} on 8
+Debug [exec.n:325 On]: {CLOSE} on 8
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 2 
+Debug [exec.n:325 On]: {READ} on 9
+except: lib/n/exec/exec.n:303: on_pout: Error: WOULD_BLOCK: Operation would block
+except: lib/n/exec/exec.n:328: On: Error: WOULD_BLOCK: Operation would block
+Debug [exec.n:325 On]: {READ} on 11
+Debug [exec.n:325 On]: {CLOSE} on 11
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 2 
+Debug [exec.n:325 On]: {HUP} on 9
+Debug [exec.n:441 On]: {READ} on 6
+Debug [exec.n:436 decrement_poll_usecnt]: remove signalfd from poll
+Debug [exec.n:325 On]: {CLOSE} on 9
+Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:325 On]: {WRITE} on 8
+Debug [exec.n:325 On]: {CLOSE} on 8
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:325 On]: {READ} on 9
+except: lib/n/exec/exec.n:303: on_pout: Error: WOULD_BLOCK: Operation would block
+except: lib/n/exec/exec.n:328: On: Error: WOULD_BLOCK: Operation would block
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 2 
+Debug [exec.n:325 On]: {HUP} on 9
+Debug [exec.n:441 On]: {READ} on 6
+Debug [exec.n:436 decrement_poll_usecnt]: remove signalfd from poll
+Debug [exec.n:325 On]: {CLOSE} on 9
+Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:148 On]: {WRITE} on 8
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:148 On]: {READ HUP} on 9
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:441 On]: {READ} on 6
+Debug [exec.n:436 decrement_poll_usecnt]: remove signalfd from poll
+Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:325 On]: {WRITE} on 8
+Debug [exec.n:325 On]: {CLOSE} on 8
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:325 On]: {HUP} on 9
+Debug [exec.n:325 On]: {CLOSE} on 9
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:441 On]: {READ} on 6
+Debug [exec.n:436 decrement_poll_usecnt]: remove signalfd from poll
+Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:325 On]: {WRITE} on 7
+drop: lib/n/exec/exec.n:282: on_pin: Error: EOF: End of file
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 2 
+Debug [exec.n:325 On]: {HUP} on 7
+Debug [exec.n:441 On]: {READ} on 6
+Debug [exec.n:436 decrement_poll_usecnt]: remove signalfd from poll
+Debug [exec.n:325 On]: {CLOSE} on 7
+Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:325 On]: {WRITE} on 7
+drop: lib/n/exec/exec.n:282: on_pin: Error: EOF: End of file
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 2 
+Debug [exec.n:325 On]: {HUP} on 7
+Debug [exec.n:441 On]: {READ} on 6
+Debug [exec.n:436 decrement_poll_usecnt]: remove signalfd from poll
+Debug [exec.n:325 On]: {CLOSE} on 7
+Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:325 On]: {WRITE} on 7
+drop: lib/n/exec/exec.n:282: on_pin: Error: EOF: End of file
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:325 On]: {READ} on 9
+Debug [exec.n:325 On]: {CLOSE} on 9
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 2 
+Debug [exec.n:325 On]: {HUP} on 7
+Debug [exec.n:441 On]: {READ} on 6
+Debug [exec.n:436 decrement_poll_usecnt]: remove signalfd from poll
+Debug [exec.n:325 On]: {CLOSE} on 7
+Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:325 On]: {WRITE} on 7
+drop: lib/n/exec/exec.n:282: on_pin: Error: EOF: End of file
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 2 
+Debug [exec.n:325 On]: {HUP} on 7
+Debug [exec.n:441 On]: {READ} on 6
+Debug [exec.n:436 decrement_poll_usecnt]: remove signalfd from poll
+Debug [exec.n:325 On]: {CLOSE} on 7
+Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:325 On]: {WRITE} on 8
+Debug [exec.n:325 On]: {CLOSE} on 8
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 1 
+Debug [exec.n:325 On]: {READ} on 9
+except: lib/n/exec/exec.n:303: on_pout: Error: WOULD_BLOCK: Operation would block
+except: lib/n/exec/exec.n:328: On: Error: WOULD_BLOCK: Operation would block
+Debug [ev.n:340 sys_wait]: 
+Debug [ev.n:352 sys_wait]: 3 
+Debug [exec.n:325 On]: {HUP} on 9
+Debug [exec.n:325 On]: {HUP} on 11
+Debug [exec.n:441 On]: {READ} on 6
+Debug [exec.n:436 decrement_poll_usecnt]: remove signalfd from poll
+Debug [exec.n:325 On]: {CLOSE} on 9
+Debug [exec.n:325 On]: {CLOSE} on 11
 Warning [fd.n:69 Dtor]: syscall.Fd '5' was not explicitly closed with syscall.Close
