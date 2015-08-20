@@ -322,3 +322,21 @@ Reader met# slow_read_varint64 = Error, n:U64
 			return OVERFLOW, 0
 
 	self!br!Skip_buffered i
+
+Reader met# Read_value_header = Error, wire_type:Wire_types, field:Uint
+	let except, header = self#Read_varint32
+
+	let wire = header & 0x7
+	field = (header >> 3).Uint
+
+	match wire
+	| 0
+		wire_type = VARINT
+	| 1
+		wire_type = BIT64
+	| 2
+		wire_type = LENGTH
+	| 5
+		wire_type = BIT32
+	| _
+		except = INVAL
