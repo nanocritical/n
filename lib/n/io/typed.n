@@ -6,17 +6,18 @@ extern inline fun write_le_u32 b:#U8 n:U32
 extern inline fun write_le_u64 b:#U8 n:U64
 
 (fun T:`Native_sized_unsigned_integer) Write_little_endian b:[!]U8 n:T = Error
-	if Unlikely <- b.Available < sizeof T
+	let a = b!Available_capacity
+	if Unlikely <- a.Available < sizeof T
 		return OVERFLOW
 
 	if T isa U8
-		write_le_u8 b#Unsafe_data n
+		write_le_u8 a#Unsafe_data n
 	elif T isa U16
-		write_le_u16 b#Unsafe_data n
+		write_le_u16 a#Unsafe_data n
 	elif T isa U32
-		write_le_u32 b#Unsafe_data n
+		write_le_u32 a#Unsafe_data n
 	elif T isa U64
-		write_le_u64 b#Unsafe_data n
+		write_le_u64 a#Unsafe_data n
 	else
 		assert false
 	return OK
