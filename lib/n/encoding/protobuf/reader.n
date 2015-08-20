@@ -103,6 +103,20 @@ Reader met# Read_bytes b:[!]U8 = r:[!]U8, err:Error
 		return b, err2
 	r, never = self!br!Read b1
 
+Reader met# Skip_bytes count:Uint = left:Uint, err:Error
+	let buffered = Min count self.br.Buffered
+	left = count - buffered
+	self!br!Skip_buffered buffered
+	if left == 0
+		return left, OK
+
+	let err = self#refresh left
+	if err != OK
+		return left, err
+
+	self!br!Skip_buffered left
+	return 0, OK
+
 inline Reader met# Read_le32 = Error, n:U32
 	let s = self.br.Peek
 	let err, n = (io.Read_little_endian U32) s
