@@ -22,12 +22,11 @@ enum Wire_types =
 	| ENDGROUP = 4
 	| BIT32 = 5
 
-
 let MAX_MESSAGE_LENGTH = 64*1024*1024:Uint
 let WARN_MAX_MESSAGE_LENGTH = 32*1024*1024:Uint
 
 -- Varint reading routines always read up to MAX_SIZE_VARINT, even if a
 -- varint32 is expected. They will silently discard extra bytes up to
 -- MAX_SIZE_VARINT.
-let _MAX_USED_SIZE_VARINT32 = 5:Uint
+let MAX_USED_SIZE_VARINT32 = 5:Uint
 let MAX_SIZE_VARINT = 10:Uint

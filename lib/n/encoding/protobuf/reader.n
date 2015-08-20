@@ -212,7 +212,7 @@ inline Reader met# Read_varint32 = Error, n:U32
 				break
 			if i == MAX_SIZE_VARINT
 				return OVERFLOW, 0
-			if i == _MAX_USED_SIZE_VARINT32
+			if i == MAX_USED_SIZE_VARINT32
 				ignore = true
 		self!br!Skip_buffered i
 		return OK, n
@@ -237,7 +237,7 @@ Reader met# slow_read_varint32 = Error, n:U32
 			break
 		if i == MAX_SIZE_VARINT
 			return OVERFLOW, 0
-		if i == _MAX_USED_SIZE_VARINT32
+		if i == MAX_USED_SIZE_VARINT32
 			ignore = true
 
 	self!br!Skip_buffered i

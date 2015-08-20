@@ -180,7 +180,7 @@ Writer met# slow_write_le64 n:U64
 	self!bw!Skip_buffered left
 
 inline Writer met# Write_varint32 n:U32
-	if Likely <- _MAX_USED_SIZE_VARINT32 <= self.bw.B.Available
+	if Likely <- MAX_USED_SIZE_VARINT32 <= self.bw.B.Available
 		let s = self!bw!B!Available_elements
 		var i = 0
 		while true
@@ -202,7 +202,7 @@ Writer met# slow_write_varint32 n:U32
 		if i == s.Count
 			-- Will only hit this branch once.
 			self!bw!Skip_buffered i
-			let max_left = _MAX_USED_SIZE_VARINT32 - i
+			let max_left = MAX_USED_SIZE_VARINT32 - i
 			if self#refresh max_left
 				return
 			s = self!bw!B!Available_elements

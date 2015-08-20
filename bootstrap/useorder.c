@@ -410,10 +410,6 @@ static error fwd_define_functions_each(struct module *mod, struct node *node,
     if (is_at_top
         || ((NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD)))
             && node_is_inline(d) && (td & TD_FUNBODY_NEEDS_TYPE))
-        // Inline code is using a non-inline, non-exported function: so it's
-        // opaque inline by induction:
-        || ((NM(node->which) & (NM(DEFFUN) | NM(DEFMETHOD)))
-            && !node_is_export(d) && (td & TD_FUNBODY_NEEDS_TYPE))
         || ((td & TD_TYPEBODY_NEEDS_DYNBODY) && node_is_inline(d))) {
       descend(st, d);
       need(st->uorder, d);

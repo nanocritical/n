@@ -1290,6 +1290,8 @@ static void print_fun_linkage(struct out *out, bool header, enum forward fwd,
     pf(out, "extern ");
   } else if (flags & TOP_IS_EXPORT) {
     // noop
+  } else if (flags & TOP_IS_FORCE_SYMBOL_EXPORT) {
+    // noop
   } else {
     pf(out, UNUSED " static ");
   }
@@ -3429,8 +3431,8 @@ static void print_top(struct out *out, bool header, enum forward fwd,
 
 #if 0
   pf(out, "/*\n");
-    stderr=out;
-    debug_print_topdeps(mod, node);
+    stderr=out->c;
+    debug_print_topdeps_td(mod, node);
   pf(out, "\n*/\n");
 #endif
 

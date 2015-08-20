@@ -115,6 +115,17 @@ static void record_final_td(struct module *mod, struct snapshot *snap) {
     } else {
       td |= (is_ref || is_fun) ? TD_FUN_NEEDS_TYPE : TD_FUN_NEEDS_TYPEBODY;
     }
+
+    // Modifiying t's definition!
+    // If an exported inline function uses a function defined in the same
+    // module, its (C) symbol must be exported if it's not inline.
+    if (!is_imported && node_is_inline(top)) {
+      struct node *d = typ_definition_ignore_any_overlay(t);
+      if (!node_is_inline(d)) {
+        node_toplevel(d)->flags |= TOP_IS_FORCE_SYMBOL_EXPORT;
+      }
+    }
+
     break;
   default:
     break;
