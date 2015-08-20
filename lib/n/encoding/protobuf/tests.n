@@ -120,7 +120,7 @@ example varint_error
 		\ ({0x00}, OK)
 
 		-- No input data.
-		\ ({}, io.UNEXPECTED_EOF)
+		\ ({}, io.EOF)
 
 		-- Input ends unexpectedly.
 		\ ({0xf0 0xab}, io.UNEXPECTED_EOF)

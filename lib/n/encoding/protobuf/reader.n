@@ -38,7 +38,7 @@ Reader met# refresh at_least:Uint = Error within logging.Log
 	if self.pending_err != OK
 		let err = self.pending_err
 		self!pending_err = OK
-		if err == io.EOF
+		if in_progress > 0 and err == io.EOF
 			return io.UNEXPECTED_EOF
 		return err
 
@@ -57,7 +57,7 @@ Reader met# refresh at_least:Uint = Error within logging.Log
 	if just_filled < at_least
 		let err = self.pending_err
 		self!pending_err = OK
-		if err == io.EOF
+		if in_progress > 0 and err == io.EOF
 			return io.UNEXPECTED_EOF
 		return err
 
