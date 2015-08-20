@@ -1,22 +1,48 @@
 -- Reads are either complete or, on error, do not happen at all.
 inline struct Reader =
 	br		:bufio.Bytes_reader
-	r		:#bufio.`Fillable_reader
+	br_caught_up	:Uint
+	r		:@#bufio.`Fillable_reader
 	pending_err	:Error
 	Total_count	:Uint
 	block_size	:Uint
+	Copy_to		:?@#io.`Writer
 
-Reader fun Mk r:#bufio.`Fillable_reader ?block_size:?Uint = ret:this
+Reader fun Mk r:@#bufio.`Fillable_reader ?block_size:?Uint ?copy_to:?@#io.`Writer = ret:this
 	ret#r = r
 	-- Make sure we initialize 'br' with whatever is already buffered in 'r'.
 	ret#br = bufio.Bytes_reader.Mk ret.r.Peek
 	ret#block_size = block_size else Uint.MAX
+	ret#Copy_to = copy_to
 
 Reader met Count_read = Uint
-	return self.r.Count_read + self.br.Count_read
+	return self.r.Count_read + self.br.Count_read - self.br_caught_up
 
 Reader met Pending_read_error = Error
 	return self.pending_err
+
+-- Advance underlying reader as far as buffered reads have gone.
+-- Catchup_reader can be called at anytime between reads.
+-- If Copy_to is set, ensure all bytes consumed so far have been copied.
+Reader met! Catchup_reader = Error
+	let in_progress = self.br.Buffered
+	var to_commit = self.br.Bytes.Count - self.br_caught_up - in_progress
+
+	var copy_err
+	if self.Copy_to?
+		var left
+		left, copy_err = io.Write_full self.Copy_to self.r.Peek.[.. to_commit]
+		if left.Count > 0
+			never = copy_err
+			to_commit -= left.Count
+
+	-- Commit on the underlying reader 'r' everything that was read in
+	-- 'br', except the last bytes that are used by the read in progress.
+	-- If Copy_to is set, we may only be able to commit fewer bytes, at
+	-- least for now.
+	self#r#Skip_buffered to_commit
+	self!br_caught_up += to_commit
+	return copy_err
 
 -- If we can complete only a partial read on the underlying reader `r`, we save
 -- the error and continue decoding with the partial read data. We have no way
@@ -31,9 +57,7 @@ Reader met# refresh at_least:Uint = Error within logging.Log
 	assert at_least > 0
 
 	let in_progress = self.br.Buffered
-	-- Commit on the underlying reader 'r' everything that was read in
-	-- 'br', except the last bytes that are used by the read in progress.
-	self#r#Skip_buffered self.br.Bytes.Count-in_progress
+	except = self!Catchup_reader
 
 	if self.pending_err != OK
 		let err = self.pending_err
@@ -62,11 +86,12 @@ Reader met# refresh at_least:Uint = Error within logging.Log
 		return err
 
 	self#br = bufio.Bytes_reader.Mk self.r.Peek
+	self!br_caught_up = 0
 	-- in_progress bytes are still in r (and br)
 	self#Total_count += self.br.Buffered - in_progress
 
--- Read data to fill all the Available space in 'b', or not all on partial read,
--- i.e. r.Available == 0 or r.Available == b.Available
+-- Read data to fill all the Available space in 'b', or not at all on partial
+-- read, i.e. r.Available == 0 or r.Available == b.Available
 Reader met# Read_bytes b:[!]U8 = r:[!]U8, err:Error
 	let b1, err1 = self!br!Read b
 	if b1.Available == 0
