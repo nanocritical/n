@@ -370,6 +370,7 @@ static struct node *insert_temporary(struct module *mod, uint32_t flags,
   node_subs_append(defn, expr);
 
   struct node *repl = mk_node(mod, let_block, IDENT);
+  repl->codeloc = expr->codeloc;
   repl->as.IDENT.name = name->as.IDENT.name;
   node_subs_remove(let_block, repl);
   return repl;
