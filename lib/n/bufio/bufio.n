@@ -35,6 +35,8 @@ intf `Reader =
 	-- Advance the buffer past count bytes.
 	met! Skip_buffered count:Uint
 
+	met Count_read = Uint
+
 -- A `Fillable_reader not only provides a Fill method, but declares that calling this
 -- method is mandatory to read any data.
 intf `Fillable_reader =
@@ -104,6 +106,7 @@ inline struct Reader =
 	pending		:String
 	copier		:io.Copier
 	saw_eof		:Bool
+	count_read	:Uint
 
 Reader fun Mk r:#io.`Reader = ret:this
 	ret#r = r
@@ -111,8 +114,17 @@ Reader fun Mk r:#io.`Reader = ret:this
 	ret#fillbufr = (Dyncast `Fillable_reader) ret#R
 	if not ret#bufr?
 		ret!copier#Reset #ret#buf ret#R
+	ret#count_read = 0
+
+Reader met Count_read = Uint
+	if self.bufr?
+		return self.bufr.Count_read
+	return self.count_read
 
 Reader met# R = ?#io.`Reader
+	let concrete_bufr = (Dyncast this) self.r
+	if concrete_bufr?
+		return concrete_bufr#R
 	return self#r
 
 Reader met# Read b:[!]U8 = [!]U8, Error
@@ -127,6 +139,7 @@ Reader met# Read b:[!]U8 = [!]U8, Error
 	let before = b.Count
 	let result = b!Append self.pending.Bytes
 	let read = result.Count - before
+	self!count_read += read
 	self!pending = self.pending.[read ..]
 	return result, OK
 
@@ -166,6 +179,7 @@ Reader met! Skip_buffered count:Uint
 		self!bufr!Skip_buffered count
 		return
 	assert count <= self.pending.Count
+	self!count_read += count
 	self!pending = self.pending.[count ..]
 
 -- Convenience method.
@@ -521,6 +535,9 @@ Limited_reader fun Mk r:#Reader limit:Uint = ret:this
 
 Limited_reader met Buffered = Uint
 	return Min self.Left self.R.Buffered
+
+Limited_reader met Count_read = Uint
+	return self.R.Count_read
 
 Limited_reader met Peek ?max:?Uint = []U8
 	return self.R.Peek max=(Min self.Left (max else Uint.MAX))

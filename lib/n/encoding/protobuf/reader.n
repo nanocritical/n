@@ -12,6 +12,9 @@ Reader fun Mk r:#bufio.`Fillable_reader ?block_size:?Uint = ret:this
 	ret#br = bufio.Bytes_reader.Mk ret.r.Peek
 	ret#block_size = block_size else Uint.MAX
 
+Reader met Count_read = Uint
+	return self.r.Count_read + self.br.Count_read
+
 Reader met Pending_read_error = Error
 	return self.pending_err
 
