@@ -93,28 +93,18 @@ Reader met# refresh at_least:Uint = Error within logging.Log
 -- Read data to fill all the Available space in 'b', or not at all on partial
 -- read, i.e. r.Available == 0 or r.Available == b.Available
 Reader met# Read_bytes b:[!]U8 = r:[!]U8, err:Error
-	let b1, err1 = self!br!Read b
-	if b1.Available == 0
-		return b1, err1
-
-	let err2 = self#refresh b1.Available
-	if err2 != OK
-		-- Partial read, return b untouched
-		return b, err2
-	r, never = self!br!Read b1
+	let err = self#refresh b.Available - (Min b.Available self.br.Buffered)
+	if err != OK
+		return b, err
+	r, never = self!br!Read b
+	assert r.Available == 0
 
 Reader met# Skip_bytes count:Uint = left:Uint, err:Error
-	let buffered = Min count self.br.Buffered
-	left = count - buffered
-	self!br!Skip_buffered buffered
-	if left == 0
-		return left, OK
-
-	let err = self#refresh left
+	let err = self#refresh count - (Min count self.br.Buffered)
 	if err != OK
-		return left, err
+		return count, err
 
-	self!br!Skip_buffered left
+	self!br!Skip_buffered count
 	return 0, OK
 
 inline Reader met# Read_le32 = Error, n:U32
