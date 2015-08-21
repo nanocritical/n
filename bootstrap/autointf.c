@@ -206,7 +206,7 @@ static void gen_on_field(struct module *mod, struct node *m,
     }
 
     if (node_ident(m) == ID_MOVE) {
-      if (typ_is_reference(ftyp)) {
+      if (typ_isa(ftyp, TBI_TRIVIAL_MOVE)) {
         G0(assign, body, BIN,
            assign->as.BIN.operator = TASSIGN;
            G(rf, BIN,

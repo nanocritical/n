@@ -2336,7 +2336,8 @@ static void print_deffun(struct out *out, bool header, enum forward fwd,
       print_typ(out, mod, par->typ);
       pf(out, "##x\n");
     }
-    if (node->which == DEFMETHOD && node_ident(node) == ID_DTOR) {
+    if (node->which == DEFMETHOD
+        && (node_ident(node) == ID_DTOR || node_ident(node) == ID_MOVE)) {
       pf(out, "NLANG_CLEANUP_ZERO(self);\n");
     }
 
