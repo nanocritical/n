@@ -527,6 +527,7 @@ inline struct Limited_reader =
 	-- left_fill <= Left
 	-- We do not fill past the limit.
 	left_fill	:Uint
+	count_read	:Uint
 
 Limited_reader fun Mk r:#Reader limit:Uint = ret:this
 	ret#R = r
@@ -537,13 +538,14 @@ Limited_reader met Buffered = Uint
 	return Min self.Left self.R.Buffered
 
 Limited_reader met Count_read = Uint
-	return self.R.Count_read
+	return self.count_read
 
 Limited_reader met Peek ?max:?Uint = []U8
 	return self.R.Peek max=(Min self.Left (max else Uint.MAX))
 
 Limited_reader met! Skip_buffered count:Uint
 	assert count <= self.Left
+	self!count_read += count
 	return self!R!Skip_buffered count
 
 Limited_reader met# Fill ?max:?Uint = just_filled:Uint, Error
@@ -570,7 +572,9 @@ Limited_reader met# Read b:[!]U8 = rb:[!]U8, rerr:Error
 	-- Return a slice with the original cap.
 	rb = b.[.. rb.Count]
 
-	self!Left -= rb.Count - b.Count
+	let count = rb.Count - b.Count
+	self!count_read += count
+	self!Left -= count
 	if self.Left == 0
 		rerr = io.EOF
 
