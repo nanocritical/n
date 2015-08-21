@@ -71,6 +71,7 @@ request_writer met# write_header b:[]U8
 
 	if self.proto_version >= 11
 		self#chunking = true
+		(self!header#Add "Transfer-Encoding")# = "chunked"
 
 	if ((self.header.Get "Connection") else "") == "close"
 		self!close_after_reply = true
