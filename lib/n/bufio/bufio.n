@@ -543,6 +543,7 @@ Limited_reader met Peek ?max:?Uint = []U8
 	return self.R.Peek max=(Min self.Left (max else Uint.MAX))
 
 Limited_reader met! Skip_buffered count:Uint
+	assert count <= self.Left
 	return self!R!Skip_buffered count
 
 Limited_reader met# Fill ?max:?Uint = just_filled:Uint, Error
