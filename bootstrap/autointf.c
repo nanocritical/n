@@ -190,11 +190,15 @@ static void gen_on_field(struct module *mod, struct node *m,
   if (node_ident(m) == ID_COPY_CTOR || node_ident(m) == ID_MOVE) {
     const struct node *arg_other = next_const(arg_self);
 
-    if (typ_is_optional(ftyp) && node_ident(m) != ID_MOVE) {
+    if (typ_is_optional(ftyp)) {
       G0(xif, body, IF,
          G(checkother, UN,
            checkother->as.BIN.operator = TPOSTQMARK;
-           like_arg(mod, checkother, arg_other, f));
+           if (node_ident(m) == ID_MOVE) {
+             like_arg(mod, checkother, arg_self, f);
+           } else {
+             like_arg(mod, checkother, arg_other, f);
+           });
          G(block, BLOCK);
          G(noblock, BLOCK,
            G(noop, NOOP)));
