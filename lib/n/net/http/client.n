@@ -190,6 +190,9 @@ client_conn_handler met# ensure_connected method:String u:*url.Url h:#`Client_ha
 		assert self.state == HANDLING_REQUEST
 		assert self.request.url.Scheme == u.Scheme
 		assert self.request.url.Host == u.Host
+		except = self.coh.client.poll!Register self.conn.Fd:ev.Source.FD {READ WRITE RDHUP} self
+		self#complete_connection
+		never = self.coh.client.poll!Schedule_manually self
 		return OK
 
 	let connect_err = self#initiate_connection
@@ -289,8 +292,8 @@ client_conn_handler met# Close = err:Error
 client_conn_handler met can_progress e:ev.Event = Bool
 	match self.state
 	| WAITING_CONN -> return WRITE in e.Got
-	| HANDLING_REQUEST -> return WRITE in e.Got
-	| FLUSH -> return WRITE in e.Got
+	| HANDLING_REQUEST -> return WRITE in e.Got or MANUAL in e.Got
+	| FLUSH -> return WRITE in e.Got or MANUAL in e.Got
 	| WAITING_HEADER -> return READ in e.Got
 	| HANDLING_RESPONSE -> return READ in e.Got
 	| RECYCLE -> return true
@@ -372,6 +375,10 @@ client_conn_handler met# handling_request = Error
 	self.debug self.state
 
 	let handler_err = self.handler#On #self#response #self#request
+
+	if handler_err == io.WOULD_BLOCK
+		return handler_err
+
 	if handler_err != OK
 		Log#Error "will close connection because of handler error: %s" handler_err
 		self#state = CLOSE
@@ -468,6 +475,8 @@ client_one_host met# Dtor
 client_one_host met! i_am_recycled connh:#client_conn_handler
 	let removed = self!actives#Remove {Ref=connh}
 	assert removed
+	let added = self!idles#Add {Ref=connh}
+	assert added
 
 client_one_host met! i_am_closed connh:#client_conn_handler
 	let removed = self!actives#Remove {Ref=connh}
