@@ -522,14 +522,14 @@ example auto_writer_unbuffered
 -- Like io.Limited_reader, but buffered.
 inline struct Limited_reader =
 	isa `Fillable_reader
-	R		:#Reader
+	R		:#`Reader
 	Left		:Uint
 	-- left_fill <= Left
 	-- We do not fill past the limit.
 	left_fill	:Uint
 	count_read	:Uint
 
-Limited_reader fun Mk r:#Reader limit:Uint = ret:this
+Limited_reader fun Mk r:#`Reader limit:Uint = ret:this
 	ret#R = r
 	ret#Left = limit
 	ret#left_fill = limit - (Min limit r.Buffered)
@@ -546,15 +546,19 @@ Limited_reader met Peek ?max:?Uint = []U8
 Limited_reader met! Skip_buffered count:Uint
 	assert count <= self.Left
 	self!count_read += count
+	self!Left -= count
 	return self!R!Skip_buffered count
 
 Limited_reader met# Fill ?max:?Uint = just_filled:Uint, Error
+	let fillable = (Dyncast `Fillable_reader) self.R
+	if not fillable?
+		return 0, io.EOF
+
 	if self.left_fill == 0
 		return 0, io.EOF
 
-	let buffered_before = self.R.Buffered
-	let just_filled, err = self#R#Fill max=(Min self.left_fill (max else Uint.MAX))
-	self!left_fill -= self.R.Buffered - buffered_before
+	let just_filled, err = fillable#Fill max=(Min self.left_fill (max else Uint.MAX))
+	self!left_fill -= just_filled
 
 	if self.left_fill == 0
 		return just_filled, io.EOF
