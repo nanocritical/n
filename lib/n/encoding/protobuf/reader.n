@@ -1,5 +1,7 @@
 -- Reads are either complete or, on error, do not happen at all.
 inline struct Reader =
+	limits		:(Buf Uint)
+	limited_br	:bufio.Limited_reader
 	br		:bufio.Bytes_reader
 	br_caught_up	:Uint
 	r		:@#bufio.`Fillable_reader
@@ -12,8 +14,24 @@ Reader fun Mk r:@#bufio.`Fillable_reader ?block_size:?Uint ?copy_to:?@#io.`Write
 	ret#r = r
 	-- Make sure we initialize 'br' with whatever is already buffered in 'r'.
 	ret#br = bufio.Bytes_reader.Mk ret.r.Peek
+	ret#Push_limit Uint.MAX
 	ret#block_size = block_size else Uint.MAX
 	ret#Copy_to = copy_to
+
+-- Used to read sub-messages. Limits are meant to be hit, Pop_limit checks
+-- that it was.
+Reader met# Push_limit limit:Uint
+	assert self.limits.Count == 0 or limit < self.limits.Last
+	self!limits#Push! = limit
+	self#limited_br = bufio.Limited_reader.Mk #self#br limit
+
+Reader met# Pop_limit
+	assert self.limits.Count > 0
+	assert self.limited_br.Left == 0
+	let limit = self.limits.Last
+	self!limits#Pop
+	self!limits!Last! -= limit
+	self#limited_br = bufio.Limited_reader.Mk #self#br self.limits.Last
 
 Reader met Count_read = Uint
 	return self.r.Count_read + self.br.Count_read - self.br_caught_up
@@ -40,7 +58,7 @@ Reader met! Catchup_reader = Error
 	-- 'br', except the last bytes that are used by the read in progress.
 	-- If Copy_to is set, we may only be able to commit fewer bytes, at
 	-- least for now.
-	self#r#Skip_buffered to_commit
+	self.r!Skip_buffered to_commit
 	self!br_caught_up += to_commit
 	return copy_err
 
@@ -56,7 +74,14 @@ Reader met! Catchup_reader = Error
 Reader met# refresh at_least:Uint = Error within logging.Log
 	assert at_least > 0
 
-	let in_progress = self.br.Buffered
+	let limit_left = self.limited_br.Left
+	let in_progress = self.limited_br.Buffered
+
+	if limit_left == 0
+		if in_progress > 0
+			return io.UNEXPECTED_EOF
+		return io.EOF
+
 	except = self!Catchup_reader
 
 	if self.pending_err != OK
@@ -75,7 +100,7 @@ Reader met# refresh at_least:Uint = Error within logging.Log
 			\ WARN_MAX_MESSAGE_LENGTH MAX_MESSAGE_LENGTH
 
 	var just_filled
-	just_filled, self!pending_err = self#r#Fill
+	just_filled, self!pending_err = self.r#Fill
 		\ max=(Min (Max at_least self.block_size) MAX_MESSAGE_LENGTH-self.Total_count)
 
 	if just_filled < at_least
@@ -87,36 +112,40 @@ Reader met# refresh at_least:Uint = Error within logging.Log
 
 	self#br = bufio.Bytes_reader.Mk self.r.Peek
 	self!br_caught_up = 0
-	-- in_progress bytes are still in r (and br)
-	self#Total_count += self.br.Buffered - in_progress
+	self#limited_br = bufio.Limited_reader.Mk #self#br limit_left
+
+	self#Total_count += just_filled
 
 -- Read data to fill all the Available space in 'b', or not at all on partial
 -- read, i.e. r.Available == 0 or r.Available == b.Available
 Reader met# Read_bytes b:[!]U8 = r:[!]U8, err:Error
-	let err = self#refresh b.Available - (Min b.Available self.br.Buffered)
-	if err != OK
-		return b, err
-	r, never = self!br!Read b
+	if self.limited_br.Buffered < b.Available
+		let err = self#refresh b.Available - self.limited_br.Buffered
+		if err != OK
+			return b, err
+	r, never = self!limited_br#Read b
 	assert r.Available == 0
 
-Reader met# Skip_bytes count:Uint = left:Uint, err:Error
-	let err = self#refresh count - (Min count self.br.Buffered)
-	if err != OK
-		return count, err
+-- Either skips 'count' or skips nothing on error.
+Reader met# Skip_bytes count:Uint = err:Error
+	if self.limited_br.Buffered < count
+		let err = self#refresh count - self.limited_br.Buffered
+		if err != OK
+			return err
 
-	self!br!Skip_buffered count
-	return 0, OK
+	self!limited_br!Skip_buffered count
+	return OK
 
 inline Reader met# Read_le32 = Error, n:U32
-	let s = self.br.Peek
+	let s = self.limited_br.Peek
 	let err, n = (io.Read_little_endian U32) s
 	if err == OK
-		self!br!Skip_buffered (sizeof n)
+		self!limited_br!Skip_buffered (sizeof n)
 		return OK, n
 	return self#slow_read_le32
 
 Reader met# slow_read_le32 = Error, n:U32
-	var s = self.br.Peek
+	var s = self.limited_br.Peek
 	if s.Count == 3
 		n |= s.[0].U32
 		n |= s.[1].U32 ov<< 8
@@ -134,7 +163,7 @@ Reader met# slow_read_le32 = Error, n:U32
 	let left = (sizeof n) - s.Count
 	except = self#refresh left
 
-	s = self.br.Peek
+	s = self.limited_br.Peek
 	if left == 1
 		n |= s.[0].U32 ov<< 24
 	elif left == 2
@@ -149,20 +178,20 @@ Reader met# slow_read_le32 = Error, n:U32
 	else
 		assert false
 
-	self!br!Skip_buffered left
+	self!limited_br!Skip_buffered left
 	return OK, n
 
 
 inline Reader met# Read_le64 = Error, n:U64
-	let s = self.br.Peek
+	let s = self.limited_br.Peek
 	let err, n = (io.Read_little_endian U64) s
 	if err == OK
-		self!br!Skip_buffered (sizeof n)
+		self!limited_br!Skip_buffered (sizeof n)
 		return OK, n
 	return self#slow_read_le64
 
 Reader met# slow_read_le64 = Error, n:U64
-	var s = self.br.Peek
+	var s = self.limited_br.Peek
 
 	var count
 	var part0, shift1
@@ -196,16 +225,16 @@ Reader met# slow_read_le64 = Error, n:U64
 	let left = (sizeof n) - count
 	except = self#refresh left
 
-	s = self.br.Peek
+	s = self.limited_br.Peek
 	var part2
 	var shift3 = shift2
 	if left >= 4
 		never, part2 = (io.Read_little_endian U32) s
-		self!br!Skip_buffered 4
+		self!limited_br!Skip_buffered 4
 		left -= 4
 		shift3 += 32
 
-	s = self.br.Peek
+	s = self.limited_br.Peek
 	var part3
 	if left == 0
 		noop
@@ -225,12 +254,12 @@ Reader met# slow_read_le64 = Error, n:U64
 
 	n = (part3.U64 ov<< shift3) | (part2.U64 ov<< shift2) | (part1 ov<< shift1) | part0.U64
 
-	self!br!Skip_buffered left
+	self!limited_br!Skip_buffered left
 	return OK, n
 
 inline Reader met# Read_varint32 = Error, n:U32
-	if Likely <- MAX_SIZE_VARINT <= self.br.Buffered
-		var s = self.br.Peek
+	if Likely <- MAX_SIZE_VARINT <= self.limited_br.Buffered
+		var s = self.limited_br.Peek
 		var i = 0
 		var shift = 0
 		var ignore = false
@@ -246,19 +275,19 @@ inline Reader met# Read_varint32 = Error, n:U32
 				return OVERFLOW, 0
 			if i == MAX_USED_SIZE_VARINT32
 				ignore = true
-		self!br!Skip_buffered i
+		self!limited_br!Skip_buffered i
 		return OK, n
 	return self#slow_read_varint32
 
 Reader met# slow_read_varint32 = Error, n:U32
-	var s = self.br.Peek
+	var s = self.limited_br.Peek
 	var i = 0
 	var shift = 0
 	var ignore = false
 	while true
 		if i == s.Count
 			except = self#refresh 1
-			s = self.br.Peek
+			s = self.limited_br.Peek
 
 		let b = s.[i]
 		if Likely <- not ignore
@@ -272,11 +301,11 @@ Reader met# slow_read_varint32 = Error, n:U32
 		if i == MAX_USED_SIZE_VARINT32
 			ignore = true
 
-	self!br!Skip_buffered i
+	self!limited_br!Skip_buffered i
 
 inline Reader met# Read_varint64 = Error, n:U64
-	if Likely <- MAX_SIZE_VARINT <= self.br.Buffered
-		var s = self.br.Peek
+	if Likely <- MAX_SIZE_VARINT <= self.limited_br.Buffered
+		var s = self.limited_br.Peek
 		var i = 0
 		var shift = 0
 		while true
@@ -288,18 +317,18 @@ inline Reader met# Read_varint64 = Error, n:U64
 				break
 			if i == MAX_SIZE_VARINT
 				return OVERFLOW, 0
-		self!br!Skip_buffered i
+		self!limited_br!Skip_buffered i
 		return OK, n
 	return self#slow_read_varint64
 
 Reader met# slow_read_varint64 = Error, n:U64
-	var s = self.br.Peek
+	var s = self.limited_br.Peek
 	var i = 0
 	var shift = 0
 	while true
 		if i == s.Count
 			except = self#refresh 1
-			s = self.br.Peek
+			s = self.limited_br.Peek
 
 		let b = s.[i]
 		n |= (b & 0x7f).U64 ov<< shift
@@ -311,7 +340,7 @@ Reader met# slow_read_varint64 = Error, n:U64
 		if i == MAX_SIZE_VARINT
 			return OVERFLOW, 0
 
-	self!br!Skip_buffered i
+	self!limited_br!Skip_buffered i
 
 Reader met# Read_value_header = Error, wire_type:Wire_types, field:Uint
 	let except, header = self#Read_varint32
