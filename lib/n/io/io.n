@@ -93,7 +93,7 @@ fun Fast_forward r:#`Reader count:Uint = count_skipped:Uint, Error
 			return 0, err
 		if reached != count
 			return reached, EOF
-		return 0, OK
+		return reached, OK
 
 	var discarder:Copier
 	discarder#Reset nil r
