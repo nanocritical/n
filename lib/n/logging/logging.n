@@ -19,7 +19,7 @@ intf `Log =
 	met# Debug format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
 
 fun Install_sys within Log
-	let s = Alloc stderr
+	let s = Alloc formatter
 	let header = Alloc (Envheader #`Log)
 	header#Env = s
 	Globalenv_install Log header
@@ -36,60 +36,69 @@ fun write_header w:#io.`Writer header:String c:?*Codeloc
 	fmt.F w "%s [%s:%s %s]: " header c.File.[last_slash.Unsigned ..] c.Line c.Function
 
 
-struct stderr =
+fun New w:?@#io.`Writer = @#`Log
+	let r = Alloc formatter
+	r!w = w
+	return r
+
+
+struct formatter =
 	isa io.`Writer `Log
 	buf	:Stringbuf
+	w	:?@#io.`Writer
 
-stderr met# Write b:[]U8 = []U8, Error within stdio.Stdio
+formatter met# Write b:[]U8 = []U8, Error within stdio.Stdio
+	if self.w?
+		return self.w.Write b
 	return Stdio.Err.Write b
 
-stderr met# flush
+formatter met# flush
 	_, drop = io.Write_full self self.buf.Bytes
 	self#buf#Clear
 
-stderr met# Emergency format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+formatter met# Emergency format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
 	write_header #self#buf "Emergency" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
 
-stderr met# Alert format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+formatter met# Alert format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
 	write_header #self#buf "Alert" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
 
-stderr met# Critical format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+formatter met# Critical format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
 	write_header #self#buf "Critical" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
 
-stderr met# Error format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+formatter met# Error format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
 	write_header #self#buf "Error" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
 
-stderr met# Warning format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+formatter met# Warning format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
 	write_header #self#buf "Warning" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
 
-stderr met# Notice format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+formatter met# Notice format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
 	write_header #self#buf "Notice" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
 
-stderr met# Info format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+formatter met# Info format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
 	write_header #self#buf "Info" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
 	self#flush
 
-stderr met# Debug format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
+formatter met# Debug format:String ?_Ncodeloc:?*Codeloc ...v:(Vararg ?*`Show)
 	write_header #self#buf "Debug" _Ncodeloc
 	fmt.F #self#buf format ...v
 	fmt.F #self#buf "\n"
