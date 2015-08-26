@@ -1284,6 +1284,15 @@ fun Waitpid for_pid:Int options:I32 = Error, pid:Int, status:I32
 		return OK, ret.Int, st
 	return convert_error errno, 0, 0
 
+extern fun getpid = pid_t
+extern fun getppid = pid_t
+
+fun Getpid = pid:Int
+	return getpid.Int
+
+fun Getppid = ppid:Int
+	return getppid.Int
+
 
 inline struct Tm =
 	Sec	:I32

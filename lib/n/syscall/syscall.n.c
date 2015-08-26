@@ -848,6 +848,14 @@ static SY_int SY(waitpid)(SY_int pid, SY_int *status, SY_int options) {
   return ret;
 }
 
+static SY_int SY(getpid)(void) {
+  return getpid();
+}
+
+static SY_int SY(getppid)(void) {
+  return getppid();
+}
+
 static void tm_sys(struct tm *sys, const struct SY(Tm) *tm) {
   sys->tm_sec = tm->Sec;
   sys->tm_min = tm->Min;
