@@ -3,12 +3,13 @@
 
 from n import *
 import n.fmt
+import n.io
 
 fun Mk name:String = r:Path
 	r#Init name
 
 inline struct Path =
-	isa `String
+	isa `String io.`Writer
 	buf	:Stringbuf
 
 Path fun From_slice name:[]U8 = r:this
@@ -102,6 +103,9 @@ Path met# Reserve atleast:Uint
 
 Path met# Cat ?sep:?*String ...v:(Vararg *`String)
 	self#buf#Cat sep=sep ...v
+
+Path met# Write b:[]U8 = r:[]U8, Error
+	return self#buf#Write b
 
 Path met# Clean
 	if self.buf == ""
