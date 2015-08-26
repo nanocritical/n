@@ -43,7 +43,14 @@ Reader met Pending_read_error = Error
 -- Catchup_reader can be called at anytime between reads.
 -- If Copy_to is set, ensure all bytes consumed so far have been copied.
 Reader met! Catchup_reader = Error
-	let in_progress = self.br.Buffered
+	return self!catchup_reader false
+
+Reader met! catchup_reader for_refresh:Bool = Error
+	-- We use limited_br below because a refresh (or read) cannot span a limit,
+	-- including reading Wire_types.LENGTH values: the header is read
+	-- first, then the content of the message is read, and this logic is
+	-- handled by a layer above us.
+	let in_progress = if for_refresh -> self.limited_br.Buffered;; else -> 0
 	var to_commit = self.br.Bytes.Count - self.br_caught_up - in_progress
 
 	var copy_err
@@ -75,6 +82,8 @@ Reader met# refresh at_least:Uint = Error within logging.Log
 	assert at_least > 0
 
 	let limit_left = self.limited_br.Left
+	-- Because we're refreshing, any buffered byte is being consumed but we
+	-- need more. We call them "in progress".
 	let in_progress = self.limited_br.Buffered
 
 	if limit_left == 0
@@ -82,7 +91,7 @@ Reader met# refresh at_least:Uint = Error within logging.Log
 			return io.UNEXPECTED_EOF
 		return io.EOF
 
-	except = self!Catchup_reader
+	except = self!catchup_reader true
 
 	if self.pending_err != OK
 		let err = self.pending_err
