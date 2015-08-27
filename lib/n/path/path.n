@@ -8,6 +8,9 @@ import n.io
 fun Mk name:String = r:Path
 	r#Init name
 
+fun Join ...v:(Vararg *`Show) = r:Path
+	r#Join ...v
+
 inline struct Path =
 	isa `String io.`Writer
 	buf	:Stringbuf
@@ -197,6 +200,7 @@ Path met# Join ...v:(Vararg *`Show)
 	self#Clean
 	return
 
+example -> let p = Join "a" "b" "c"; assert p == "a/b/c"
 example -> let p = "":Path such p#Join "a" "b" "c"; assert p == "a/b/c"
 example -> let p = "/":Path such p#Join "a" "b" "c"; assert p == "/a/b/c"
 example -> let p = "":Path such p#Join "a" "b" "/c"; assert p == "a/b/c"
