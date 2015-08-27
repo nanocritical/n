@@ -46,9 +46,6 @@ expect_continue_reader met# Read b:[!]U8 = [!]U8, Error
 
 	return self#r#Read b
 
-expect_continue_reader met Count_read = Uint
-	return self.r.Count_read
-
 expect_continue_reader met Buffered = Uint
 	return self.r.Buffered
 

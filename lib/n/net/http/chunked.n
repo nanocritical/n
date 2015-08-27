@@ -10,10 +10,6 @@ struct chunked_reader =
 	left_chunk_crlf	:Bool
 	copy		:Stringbuf
 	copy_skipped	:Uint
-	count_read	:Uint
-
-chunked_reader met Count_read = Uint
-	return self.count_read
 
 chunked_reader met# begin_chunk = Error, fill_more:Bool
 	assert self.left_chunk == 0
@@ -69,8 +65,6 @@ chunked_reader met! Skip_buffered count:Uint
 	assert count <= self.Buffered
 	-- Avoid mercurial effect: do not touch the buffer.
 	self!copy_skipped += count
-	self!count_read += count
-	return
 
 chunked_reader met# Fill ?max:?Uint = just_filled:Uint, Error
 	var max = max else Uint.MAX

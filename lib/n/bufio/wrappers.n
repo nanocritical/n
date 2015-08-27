@@ -13,9 +13,6 @@ Bytes_reader met Bytes = []U8
 Bytes_reader met Buffered = Uint
 	return self.cur.Count
 
-Bytes_reader met Count_read = Uint
-	return self.b.Count - self.cur.Count
-
 Bytes_reader met! Read_bytes ?max:?Uint = []U8
 	let r = self.cur.[.. (Min self.cur.Count (max else Uint.MAX))]
 	self!cur = self.cur.[r.Count ..]
@@ -142,11 +139,6 @@ struct Stringbuf_reader =
 Stringbuf_reader fun Mk s:*Stringbuf ?beg:?Uint = ret:this
 	ret#S = s
 	ret#Pos = beg else 0
-
--- Because it is allowed to modify Pos arbitrarily, it's a little challenging
--- to understand what Count_read means in this case.
-Stringbuf_reader met Count_read = Uint
-	return Min self.S.Count self.Pos
 
 Stringbuf_reader met# Read b:[!]U8 = [!]U8, err:Error
 	if self.Pos >= self.S.Count
