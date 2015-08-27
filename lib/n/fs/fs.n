@@ -115,9 +115,13 @@ fun Open name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #
 
 fun Create ?name:?path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #File within Fs
 	flags = (flags else {}) | {CREATE WRITE TRUNCATE}
-	let attr = attr else {} such
-		attr!Access |= {UR UW GR GW OR OW}
-	return Fs!Open_file name at=at flags=flags attr=attr
+	var _attr:Openattr
+	if attr?
+		_attr = attr
+	else
+		_attr = {}
+		_attr!Access |= {UR UW GR GW OR OW}
+	return Fs!Open_file name at=at flags=flags attr=_attr
 
 fun Open_dir name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #File within Fs
 	flags = (flags else {}) | {DIRECTORY}
@@ -208,8 +212,8 @@ intf `Fs =
 
 	met! Global_chdir dir:*File = Error
 
-	met! Mkdir name:path.Path ?attr:?*Openattr ?recursive:?Bool = Error
-	met! Rmdir name:path.Path ?recursive:?Bool ?even_not_empty:?Bool = Error
+	met! Mkdir name:path.Path ?at:?*File ?attr:?*Openattr ?recursive:?Bool = Error
+	met! Rmdir name:path.Path ?at:?*File ?recursive:?Bool ?even_not_empty:?Bool = Error
 
 	met! Open_file name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #File
 
@@ -298,16 +302,22 @@ fun allows_immediate flags:?Openflags attr:?*Openattr = Bool
 -- There is a race between the creation of the directory and the setting of the
 -- attributes in permissions (to the exception of the Accessmask)* There is no
 -- equivalent to O_TMPFILE for directories.
-linux met! Mkdir name:path.Path ?attr:?*Openattr ?recursive:?Bool = Error
+linux met! Mkdir name:path.Path ?at:?*File ?attr:?*Openattr ?recursive:?Bool = Error
 	assert not (recursive else false) -- FIXME Add support.
 	assert allows_immediate {} attr -- FIXME Add support.
-	except = syscall.Mkdirat self.Wd.Fd name.String attr?.sys_open_mode
+	var _attr:Openattr
+	if attr?
+		_attr = attr
+	else
+		_attr = {}
+		_attr!Access |= {UR UW UX GR GW GX OR OW OX}
+	except = syscall.Mkdirat (at?.Fd else self.Wd.Fd) name.String _attr.sys_open_mode
 	return OK
 
-linux met! Rmdir name:path.Path ?recursive:?Bool ?even_non_empty:?Bool = Error
+linux met! Rmdir name:path.Path ?at:?*File ?recursive:?Bool ?even_non_empty:?Bool = Error
 	assert not (recursive else false) -- FIXME Add support.
 	assert not (even_non_empty else false) -- FIXME Add support.
-	except = syscall.Unlinkat self.Wd.Fd name.String syscall.AT_REMOVEDIR
+	except = syscall.Unlinkat (at?.Fd else self.Wd.Fd) name.String syscall.AT_REMOVEDIR
 	return OK
 
 linux met! Open_file name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #File
