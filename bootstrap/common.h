@@ -352,6 +352,7 @@ extern bool timeit_enable;
 extern struct timeit timeits[TIMEIT__NUM];
 
 double time(void);
+void timeit_init(void);
 void timeit_print(FILE *out);
 
 #define BEGTIMEIT(what) \

@@ -346,6 +346,7 @@ int main(int argc, char **argv) {
     timeit_enable = true;
   }
 
+  timeit_init();
   BEGTIMEIT(TIMEIT_MAIN);
 
   int status = system("ccache --version &> /dev/null");

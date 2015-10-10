@@ -378,6 +378,10 @@ static const char *timeits_name[TIMEIT__NUM] = {
 
 bool timeit_enable;
 
+void timeit_init(void) {
+  memset(timeits, 0, sizeof(timeits));
+}
+
 void timeit_print(FILE *out) {
   fprintf(out, "\ntimeit\n");
   for (size_t n = 0; n < TIMEIT__NUM; ++n) {
