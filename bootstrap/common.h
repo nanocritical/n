@@ -357,7 +357,9 @@ void timeit_print(FILE *out);
 #define BEGTIMEIT(what) \
   unused__ double timeit_##what = 0; \
   if (timeit_enable) { \
-    timeit_##what = timeits[what].depth != 0 ? 0 : time(); \
+    if (timeits[what].depth == 0) { \
+      timeit_##what = time(); \
+    } \
     timeits[what].depth += 1; \
   }
 
@@ -365,9 +367,12 @@ void timeit_print(FILE *out);
   if (timeit_enable) { \
     if (cond) { \
       timeits[what].count += 1; \
-      if (timeits[what].depth == 1) { timeits[what].time += time() - timeit_##what; } \
+      if (timeits[what].depth == 1) { \
+        timeits[what].time += time() - timeit_##what; \
+      } \
     } \
     (void) timeit_##what; \
+    assert(timeits[what].depth > 0); \
     timeits[what].depth -= 1; \
   }
 
