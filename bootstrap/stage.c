@@ -387,6 +387,8 @@ static ERROR calculate_dependencies(struct dependencies *deps) {
 error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_point_fn) {
   PUSH_STATE(stage->state);
 
+  BEGTIMEIT(TIMEIT_PASSZERO);
+
   error e = load_module(&stage->entry_point, gctx, stage, NULL, entry_point_fn);
   EXCEPT(e);
 
@@ -411,7 +413,8 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
   e = calculate_dependencies(&deps);
   EXCEPT(e);
 
-  BEGTIMEIT(TIMEIT_PRE_PASSBODY);
+  ENDTIMEIT(true, TIMEIT_PASSZERO);
+  BEGTIMEIT(TIMEIT_PASSFWD);
 
   size_t p;
   for (p = PASSZERO_COUNT; p < PASSZERO_COUNT + PASSFWD_COUNT; ++p) {
@@ -429,7 +432,7 @@ error stage_load(struct globalctx *gctx, struct stage *stage, const char *entry_
     }
   }
 
-  ENDTIMEIT(true, TIMEIT_PRE_PASSBODY);
+  ENDTIMEIT(true, TIMEIT_PASSFWD);
   BEGTIMEIT(TIMEIT_PASSBODY);
 
   for (size_t n = 0; n < stage->sorted_count; ++n) {

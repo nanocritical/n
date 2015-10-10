@@ -320,7 +320,8 @@ void check_structure(struct node *node, ...) sentinel__;
 enum timeits {
   TIMEIT_MAIN,
   TIMEIT_PARSER,
-  TIMEIT_PRE_PASSBODY,
+  TIMEIT_PASSZERO,
+  TIMEIT_PASSFWD,
   TIMEIT_PASSBODY,
   TIMEIT_PASSSEM,
   TIMEIT_CREATE_INSTANCE_DEEPCOPY,

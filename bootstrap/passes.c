@@ -181,7 +181,8 @@ error catchup(struct module *mod,
   }
 
   for (ssize_t p = 0; p <= goal; ++p) {
-    BEGTIMEIT(TIMEIT_PRE_PASSBODY);
+    BEGTIMEIT(TIMEIT_PASSZERO);
+    BEGTIMEIT(TIMEIT_PASSFWD);
     BEGTIMEIT(TIMEIT_PASSBODY);
     BEGTIMEIT(TIMEIT_PASSSEM);
 
@@ -206,8 +207,9 @@ error catchup(struct module *mod,
     }
 
     bool other;
-    ENDTIMEIT((other = p < PASSZERO_COUNT + PASSFWD_COUNT), TIMEIT_PRE_PASSBODY);
-    ENDTIMEIT(!other && (other = p < PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT), TIMEIT_PASSBODY);
+    ENDTIMEIT((other = (p < PASSZERO_COUNT)), TIMEIT_PASSZERO);
+    ENDTIMEIT(!other && (other = (p < PASSZERO_COUNT + PASSFWD_COUNT)), TIMEIT_PASSFWD);
+    ENDTIMEIT(!other && (other = (p < PASSZERO_COUNT + PASSFWD_COUNT + PASSBODY_COUNT)), TIMEIT_PASSBODY);
     ENDTIMEIT(!other, TIMEIT_PASSSEM);
   }
 

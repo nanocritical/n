@@ -355,7 +355,8 @@ struct timeit timeits[TIMEIT__NUM];
 static const char *timeits_name[TIMEIT__NUM] = {
   [TIMEIT_MAIN] = "main",
   [TIMEIT_PARSER] = "parser",
-  [TIMEIT_PRE_PASSBODY] = "pre_passbody",
+  [TIMEIT_PASSZERO] = "passzero",
+  [TIMEIT_PASSFWD] = "passfwd",
   [TIMEIT_PASSBODY] = "passbody",
   [TIMEIT_PASSSEM] = "passsem",
   [TIMEIT_CREATE_INSTANCE_DEEPCOPY] = "create_instance_deepcopy",
