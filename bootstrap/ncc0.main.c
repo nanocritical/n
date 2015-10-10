@@ -318,8 +318,6 @@ static ERROR program_link(const struct stage *stage) {
 int main(int argc, char **argv) {
   env_init();
 
-  BEGTIMEIT(TIMEIT_MAIN);
-
   if (argc != 2) {
     fprintf(g_env.stderr, "Usage: %s <main.n>\n", argv[0]);
     exit(1);
@@ -347,6 +345,8 @@ int main(int argc, char **argv) {
   if (getenv("NCC_TIMEIT")) {
     timeit_enable = true;
   }
+
+  BEGTIMEIT(TIMEIT_MAIN);
 
   int status = system("ccache --version &> /dev/null");
   if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
