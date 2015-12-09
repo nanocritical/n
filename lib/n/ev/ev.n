@@ -284,6 +284,7 @@ sinks met! close poll:!Poll = did_close:Bool
 	-- invalid (if it's a FD).
 	-- sks is self, but with different mutability.
 	let sks = poll!remove_sinks self.source
+	assert sks === self
 
 	if not self.closer?
 		if self.source ==| FD
