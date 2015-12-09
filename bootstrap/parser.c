@@ -93,21 +93,21 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_STRING_COMPATIBLE] = "`String_compatible",
   [ID_TBI_ANY_ANY_REF] = "`Any_any_ref",
   [ID_TBI_ANY_REF] = "`Any_ref",
-  [ID_TBI_ANY_MUTABLE_REF] = "`Any_mutable_ref",
-  [ID_TBI_ANY_NULLABLE_REF] = "`Any_nullable_ref",
-  [ID_TBI_ANY_NULLABLE_MUTABLE_REF] = "`Any_nullable_mutable_ref",
+  [ID_TBI_ANY_MREF] = "`Any_mref",
+  [ID_TBI_ANY_NREF] = "`Any_nref",
+  [ID_TBI_ANY_NMREF] = "`Any_nmref",
   [ID_TBI_REF] = "Ref",
-  [ID_TBI_MREF] = "Mutable_ref",
-  [ID_TBI_MMREF] = "Mercurial_ref",
-  [ID_TBI_NREF] = "Nullable_ref",
-  [ID_TBI_NMREF] = "Nullable_mutable_ref",
-  [ID_TBI_NMMREF] = "Nullable_mercurial_ref",
+  [ID_TBI_MREF] = "Mref",
+  [ID_TBI_MMREF] = "Mmref",
+  [ID_TBI_NREF] = "Nref",
+  [ID_TBI_NMREF] = "Nmref",
+  [ID_TBI_NMMREF] = "Nmmref",
   [ID_TBI_VOIDREF] = "Voidref",
   [ID_TBI_ANY_ANY_SLICE] = "`Any_any_slice",
   [ID_TBI_ANY_SLICE] = "`Any_slice",
-  [ID_TBI_ANY_MUTABLE_SLICE] = "`Any_mutable_slice",
+  [ID_TBI_ANY_MSLICE] = "`Any_mslice",
   [ID_TBI_SLICE] = "Slice",
-  [ID_TBI_MSLICE] = "Mutable_slice",
+  [ID_TBI_MSLICE] = "Mslice",
   [ID_TBI_SLICE_IMPL] = "Slice_impl",
   [ID_TBI_SLICE_COMPATIBLE] = "`Slice_compatible",
   [ID_TBI_OPTIONAL] = "Optional",
@@ -448,9 +448,9 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_STRING_COMPATIBLE = gctx->builtin_typs_by_name[ID_TBI_STRING_COMPATIBLE];
   TBI_ANY_ANY_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_ANY_REF];
   TBI_ANY_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_REF];
-  TBI_ANY_MUTABLE_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_MUTABLE_REF];
-  TBI_ANY_NULLABLE_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_NULLABLE_REF];
-  TBI_ANY_NULLABLE_MUTABLE_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_NULLABLE_MUTABLE_REF];
+  TBI_ANY_MREF = gctx->builtin_typs_by_name[ID_TBI_ANY_MREF];
+  TBI_ANY_NREF = gctx->builtin_typs_by_name[ID_TBI_ANY_NREF];
+  TBI_ANY_NMREF = gctx->builtin_typs_by_name[ID_TBI_ANY_NMREF];
   TBI_REF = gctx->builtin_typs_by_name[ID_TBI_REF]; // @
   TBI_MREF = gctx->builtin_typs_by_name[ID_TBI_MREF]; // @!
   TBI_MMREF = gctx->builtin_typs_by_name[ID_TBI_MMREF]; // @#
@@ -460,7 +460,7 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_VOIDREF = gctx->builtin_typs_by_name[ID_TBI_VOIDREF];
   TBI_ANY_ANY_SLICE = gctx->builtin_typs_by_name[ID_TBI_ANY_ANY_SLICE];
   TBI_ANY_SLICE = gctx->builtin_typs_by_name[ID_TBI_ANY_SLICE];
-  TBI_ANY_MUTABLE_SLICE = gctx->builtin_typs_by_name[ID_TBI_ANY_MUTABLE_SLICE];
+  TBI_ANY_MSLICE = gctx->builtin_typs_by_name[ID_TBI_ANY_MSLICE];
   TBI_SLICE = gctx->builtin_typs_by_name[ID_TBI_SLICE];
   TBI_MSLICE = gctx->builtin_typs_by_name[ID_TBI_MSLICE];
   TBI_SLICE_IMPL = gctx->builtin_typs_by_name[ID_TBI_SLICE_IMPL];
@@ -541,7 +541,7 @@ static void init_tbis(struct globalctx *gctx) {
   gctx->builtin_typs_for_refop[TNULREFDOT] = TBI_NREF;
   gctx->builtin_typs_for_refop[TNULREFBANG] = TBI_NMREF;
   gctx->builtin_typs_for_refop[TNULREFSHARP] = TBI_NMMREF;
-  gctx->builtin_typs_for_refop[TNULREFWILDCARD] = TBI_ANY_NULLABLE_REF;
+  gctx->builtin_typs_for_refop[TNULREFWILDCARD] = TBI_ANY_NREF;
   gctx->builtin_typs_for_refop[TSLICEBRAKETS] = TBI_SLICE;
   gctx->builtin_typs_for_refop[TMSLICEBRAKETS] = TBI_MSLICE;
   gctx->builtin_typs_for_refop[TWSLICEBRAKETS] = TBI_MSLICE;
@@ -2145,7 +2145,7 @@ static void add_self_arg(struct module *mod, struct node *node,
        G(ganid, IDENT,
          ganid->as.IDENT.name = ID_WILDCARD_REF_ARG_NULLABLE);
        G(gant, IDENT,
-         gant->as.IDENT.name = ID_TBI_ANY_NULLABLE_REF));
+         gant->as.IDENT.name = ID_TBI_ANY_NREF));
 
     G0(argt, arg, CALL,
        G(ref, IDENT,
@@ -2174,7 +2174,7 @@ static void add_fun_wildcard_genarg(struct module *mod, struct node *node) {
        G(ganid, IDENT,
          ganid->as.IDENT.name = ID_WILDCARD_REF_ARG_NULLABLE);
        G(gant, IDENT,
-         gant->as.IDENT.name = ID_TBI_ANY_NULLABLE_REF));
+         gant->as.IDENT.name = ID_TBI_ANY_NREF));
   }
 }
 

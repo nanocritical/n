@@ -248,7 +248,7 @@ static ERROR unify_non_generic(struct module *mod, const struct node *for_error,
 
 static struct typ *ensure_nullable(struct module *mod, const struct node *for_error,
                                    struct typ *t) {
-  if (typ_isa(t, TBI_ANY_NULLABLE_REF)) {
+  if (typ_isa(t, TBI_ANY_NREF)) {
     return t;
   }
 
@@ -828,32 +828,32 @@ static ERROR check_reference_compatibility(struct module *mod,
   error e;
   if (typ_equal(target0, TBI_ANY_REF)) {
     ok = typ_isa(a0, TBI_ANY_REF)
-      || typ_isa(a0, TBI_ANY_NULLABLE_REF);;
-  } else if (typ_equal(target0, TBI_ANY_MUTABLE_REF)) {
-    ok = typ_isa(a0, TBI_ANY_MUTABLE_REF)
-      || typ_isa(a0, TBI_ANY_NULLABLE_MUTABLE_REF);;
-  } else if (typ_equal(target0, TBI_ANY_NULLABLE_REF)) {
+      || typ_isa(a0, TBI_ANY_NREF);;
+  } else if (typ_equal(target0, TBI_ANY_MREF)) {
+    ok = typ_isa(a0, TBI_ANY_MREF)
+      || typ_isa(a0, TBI_ANY_NMREF);;
+  } else if (typ_equal(target0, TBI_ANY_NREF)) {
     ok = typ_isa(a0, TBI_ANY_REF)
-      || typ_isa(a0, TBI_ANY_NULLABLE_REF);
-  } else if (typ_equal(target0, TBI_ANY_NULLABLE_MUTABLE_REF)) {
-    ok = typ_isa(a0, TBI_ANY_MUTABLE_REF)
-      || typ_isa(a0, TBI_ANY_NULLABLE_MUTABLE_REF);
+      || typ_isa(a0, TBI_ANY_NREF);
+  } else if (typ_equal(target0, TBI_ANY_NMREF)) {
+    ok = typ_isa(a0, TBI_ANY_MREF)
+      || typ_isa(a0, TBI_ANY_NMREF);
 
   } else if (typ_equal(target0, TBI_REF)) {
     ok = typ_isa(a0, TBI_ANY_REF)
-      || typ_isa(a0, TBI_ANY_NULLABLE_REF);;
+      || typ_isa(a0, TBI_ANY_NREF);;
   } else if (typ_equal(target0, TBI_MREF)) {
-    ok = typ_isa(a0, TBI_ANY_MUTABLE_REF)
-      || typ_isa(a0, TBI_ANY_NULLABLE_MUTABLE_REF);;
+    ok = typ_isa(a0, TBI_ANY_MREF)
+      || typ_isa(a0, TBI_ANY_NMREF);;
   } else if (typ_equal(target0, TBI_MMREF)) {
     ok = typ_equal(a0, TBI_MMREF)
       || typ_equal(a0, TBI_NMMREF);
   } else if (typ_equal(target0, TBI_NREF)) {
-    ok = typ_isa(a0, TBI_ANY_NULLABLE_REF)
+    ok = typ_isa(a0, TBI_ANY_NREF)
       || typ_isa(a0, TBI_ANY_REF);
   } else if (typ_equal(target0, TBI_NMREF)) {
-    ok = typ_isa(a0, TBI_ANY_NULLABLE_MUTABLE_REF)
-      || typ_isa(a0, TBI_ANY_MUTABLE_REF);
+    ok = typ_isa(a0, TBI_ANY_NMREF)
+      || typ_isa(a0, TBI_ANY_MREF);
   } else if (typ_equal(target0, TBI_NMMREF)) {
     ok = typ_equal(a0, TBI_NMMREF)
       || typ_equal(a0, TBI_MMREF);
@@ -1129,13 +1129,13 @@ static ERROR check_slice_compatibility(struct module *mod,
   error e;
   if (typ_equal(target0, TBI_ANY_SLICE)) {
     ok = typ_isa(a0, TBI_ANY_SLICE);
-  } else if (typ_equal(target0, TBI_ANY_MUTABLE_SLICE)) {
-    ok = typ_isa(a0, TBI_ANY_MUTABLE_SLICE);
+  } else if (typ_equal(target0, TBI_ANY_MSLICE)) {
+    ok = typ_isa(a0, TBI_ANY_MSLICE);
 
   } else if (typ_equal(target0, TBI_SLICE)) {
     ok = typ_isa(a0, TBI_ANY_SLICE);
   } else if (typ_equal(target0, TBI_MSLICE)) {
-    ok = typ_isa(a0, TBI_ANY_MUTABLE_SLICE);
+    ok = typ_isa(a0, TBI_ANY_MSLICE);
   }
 
   if (!ok) {

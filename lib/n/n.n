@@ -32,7 +32,7 @@ fun Eprn ?sep:?*String ...v:(Vararg ?*`Show)
 inline (fun t:`Any r:(`Any_ref t)) Just_const p:r = *t
 	return p
 
-inline (fun t:`Any r:(`Any_mutable_ref t)) Just_mutable p:r = !t
+inline (fun t:`Any r:(`Any_mref t)) Just_mutable p:r = !t
 	return p
 
 -- Place a breakpoint on this function, and call it in convenient places in

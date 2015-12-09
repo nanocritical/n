@@ -2118,7 +2118,7 @@ static bool do_fun_nonnull_attribute(struct out *out, const struct typ *tfun) {
   for (size_t n = 0, arity = typ_function_arity(tfun); n < arity; ++n) {
     const struct typ *a = typ_function_arg_const(tfun, n);
     if (typ_is_reference(a)
-        && !typ_isa(a, TBI_ANY_NULLABLE_REF)
+        && !typ_isa(a, TBI_ANY_NREF)
         && !typ_is_dyn(a)) {
       if (count > 0) {
         if (out != NULL) {

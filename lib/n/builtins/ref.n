@@ -1,0 +1,24 @@
+intf `Any_any_ref =
+	isa `Return_by_copy `Trivial_copy_but_owned `Trivial_dtor
+intf `Any_ref t:`Any =
+	isa `Any_any_ref
+intf `Any_mref t:`Any =
+	isa (`Any_ref t)
+intf `Any_nref t:`Any =
+	isa (`Any_ref t) `Trivial_ctor
+intf `Any_nmref t:`Any =
+	isa (`Any_nref t) (`Any_mref t)
+
+extern struct Ref t:`Any =
+	isa (`Any_ref t)
+extern struct Mref t:`Any =
+	isa (`Any_mref t)
+extern struct Mmref t:`Any =
+	isa (`Any_mref t)
+
+extern struct Nref t:`Any =
+	isa (`Any_nref t)
+extern struct Nmref t:`Any =
+	isa (`Any_nmref t)
+extern struct Nmmref t:`Any =
+	isa (`Any_nmref t)

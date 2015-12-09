@@ -303,14 +303,14 @@ error reference(struct typ **result,
 
 static struct typ *nullable_functor(struct typ *t) {
   struct typ *t0 = typ_is_generic_functor(t) ? t : typ_generic_functor(t);
-  if (typ_isa(t0, TBI_ANY_NULLABLE_REF)) {
+  if (typ_isa(t0, TBI_ANY_NREF)) {
     return t0;
   }
 
   if (typ_equal(t0, TBI_ANY_REF)) {
-    return TBI_ANY_NULLABLE_REF;
-  } else if (typ_equal(t0, TBI_ANY_MUTABLE_REF)) {
-    return TBI_ANY_NULLABLE_MUTABLE_REF;
+    return TBI_ANY_NREF;
+  } else if (typ_equal(t0, TBI_ANY_MREF)) {
+    return TBI_ANY_NMREF;
   } else if (typ_equal(t0, TBI_REF)) {
     return TBI_NREF;
   } else if (typ_equal(t0, TBI_MREF)) {
@@ -325,14 +325,14 @@ static struct typ *nullable_functor(struct typ *t) {
 
 static struct typ *nonnullable_functor(struct typ *t) {
   struct typ *t0 = typ_is_generic_functor(t) ? t : typ_generic_functor(t);
-  if (!typ_isa(t0, TBI_ANY_NULLABLE_REF)) {
+  if (!typ_isa(t0, TBI_ANY_NREF)) {
     return t0;
   }
 
-  if (typ_equal(t0, TBI_ANY_NULLABLE_REF)) {
+  if (typ_equal(t0, TBI_ANY_NREF)) {
     return TBI_ANY_REF;
-  } else if (typ_equal(t0, TBI_ANY_NULLABLE_MUTABLE_REF)) {
-    return TBI_ANY_MUTABLE_REF;
+  } else if (typ_equal(t0, TBI_ANY_NMREF)) {
+    return TBI_ANY_MREF;
   } else if (typ_equal(t0, TBI_NREF)) {
     return TBI_REF;
   } else if (typ_equal(t0, TBI_NMREF)) {
@@ -356,7 +356,7 @@ static void fill_wildcards(struct wildcards *w, struct typ *r0) {
   if (typ_equal(r0, TBI_REF)
       || typ_equal(r0, TBI_NREF)
       || typ_equal(r0, TBI_ANY_REF)
-      || typ_equal(r0, TBI_ANY_NULLABLE_REF)) {
+      || typ_equal(r0, TBI_ANY_NREF)) {
     w->ref = TREFDOT;
     w->nulref = TNULREFDOT;
     w->deref = TDEREFDOT;
@@ -633,7 +633,7 @@ error try_insert_automagic_de(struct module *mod, struct node *node) {
 static ERROR nullable_op(enum token_type *r,
                          struct module *mod, const struct node *for_error,
                          struct typ *t) {
-  if (typ_isa(t, TBI_ANY_NULLABLE_REF)) {
+  if (typ_isa(t, TBI_ANY_NREF)) {
     *r = 0;
     return 0;
   }
@@ -647,7 +647,7 @@ static ERROR nullable_op(enum token_type *r,
 
   if (typ_equal(t0, TBI_MMREF)) {
     *r = TNULREFSHARP;
-  } else if (typ_isa(t0, TBI_ANY_MUTABLE_REF)) {
+  } else if (typ_isa(t0, TBI_ANY_MREF)) {
     *r = TNULREFBANG;
   } else if (typ_isa(t0, TBI_ANY_REF)) {
     *r = TNULREFDOT;
@@ -661,7 +661,7 @@ static ERROR nullable_op(enum token_type *r,
 static ERROR nonnullable_op(enum token_type *r,
                             struct module *mod, const struct node *for_error,
                             struct typ *t) {
-  if (!typ_isa(t, TBI_ANY_NULLABLE_REF)) {
+  if (!typ_isa(t, TBI_ANY_NREF)) {
     *r = 0;
     return 0;
   }
@@ -675,9 +675,9 @@ static ERROR nonnullable_op(enum token_type *r,
 
   if (typ_equal(t0, TBI_NMMREF)) {
     *r = TREFSHARP;
-  } else if (typ_isa(t0, TBI_ANY_NULLABLE_MUTABLE_REF)) {
+  } else if (typ_isa(t0, TBI_ANY_NMREF)) {
     *r = TREFBANG;
-  } else if (typ_isa(t0, TBI_ANY_NULLABLE_REF)) {
+  } else if (typ_isa(t0, TBI_ANY_NREF)) {
     *r = TREFDOT;
   } else {
     assert(false);
@@ -1956,7 +1956,7 @@ static ERROR try_insert_automagic_arg_ref(bool *did_ref, struct node **arg,
 
   if (target_explicit_ref == TREFDOT || target_explicit_ref == TNULREFDOT) {
     if (compare_ref_depth(target, real_arg->typ, 1)) {
-      if (!typ_isa(target, TBI_ANY_MUTABLE_REF)) {
+      if (!typ_isa(target, TBI_ANY_MREF)) {
         struct node *before = prev(real_arg);
 
         struct node *par = parent(real_arg);

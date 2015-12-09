@@ -609,7 +609,7 @@ example multiset
 
 
 
-(struct T:`Any) Ref_as_key R:(`Any_nullable_ref T) =
+(struct T:`Any) Ref_as_key R:(`Any_nref T) =
 	isa `Map_key `Has_equality
 	Ref	:R
 

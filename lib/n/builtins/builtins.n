@@ -15,7 +15,7 @@ import n.bench
 import n.fmt
 
 extern intf `__literal_nil__ =
-	isa `Any_nullable_ref
+	isa `Any_nref
 extern intf `__literal_integer__ =
 	isa `Integer
 extern intf `__literal_floating__ =
@@ -193,31 +193,6 @@ extern inline struct Void =
 
 extern fun Nonnil_void = *Void
 
-intf `Any_any_ref =
-	isa `Return_by_copy `Trivial_copy_but_owned `Trivial_dtor
-intf `Any_ref t:`Any =
-	isa `Any_any_ref
-intf `Any_mutable_ref t:`Any =
-	isa (`Any_ref t)
-intf `Any_nullable_ref t:`Any =
-	isa (`Any_ref t) `Trivial_ctor
-intf `Any_nullable_mutable_ref t:`Any =
-	isa (`Any_nullable_ref t) (`Any_mutable_ref t)
-
-extern struct Ref t:`Any =
-	isa (`Any_ref t)
-extern struct Mutable_ref t:`Any =
-	isa (`Any_mutable_ref t)
-extern struct Mercurial_ref t:`Any =
-	isa (`Any_mutable_ref t)
-
-extern struct Nullable_ref t:`Any =
-	isa (`Any_nullable_ref t)
-extern struct Nullable_mutable_ref t:`Any =
-	isa (`Any_nullable_mutable_ref t)
-extern struct Nullable_mercurial_ref t:`Any =
-	isa (`Any_nullable_mutable_ref t)
-
 -- Builtin primitive* Turned into 'what' if 't isa what'* Otherwise,
 -- turned into `Any.
 intf `Inherit what:`Any t:`Any =
@@ -248,12 +223,12 @@ intf `Any_slice t:`Any =
 	shallow met$ Operator_at n:Uint = $t
 	shallow met$ Operator_sub r:Range = [$]t
 
-intf `Any_mutable_slice t:`Any =
+intf `Any_mslice t:`Any =
 	isa (`Any_slice t)
 	met! Copy_from other:[]t = final
 
--- The body of the methods for Slice and Mutable_slice are actually not used, as
--- Slice_impl is used in codegen for both Slice and Mutable_slice* The code in
+-- The body of the methods for Slice and Mslice are actually not used, as
+-- Slice_impl is used in codegen for both Slice and Mslice* The code in
 -- these functions has only one purpose: triggering the instantiation of the
 -- corresponding Slice_impl methods.
 -- We will need a better solution down the road, as the code in these bogus
@@ -261,7 +236,7 @@ intf `Any_mutable_slice t:`Any =
 -- as its bullshit detector improves.
 --
 -- In reality, it doesn't actually make sense to share the implementations
--- of Slice and Mutable_slice: Slice does not need to carry around a cap
+-- of Slice and Mslice: Slice does not need to carry around a cap
 -- field* It's just easier for now as it lets us avoid generating conversion
 -- operations between kinds of slices.
 
@@ -346,112 +321,112 @@ inline Slice met Overlap other:this = ?(Intptr, Intptr)
 		let _ = s.Overlap s
 		return {}
 
-opaque struct Mutable_slice t:`Any =
-	isa (`Any_mutable_slice t) -- FIXME missing genarg
+opaque struct Mslice t:`Any =
+	isa (`Any_mslice t) -- FIXME missing genarg
 	dat	:?#t
 	cnt	:Uint
 	cap	:Uint
 
-inline Mutable_slice fun create_impl_instance = r:(Slice_impl t)
+inline Mslice fun create_impl_instance = r:(Slice_impl t)
 	assert false -- Better not actually get called!
 	let d:*(`Any_slice t)
 	d = *r
-inline Mutable_slice fun From_slice c:[]t = this
+inline Mslice fun From_slice c:[]t = this
 	return {}
-inline Mutable_slice met# Unsafe_wrap p:*U8 c:Uint cap:Uint
+inline Mslice met# Unsafe_wrap p:*U8 c:Uint cap:Uint
 	let s = this.create_impl_instance
 	s#Unsafe_wrap p c cap
-inline Mutable_slice met Count = Uint
+inline Mslice met Count = Uint
 	let s = this.create_impl_instance
 	return s.Count
-inline Mutable_slice met Cap = Uint
+inline Mslice met Cap = Uint
 	let s = this.create_impl_instance
 	return s.Cap
-inline Mutable_slice met Available = Uint
+inline Mslice met Available = Uint
 	let s = this.create_impl_instance
 	return s.Available
-inline Mutable_slice met Bytecount = Uint
+inline Mslice met Bytecount = Uint
 	let s = this.create_impl_instance
 	return s.Bytecount
-inline Mutable_slice met Bytecap = Uint
+inline Mslice met Bytecap = Uint
 	let s = this.create_impl_instance
 	return s.Bytecap
-inline Mutable_slice met All = Range
+inline Mslice met All = Range
 	let s = this.create_impl_instance
 	return s.All
-inline Mutable_slice met$ Rawbytes = [$]U8
+inline Mslice met$ Rawbytes = [$]U8
 	let s = this.create_impl_instance
 	return s$Rawbytes
-inline Mutable_slice shallow met$ Unsafe_rawdata = ?$U8
+inline Mslice shallow met$ Unsafe_rawdata = ?$U8
 	let s = this.create_impl_instance
 	such
 		let _ = s.Unsafe_rawdata
 		let _ = s!Unsafe_rawdata
 		let _ = s#Unsafe_rawdata
 		return s$Unsafe_rawdata
-inline Mutable_slice shallow met$ Unsafe_data = ?$t
+inline Mslice shallow met$ Unsafe_data = ?$t
 	let s = this.create_impl_instance
 	such
 		let _ = s.Unsafe_data
 		let _ = s!Unsafe_data
 		let _ = s#Unsafe_data
 		return s$Unsafe_data
-inline Mutable_slice shallow met$ Operator_at n:Uint = $t
+inline Mslice shallow met$ Operator_at n:Uint = $t
 	let s = this.create_impl_instance
 	such
 		let _ = s.Operator_at n
 		let _ = s!Operator_at n
 		let p = s#Operator_at n
 		return s$Operator_at n
-inline Mutable_slice met! Clear
+inline Mslice met! Clear
 	let s = this.create_impl_instance
 	such
 		s!Clear
 		return {}
-inline Mutable_slice met Overlap other:this = ?(Intptr, Intptr)
+inline Mslice met Overlap other:this = ?(Intptr, Intptr)
 	let s = this.create_impl_instance
 	such
 		let _ = s.Overlap s
 		return {}
-inline Mutable_slice met! Full_copy other:[]t = this
+inline Mslice met! Full_copy other:[]t = this
 	let s = this.create_impl_instance
 	such
 		let _ = s!Full_copy s
 		return {}
-inline Mutable_slice met! Copy_from other:[]t = this
+inline Mslice met! Copy_from other:[]t = this
 	let s = this.create_impl_instance
 	such
 		let _ = s!Copy_from s
 		return {}
-inline Mutable_slice met! Exact_copy other:[]t
+inline Mslice met! Exact_copy other:[]t
 	let s = this.create_impl_instance
 	such
 		s!Exact_copy s
-inline Mutable_slice met! Full_move other:[!]t = this
+inline Mslice met! Full_move other:[!]t = this
 	let s = this.create_impl_instance
 	such
 		let _ = s!Full_move s
 		return {}
-inline Mutable_slice met! Move_from other:[!]t = this
+inline Mslice met! Move_from other:[!]t = this
 	let s = this.create_impl_instance
 	such
 		let _ = s!Move_from s
 		return {}
-inline Mutable_slice met! Exact_move other:[!]t
+inline Mslice met! Exact_move other:[!]t
 	let s = this.create_impl_instance
 	such
 		s!Exact_move s
-inline Mutable_slice met! Append other:[]t = this
+inline Mslice met! Append other:[]t = this
 	let s = this.create_impl_instance
 	such
 		let _ = s!Append s
 		return {}
-inline Mutable_slice met! Full_append other:[]t = this
+inline Mslice met! Full_append other:[]t = this
 	let s = this.create_impl_instance
 	such
 		let _ = s!Full_append s
 		return {}
-inline Mutable_slice shallow met$ Operator_sub r:Range = [$]t
+inline Mslice shallow met$ Operator_sub r:Range = [$]t
 	let s = this.create_impl_instance
 	such
 		let _ = (s.Operator_sub r)
@@ -459,49 +434,49 @@ inline Mutable_slice shallow met$ Operator_sub r:Range = [$]t
 		let _ = (s#Operator_sub r)
 		return {}
 -- FIXME(e): Deprecated. But ncc0 doesn't actually support wildcard slices.
-inline Mutable_slice met Const = []t
+inline Mslice met Const = []t
 	let s = this.create_impl_instance
 	such
 		let _ = s.Const
 	return {}
-inline Mutable_slice met! Available_capacity = this
+inline Mslice met! Available_capacity = this
 	let s = this.create_impl_instance
 	such
 		let _ = s!Available_capacity
 	return {}
-inline Mutable_slice met! Available_elements = this
+inline Mslice met! Available_elements = this
 	let s = this.create_impl_instance
 	such
 		let _ = s!Available_elements
 	return {}
-inline Mutable_slice shallow met$ Recapped cap:Uint = this
+inline Mslice shallow met$ Recapped cap:Uint = this
 	let s = this.create_impl_instance
 	such
 		let _ = (s.Recapped cap)
 		let _ = (s!Recapped cap)
 		return {}
-inline Mutable_slice shallow met$ First = $t
+inline Mslice shallow met$ First = $t
 	let s = this.create_impl_instance
 	such
 		let _ = s.First
 		let _ = s!First
 		let p = s#First
 		return p
-inline Mutable_slice shallow met$ Last = $t
+inline Mslice shallow met$ Last = $t
 	let s = this.create_impl_instance
 	such
 		let _ = s.Last
 		let _ = s!Last
 		let p = s#Last
 		return p
-inline Mutable_slice met Show st:#`Fmt_state
+inline Mslice met Show st:#`Fmt_state
 	let s = this.create_impl_instance
 	such
 		s.Show st
-inline Mutable_slice met Operator_eq other:*this = Bool
+inline Mslice met Operator_eq other:*this = Bool
 	let s = this.create_impl_instance
 	return s == s
-inline Mutable_slice met Operator_ne other:*this = Bool
+inline Mslice met Operator_ne other:*this = Bool
 	let s = this.create_impl_instance
 	return s != s
 
@@ -518,7 +493,7 @@ inline fun Bytes_compare a:[]U8 b:[]U8 = Int
 	return c
 
 opaque struct Slice_impl t:`Any =
-	isa (`Any_mutable_slice t)
+	isa (`Any_mslice t)
 	dat	:?#t
 	cnt	:Uint
 	cap	:Uint
@@ -780,7 +755,7 @@ inline (fun t:`Any) generic_show st:#`Fmt_state x:*t
 		else
 			"?".Show st
 			generic_show st (x* else {})
-	elif t isa (`Any_nullable_ref `Any)
+	elif t isa (`Any_nref `Any)
 		if not (x*)?
 			"(nil)".Show st
 		else

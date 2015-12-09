@@ -634,9 +634,9 @@ static void create_flags(struct typ *t, struct typ *tbi) {
   }
 
   if (maybe_ref == TBI_ANY_REF
-      || maybe_ref == TBI_ANY_MUTABLE_REF
-      || maybe_ref == TBI_ANY_NULLABLE_REF
-      || maybe_ref == TBI_ANY_NULLABLE_MUTABLE_REF
+      || maybe_ref == TBI_ANY_MREF
+      || maybe_ref == TBI_ANY_NREF
+      || maybe_ref == TBI_ANY_NMREF
       || maybe_ref == TBI_REF
       || maybe_ref == TBI_MREF
       || maybe_ref == TBI_MMREF
@@ -646,8 +646,8 @@ static void create_flags(struct typ *t, struct typ *tbi) {
     t->flags |= TYPF_REF;
   }
 
-  if (maybe_ref == TBI_ANY_NULLABLE_REF
-      || maybe_ref == TBI_ANY_NULLABLE_MUTABLE_REF
+  if (maybe_ref == TBI_ANY_NREF
+      || maybe_ref == TBI_ANY_NMREF
       || maybe_ref == TBI_NREF
       || maybe_ref == TBI_NMREF
       || maybe_ref == TBI_NMMREF) {
@@ -656,7 +656,7 @@ static void create_flags(struct typ *t, struct typ *tbi) {
 
   if (maybe_ref == TBI_ANY_ANY_SLICE
       || maybe_ref == TBI_ANY_SLICE
-      || maybe_ref == TBI_ANY_MUTABLE_SLICE
+      || maybe_ref == TBI_ANY_MSLICE
       || maybe_ref == TBI_SLICE
       || maybe_ref == TBI_MSLICE) {
     t->flags |= TYPF_SLICE;
@@ -2206,9 +2206,9 @@ struct typ *TBI_STRING_COMPATIBLE;
 struct typ *TBI_STATIC_ARRAY;
 struct typ *TBI_ANY_ANY_REF;
 struct typ *TBI_ANY_REF;
-struct typ *TBI_ANY_MUTABLE_REF;
-struct typ *TBI_ANY_NULLABLE_REF;
-struct typ *TBI_ANY_NULLABLE_MUTABLE_REF;
+struct typ *TBI_ANY_MREF;
+struct typ *TBI_ANY_NREF;
+struct typ *TBI_ANY_NMREF;
 struct typ *TBI_REF; // @
 struct typ *TBI_MREF; // @!
 struct typ *TBI_MMREF; // @#
@@ -2218,7 +2218,7 @@ struct typ *TBI_NMMREF; // ?@#
 struct typ *TBI_VOIDREF;
 struct typ *TBI_ANY_ANY_SLICE;
 struct typ *TBI_ANY_SLICE;
-struct typ *TBI_ANY_MUTABLE_SLICE;
+struct typ *TBI_ANY_MSLICE;
 struct typ *TBI_SLICE;
 struct typ *TBI_MSLICE;
 struct typ *TBI_SLICE_IMPL;
@@ -2732,7 +2732,7 @@ error typ_check_can_deref(const struct module *mod, const struct node *for_error
     ok = true;
     break;
   case TDEREFBANG:
-    ok = typ_isa(a, TBI_ANY_MUTABLE_REF);
+    ok = typ_isa(a, TBI_ANY_MREF);
     break;
   case TDEREFSHARP:
     ok = typ_has_same_generic_functor(mod, a, TBI_MMREF)
