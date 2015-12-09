@@ -2005,7 +2005,7 @@ error step_constraint_inference(struct module *mod, struct node *node,
   case MATCH:
   case TRY:
     break;
-  case DYN:
+  case CONV:
     constraint_copy(mod, node->constraint, subs_first(node)->constraint);
     break;
   case DEFALIAS:

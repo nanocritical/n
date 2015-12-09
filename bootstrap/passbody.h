@@ -19,4 +19,7 @@ ERROR passbody0(struct module *mod, struct node *root,
 
 struct phi_tracker_state *get_phi_tracker(struct node *def);
 
+ERROR insert_conv(struct node **src,
+                  struct module *mod, struct node *node,
+                  struct typ *target);
 #endif

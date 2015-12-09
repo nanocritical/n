@@ -37,8 +37,8 @@ let ERR_LINE_TOO_LONG = {Why=*"ERR_LINE_TOO_LONG: header line too long"}:Error
 
 
 intf `Server =
-	met# On_incoming r:*Request = ?#`Server_handler
-	met# On_done h:#`Server_handler
+	met@# On_incoming r:*Request = ?@#`Server_handler
+	met@# On_done h:@#`Server_handler
 
 -- The first time On is called, r is populated, but none of
 -- the Body may be loaded. The handler must read the request body in a
@@ -51,7 +51,7 @@ intf `Server =
 -- Once w#Done has been called, the Server will take care of flushing any
 -- remaining data in the `Response_writer.
 intf `Server_handler =
-	met# On w:#`Response_writer r:#Request = Error
+	met@# On w:#`Response_writer r:#Request = Error
 
 -- Unlike `Server_handler, the whole request body is buffered before calling On.
 -- On is called once, and it must write the whole response to the (buffered)
@@ -65,9 +65,9 @@ intf `Server_handler_buffered =
 -- r#Done must be called once. (TODO(e) remove this requirement, detect when
 -- r.Body its EOF).
 intf `Client_handler =
-	met# On r:#Response w:#`Request_writer = Error
+	met@# On r:#Response w:#`Request_writer = Error
 
 -- Unlike `Client_handler, the request is prepared outside the handler, and
 -- On is called once, with the entire response buffered.
 intf `Client_handler_buffered =
-	met# On r:#Response
+	met@# On r:#Response

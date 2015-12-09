@@ -230,13 +230,15 @@ fun prepare_request_reception req:#Request bufr:#bufio.Reader bufw:#bufio.Writer
 
 	except = prepare_reception #r bufr
 
-	req#Body = bufio.Reader.Mk r#body_impl#get_dyn
+	req#Body = Alloc
+	req#Body# = bufio.Reader.Mk r#body_impl#get_dyn
 
 	if not r.is_response and req.expects_continue
 		if r.Proto_version >= 11
 			req#expect_continue_reader#r = r#body_impl#get_dyn
 			req#expect_continue_reader#w = bufw
-			req#Body = bufio.Reader.Mk #req#expect_continue_reader
+			req#Body = Alloc
+			req#Body# = bufio.Reader.Mk #req#expect_continue_reader
 
 fun prepare_response_reception resp:#Response bufr:#bufio.Reader = Error
 	var r:receiver
@@ -255,7 +257,8 @@ fun prepare_response_reception resp:#Response bufr:#bufio.Reader = Error
 
 	except = prepare_reception #r bufr
 
-	resp#Body = bufio.Reader.Mk r#body_impl#get_dyn
+	resp#Body = Alloc
+	resp#Body# = bufio.Reader.Mk r#body_impl#get_dyn
 
 -- Do not start reading, but set up the right reader for this request.
 -- r.Body can then be read until EOF.

@@ -22,18 +22,18 @@ fun sys_mmap_flags shared:?Bool = r:syscall.Mmap_flags
 
 inline struct Mmap =
 	isa `Not_copyable
-	file	:?!File
+	fs	:?!`Fs
 	range	:Range
 	bytes	:[!]U8
 	shared	:Bool
 	prot	:Protmask
 
 -- 'prot' defaults to READ.
-File met! Mmap ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, #Mmap
+File met! Mmap ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, @#Mmap
 	return self.fs!File_mmap self offset=offset size=size prot=prot shared=shared
 
 Mmap met# Unmap
-	self.file!fs!Munmap self
+	self!fs!Munmap self
 
 Mmap met# Dtor
 	self#Unmap

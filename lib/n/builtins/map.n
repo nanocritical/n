@@ -234,7 +234,7 @@ Map met# may_grow = Bool
 
 	-- Grow.
 	-- We will move tmp over self, we don't want the memory to be freed.
-	var tmp = Alloc this
+	var tmp = Alloc_uncounted this
 	-- Must remain a power of 2.
 	tmp#init size_pow2=2*self.table.size
 	let all = tmp#Ingest self
@@ -246,7 +246,7 @@ Map met# may_grow = Bool
 	Slice_memmove ((Cast #this #U8) self) ((Cast #this #U8) tmp) (sizeof this)
 	-- Zero tmp (to ensure its Dtor is a no-op), and free it.
 	Slice_memset ((Cast #this #U8) tmp) 0 (sizeof this)
-	Free tmp
+	Free_uncounted tmp
 
 	assert self.count_inc_deleted <= self.table.size/2
 	return true

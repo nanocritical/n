@@ -763,13 +763,18 @@ static ERROR validate_genarg_types(struct module *mod, struct node *node) {
       struct typ *arg = CONST_CAST(typ_generic_arg_const(t0, n));
       assert(!typ_is_tentative(arg));
 
+      const struct node *for_error = ga->as.SETGENARG.for_error;
+      if (for_error == NULL) {
+        for_error = node;
+      }
+
       if (typ_is_tentative(ga->typ) && typ_definition_which(ga->typ) == DEFINCOMPLETE) {
         if (!typ_isa(ga->typ, arg)) {
-          defincomplete_add_isa(mod, ga->as.SETGENARG.for_error,
+          defincomplete_add_isa(mod, for_error,
                                 typ_definition_nooverlay(ga->typ), arg);
         }
       } else {
-        error e = typ_check_isa(mod, ga->as.SETGENARG.for_error,
+        error e = typ_check_isa(mod, for_error,
                                 ga->typ, arg);
         EXCEPT(e);
       }

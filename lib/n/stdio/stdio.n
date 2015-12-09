@@ -15,7 +15,7 @@ import n.io
 import n.bufio
 import n.syscall
 
-globalenv Stdio:*`Stdio
+globalenv Stdio:@`Stdio
 
 intf `Stdio =
 	met In = #io.`Reader
@@ -26,7 +26,7 @@ intf `Stdio =
 fun Install_sys within Stdio
 	let s = Alloc stdio
 	s!init
-	let header = Alloc (Envheader #`Stdio)
+	let header = Alloc_uncounted (Envheader @#`Stdio)
 	header#Env = s
 	Globalenv_install Stdio header
 

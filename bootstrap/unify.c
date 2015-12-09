@@ -260,6 +260,16 @@ static struct typ *ensure_nullable(struct module *mod, const struct node *for_er
     r0 = TBI_NMREF;
   } else if (typ_equal(t0, TBI_MMREF)) {
     r0 = TBI_NMMREF;
+  } else if (typ_equal(t0, TBI_CREF)) {
+    r0 = TBI_CNREF;
+  } else if (typ_equal(t0, TBI_CMREF)) {
+    r0 = TBI_CNMREF;
+  } else if (typ_equal(t0, TBI_CMMREF)) {
+    r0 = TBI_CNMMREF;
+  } else if (typ_equal(t0, TBI_ANY_LOCAL_REF)) {
+    r0 = TBI_ANY_LOCAL_REF;
+  } else if (typ_equal(t0, TBI_ANY_COUNTED_REF)) {
+    r0 = TBI_ANY_COUNTED_REF;
   } else {
     r0 = TBI_ANY_REF;
   }
@@ -825,29 +835,41 @@ static ERROR check_reference_compatibility(struct module *mod,
   const struct typ *target0 = typ_generic_functor_const(target);
 
   bool ok = false;
-  error e;
-  if (typ_equal(target0, TBI_ANY_REF)) {
-    ok = typ_isa(a0, TBI_ANY_REF)
-      || typ_isa(a0, TBI_ANY_NREF);;
-  } else if (typ_equal(target0, TBI_ANY_MREF)) {
-    ok = typ_isa(a0, TBI_ANY_MREF)
-      || typ_isa(a0, TBI_ANY_NMREF);;
-  } else if (typ_equal(target0, TBI_ANY_NREF)) {
+  if (typ_equal(target0, TBI_ANY_REF) || typ_equal(target0, TBI_ANY_NREF)) {
     ok = typ_isa(a0, TBI_ANY_REF)
       || typ_isa(a0, TBI_ANY_NREF);
-  } else if (typ_equal(target0, TBI_ANY_NMREF)) {
+  } else if (typ_equal(target0, TBI_ANY_MREF) || typ_equal(target0, TBI_ANY_NMREF)) {
     ok = typ_isa(a0, TBI_ANY_MREF)
       || typ_isa(a0, TBI_ANY_NMREF);
+  } else if (typ_equal(target0, TBI_ANY_LOCAL_REF) || typ_equal(target0, TBI_ANY_LOCAL_NREF)) {
+    ok = typ_isa(a0, TBI_ANY_LOCAL_REF)
+      || typ_isa(a0, TBI_ANY_LOCAL_NREF);
+  } else if (typ_equal(target0, TBI_ANY_COUNTED_REF) || typ_equal(target0, TBI_ANY_COUNTED_NREF)) {
+    ok = typ_isa(a0, TBI_ANY_COUNTED_REF)
+      || typ_isa(a0, TBI_ANY_COUNTED_NREF);
+  }
 
-  } else if (typ_equal(target0, TBI_REF)) {
+  const bool lc_a0 = typ_isa(a0, TBI_ANY_COUNTED_REF);
+  const bool lc_target0 = typ_isa(target0, TBI_ANY_COUNTED_REF);
+  if (!lc_a0 && lc_target0) {
+    error e = mk_except_type_unification(mod, for_error, a, target);
+    THROWF(e, "see n.builtins.Borrow");
+  }
+
+  // TODO(e): somehow stop blindly accepting nil-ref -> nonnil-ref,
+  // which is supposed to be handled by constraint inference.
+
+  if (typ_equal(target0, TBI_REF)) {
     ok = typ_isa(a0, TBI_ANY_REF)
-      || typ_isa(a0, TBI_ANY_NREF);;
+      || typ_isa(a0, TBI_ANY_NREF);
   } else if (typ_equal(target0, TBI_MREF)) {
     ok = typ_isa(a0, TBI_ANY_MREF)
       || typ_isa(a0, TBI_ANY_NMREF);;
   } else if (typ_equal(target0, TBI_MMREF)) {
     ok = typ_equal(a0, TBI_MMREF)
-      || typ_equal(a0, TBI_NMMREF);
+      || typ_equal(a0, TBI_NMMREF)
+      || typ_equal(a0, TBI_CMMREF)
+      || typ_equal(a0, TBI_CNMMREF);
   } else if (typ_equal(target0, TBI_NREF)) {
     ok = typ_isa(a0, TBI_ANY_NREF)
       || typ_isa(a0, TBI_ANY_REF);
@@ -856,11 +878,37 @@ static ERROR check_reference_compatibility(struct module *mod,
       || typ_isa(a0, TBI_ANY_MREF);
   } else if (typ_equal(target0, TBI_NMMREF)) {
     ok = typ_equal(a0, TBI_NMMREF)
-      || typ_equal(a0, TBI_MMREF);
+      || typ_equal(a0, TBI_MMREF)
+      || typ_equal(a0, TBI_CNMMREF)
+      || typ_equal(a0, TBI_CMMREF);
+  } else if (typ_equal(target0, TBI_CREF)) {
+    ok = lc_a0
+      && (typ_isa(a0, TBI_ANY_REF)
+          || typ_isa(a0, TBI_ANY_NREF));
+  } else if (typ_equal(target0, TBI_CMREF)) {
+    ok = lc_a0
+      && (typ_isa(a0, TBI_ANY_MREF)
+          || typ_isa(a0, TBI_ANY_NMREF));
+  } else if (typ_equal(target0, TBI_CMMREF)) {
+    ok = lc_a0
+      && (typ_equal(a0, TBI_CMMREF)
+          || typ_equal(a0, TBI_CNMMREF));
+  } else if (typ_equal(target0, TBI_CNREF)) {
+    ok = lc_a0
+      && (typ_isa(a0, TBI_ANY_NREF)
+          || typ_isa(a0, TBI_ANY_REF));
+  } else if (typ_equal(target0, TBI_CNMREF)) {
+    ok = lc_a0
+      && (typ_isa(a0, TBI_ANY_NMREF)
+          || typ_isa(a0, TBI_ANY_MREF));
+  } else if (typ_equal(target0, TBI_CNMMREF)) {
+    ok = lc_a0
+      && (typ_equal(a0, TBI_CNMMREF)
+          || typ_equal(a0, TBI_CMMREF));
   }
 
   if (!ok) {
-    e = mk_except_type_unification(mod, for_error, a, target);
+    error e = mk_except_type_unification(mod, for_error, a, target);
     THROW(e);
   }
 
@@ -977,12 +1025,30 @@ static ERROR unify_reference_with_refcompat(struct module *mod, uint32_t flags,
     SWAP_FLAGS(flags);
   }
 
-  if (typ_equal(a, TBI_ANY_ANY_REF) || typ_equal(b, TBI_ANY_ANY_REF)) {
+  if (typ_equal(b, TBI_ANY_ANY_REF)) {
     typ_link_tentative(a, b);
     return 0;
   }
 
-  error e = check_reference_compatibility(mod, for_error, a, b);
+  error e;
+  if (typ_equal(b, TBI_ANY_ANY_LOCAL_REF)) {
+    if (!typ_isa(a, TBI_ANY_ANY_LOCAL_REF)) {
+      e = mk_except_type_unification(mod, for_error, a, b);
+      THROW(e);
+    }
+    typ_link_tentative(a, b);
+    return 0;
+  }
+  if (typ_equal(b, TBI_ANY_ANY_COUNTED_REF)) {
+    if (!typ_isa(a, TBI_ANY_ANY_COUNTED_REF)) {
+      e = mk_except_type_unification(mod, for_error, a, b);
+      THROW(e);
+    }
+    typ_link_tentative(a, b);
+    return 0;
+  }
+
+  e = check_reference_compatibility(mod, for_error, a, b);
   EXCEPT(e);
 
   if (typ_equal(a, b)) {
@@ -997,8 +1063,16 @@ static ERROR unify_reference_with_refcompat(struct module *mod, uint32_t flags,
   struct typ *a0 = typ_generic_functor(a);
   struct typ *b0 = typ_generic_functor(b);
   if (typ_definition_which(b0) == DEFINTF && typ_is_tentative(b0)) {
-    e = typ_check_isa(mod, for_error, a0, b0);
-    EXCEPT(e);
+    // If it's a reference intf functor (like `Any_local_nref) it's been
+    // validated by check_reference_compatibility() above, and besides isa
+    // rules don't work for references (they only describe some of the
+    // compatbility relationships, but are missing some, like "Mmref is
+    // refcompat with `Any_local_nref", but Mmref is NOT isa
+    // `Any_local_nref).
+    if (!typ_is_reference(b0)) {
+      e = typ_check_isa(mod, for_error, a0, b0);
+      EXCEPT(e);
+    }
     typ_link_tentative_functor(mod, a0, b0);
   } else if (typ_definition_which(a0) == DEFINTF && typ_is_tentative(a0)) {
     e = typ_check_isa(mod, for_error, b0, a0);

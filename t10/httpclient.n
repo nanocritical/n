@@ -16,14 +16,14 @@ struct handler =
 	copier	:io.Copier
 	buf	:Stringbuf
 
-handler met# On r:#http.Response w:#http.`Request_writer = Error
+handler met@# On r:#http.Response w:#http.`Request_writer = Error
 	if self.state == 0
 		w#Done
 		self#state += 1
 		return OK
 
 	if self.state == 1
-		self#copier#Reset #self#buf #r#Body
+		self#copier#Reset #self#buf r#Body
 		self#state += 1
 
 	let _, fill_err = r#Body#Fill
@@ -40,13 +40,15 @@ handler met# On r:#http.Response w:#http.`Request_writer = Error
 	r#Done close=true
 
 fun Main = Error
-	var poll:ev.Poll
+	var poll = Alloc ev.Poll
 	except = poll#Init
 
-	var client = http.Client.Mk #poll
+	var client = Alloc http.Client
+	client# = http.Client.Mk poll
 
 	let never, url = url.Parse "http://127.0.0.1:8000/t10/httpclient.n"
-	except = client#Initiate_request "GET" url #{}:handler
+	let h = Alloc handler
+	except = client#Initiate_request "GET" url h
 
-	except = ev.Loop #poll
+	except = ev.Loop poll
 -- I SEE MY END!

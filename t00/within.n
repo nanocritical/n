@@ -25,8 +25,8 @@ mye met Prn s:*String
 	Prn 'saying:' s
 
 fun do = I32 within f
-	let f1 = Alloc myf
-	let header = Alloc (Envheader !`f)
+	let f1 = Alloc_uncounted myf
+	let header = Alloc_uncounted (Envheader !`f)
 	header#Env = f1
 	Globalenv_install f header
 
@@ -34,9 +34,9 @@ fun do = I32 within f
 	e.Prn 'function'
 
 	block
-		let f2 = Alloc myf
+		let f2 = Alloc_uncounted myf
 		f2!dummy = 42
-		let header = Alloc (Envheader !`f)
+		let header = Alloc_uncounted (Envheader !`f)
 		header#Env = f2
 		Globalenv_install f header
 		assert f1 === (Dyncast myf) (Globalenv_parent f)
@@ -45,7 +45,7 @@ fun do = I32 within f
 
 	f.prn 'module3'
 
---	let f3 = Alloc myf
+--	let f3 = Alloc_uncounted myf
 --	f3!dummy = 43
 --	within f = f3
 --		f.prn 'module'
@@ -59,8 +59,8 @@ fun do = I32 within f
 	return 0
 
 fun Main = Error
-	let e1 = Alloc mye
-	let header = Alloc (Envheader !`e)
+	let e1 = Alloc_uncounted mye
+	let header = Alloc_uncounted (Envheader !`e)
 	header#Env = e1
 	Globalenv_install e header
 	if 0 != do

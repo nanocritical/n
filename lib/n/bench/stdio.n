@@ -45,12 +45,13 @@ Stdio_mock met# init
 
 	self#derr = #self#werr
 
-Stdio_mock fun Setup ?stdin:?String = ret:this within stdio.Stdio
+Stdio_mock fun Setup ?stdin:?String = ret:@#this within stdio.Stdio
+	ret = Alloc this
 	ret#init
 	if stdin?
 		ret#rin#bin#Cat stdin
-	let header = Alloc (Envheader #stdio.`Stdio)
-	header#Env = #ret
+	let header = Alloc_uncounted (Envheader @#stdio.`Stdio)
+	header#Env = ret
 	Globalenv_install Stdio header
 	ret#installed = true
 

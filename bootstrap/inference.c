@@ -9,6 +9,7 @@
 #include "instantiate.h"
 #include "topdeps.h"
 #include "passfwd.h"
+#include "passbody.h"
 
 static struct typ *create_tentative(struct module *mod, const struct node *for_error,
                                     struct typ *functor) {
@@ -140,6 +141,7 @@ error step_type_mutability_mark(struct module *mod, struct node *node,
                                 void *user, bool *stop) {
   DSTEP(mod, node);
   struct node *first = subs_first(node);
+  struct typ *against = NULL;
 
   switch (node->which) {
   case BIN:
@@ -171,29 +173,17 @@ error step_type_mutability_mark(struct module *mod, struct node *node,
     switch (node->as.UN.operator) {
     case TREFWILDCARD:
     case TREFDOT:
+    case TCREFDOT:
+    case TCREFWILDCARD:
       // no-op
       break;
     case TREFBANG:
-      if (first->typ != NULL) {
-        if (first->which == BIN && !(first->flags & NODE_IS_TYPE)) {
-          error e = typ_check_deref_against_mark(mod, first, TBI__MUTABLE,
-                                                 first->as.BIN.operator);
-          EXCEPT(e);
-        }
-      } else {
-        first->typ = TBI__MUTABLE;
-      }
+    case TCREFBANG:
+      against = TBI__MUTABLE;
       break;
     case TREFSHARP:
-      if (first->typ != NULL) {
-        if (first->which == BIN && !(first->flags & NODE_IS_TYPE)) {
-          error e = typ_check_deref_against_mark(mod, first, TBI__MERCURIAL,
-                                                 first->as.BIN.operator);
-          EXCEPT(e);
-        }
-      } else {
-        first->typ = TBI__MERCURIAL;
-      }
+    case TCREFSHARP:
+      against = TBI__MERCURIAL;
       break;
     default:
       break;
@@ -202,6 +192,18 @@ error step_type_mutability_mark(struct module *mod, struct node *node,
   default:
     assert(false && "Unreached");
     break;
+  }
+
+  if (against != NULL) {
+    if (first->typ != NULL) {
+      if (first->which == BIN && !(first->flags & NODE_IS_TYPE)) {
+        error e = typ_check_deref_against_mark(mod, first, against,
+                                               first->as.BIN.operator);
+        EXCEPT(e);
+      }
+    } else {
+      first->typ = against;
+    }
   }
 
   return 0;
@@ -301,6 +303,34 @@ error reference(struct typ **result,
   return 0;
 }
 
+static struct typ *counted_functor(struct typ *t) {
+  struct typ *t0 = typ_is_generic_functor(t) ? t : typ_generic_functor(t);
+  if (typ_isa(t0, TBI_ANY_COUNTED_REF)) {
+    return t0;
+  }
+
+  if (typ_equal(t0, TBI_ANY_LOCAL_REF)) {
+    return TBI_ANY_COUNTED_REF;
+  } else if (typ_equal(t0, TBI_ANY_LOCAL_NREF)) {
+    return TBI_ANY_COUNTED_NREF;
+  } else if (typ_equal(t0, TBI_REF)) {
+    return TBI_CREF;
+  } else if (typ_equal(t0, TBI_MREF)) {
+    return TBI_CMREF;
+  } else if (typ_equal(t0, TBI_MMREF)) {
+    return TBI_CMMREF;
+  } else if (typ_equal(t0, TBI_NREF)) {
+    return TBI_CNREF;
+  } else if (typ_equal(t0, TBI_NMREF)) {
+    return TBI_CNMREF;
+  } else if (typ_equal(t0, TBI_NMMREF)) {
+    return TBI_CNMMREF;
+  } else {
+    assert(false);
+    return NULL;
+  }
+}
+
 static struct typ *nullable_functor(struct typ *t) {
   struct typ *t0 = typ_is_generic_functor(t) ? t : typ_generic_functor(t);
   if (typ_isa(t0, TBI_ANY_NREF)) {
@@ -311,12 +341,22 @@ static struct typ *nullable_functor(struct typ *t) {
     return TBI_ANY_NREF;
   } else if (typ_equal(t0, TBI_ANY_MREF)) {
     return TBI_ANY_NMREF;
+  } else if (typ_equal(t0, TBI_ANY_LOCAL_REF)) {
+    return TBI_ANY_LOCAL_NREF;
+  } else if (typ_equal(t0, TBI_ANY_LOCAL_MREF)) {
+    return TBI_ANY_LOCAL_NMREF;
   } else if (typ_equal(t0, TBI_REF)) {
     return TBI_NREF;
   } else if (typ_equal(t0, TBI_MREF)) {
     return TBI_NMREF;
   } else if (typ_equal(t0, TBI_MMREF)) {
     return TBI_NMMREF;
+  } else if (typ_equal(t0, TBI_CREF)) {
+    return TBI_CNREF;
+  } else if (typ_equal(t0, TBI_CMREF)) {
+    return TBI_CNMREF;
+  } else if (typ_equal(t0, TBI_CMMREF)) {
+    return TBI_CNMMREF;
   } else {
     assert(false);
     return NULL;
@@ -333,12 +373,22 @@ static struct typ *nonnullable_functor(struct typ *t) {
     return TBI_ANY_REF;
   } else if (typ_equal(t0, TBI_ANY_NMREF)) {
     return TBI_ANY_MREF;
+  } else if (typ_equal(t0, TBI_ANY_LOCAL_NREF)) {
+    return TBI_ANY_LOCAL_REF;
+  } else if (typ_equal(t0, TBI_ANY_LOCAL_NMREF)) {
+    return TBI_ANY_LOCAL_MREF;
   } else if (typ_equal(t0, TBI_NREF)) {
     return TBI_REF;
   } else if (typ_equal(t0, TBI_NMREF)) {
     return TBI_MREF;
   } else if (typ_equal(t0, TBI_NMMREF)) {
     return TBI_MMREF;
+  } else if (typ_equal(t0, TBI_CNREF)) {
+    return TBI_CREF;
+  } else if (typ_equal(t0, TBI_CNMREF)) {
+    return TBI_CMREF;
+  } else if (typ_equal(t0, TBI_CNMMREF)) {
+    return TBI_CMMREF;
   } else {
     assert(false);
     return NULL;
@@ -348,6 +398,8 @@ static struct typ *nonnullable_functor(struct typ *t) {
 struct wildcards {
   enum token_type ref;
   enum token_type nulref;
+  enum token_type cref;
+  enum token_type nulcref;
   enum token_type deref;
   enum token_type acc;
 };
@@ -356,20 +408,28 @@ static void fill_wildcards(struct wildcards *w, struct typ *r0) {
   if (typ_equal(r0, TBI_REF)
       || typ_equal(r0, TBI_NREF)
       || typ_equal(r0, TBI_ANY_REF)
-      || typ_equal(r0, TBI_ANY_NREF)) {
+      || typ_equal(r0, TBI_ANY_NREF)
+      || typ_equal(r0, TBI_ANY_LOCAL_REF)
+      || typ_equal(r0, TBI_ANY_LOCAL_NREF)) {
     w->ref = TREFDOT;
     w->nulref = TNULREFDOT;
+    w->cref = TCREFDOT;
+    w->nulcref = TNULCREFDOT;
     w->deref = TDEREFDOT;
     w->acc = TDOT;
   } else if (typ_equal(r0, TBI_MREF) || typ_equal(r0, TBI_NMREF)) {
     w->ref = TREFBANG;
     w->nulref = TNULREFBANG;
+    w->cref = TCREFBANG;
+    w->nulcref = TNULCREFBANG;
     w->deref = TDEREFBANG;
     w->acc = TBANG;
   } else if (typ_equal(r0, TBI_MMREF)
              || typ_equal(r0, TBI_NMMREF)) {
     w->ref = TREFSHARP;
     w->nulref = TNULREFSHARP;
+    w->cref = TCREFSHARP;
+    w->nulcref = TNULCREFSHARP;
     w->deref = TDEREFSHARP;
     w->acc = TSHARP;
   } else {
@@ -432,10 +492,23 @@ not_wildcard_fun:
         *rop = ww->ref;
       }
       break;
+    case TCREFWILDCARD:
+      __break();
+      if (!reject_wildcard) {
+        *rop = ww->cref;
+        *r0 = counted_functor(*r0);
+      }
+      break;
     case TNULREFWILDCARD:
       if (!reject_wildcard) {
         *rop = ww->nulref;
         *r0 = nullable_functor(*r0);
+      }
+      break;
+    case TNULCREFWILDCARD:
+      if (!reject_wildcard) {
+        *rop = ww->nulcref;
+        *r0 = counted_functor(nullable_functor(*r0));
       }
       break;
     case TDEREFWILDCARD:
@@ -568,7 +641,7 @@ static ERROR insert_automagic_de(struct node **r,
       && expr->which == UN
       && expr->as.UN.operator == TREFDOT
       && expr->as.UN.is_explicit) {
-    error e = mk_except_type(mod, expr, "explicit '@' operators are not"
+    error e = mk_except_type(mod, expr, "explicit '*' operators are not"
                              " allowed for unqualified const references");
     THROW(e);
   }
@@ -645,7 +718,13 @@ static ERROR nullable_op(enum token_type *r,
     THROW(e);
   }
 
-  if (typ_equal(t0, TBI_MMREF)) {
+  if (typ_equal(t0, TBI_CMMREF)) {
+    *r = TNULCREFSHARP;
+  } else if (typ_equal(t0, TBI_CMREF)) {
+    *r = TNULCREFBANG;
+  } else if (typ_equal(t0, TBI_CREF)) {
+    *r = TNULCREFDOT;
+  } else if (typ_equal(t0, TBI_MMREF)) {
     *r = TNULREFSHARP;
   } else if (typ_isa(t0, TBI_ANY_MREF)) {
     *r = TNULREFBANG;
@@ -679,6 +758,12 @@ static ERROR nonnullable_op(enum token_type *r,
     *r = TREFBANG;
   } else if (typ_isa(t0, TBI_ANY_NREF)) {
     *r = TREFDOT;
+  } else if (typ_equal(t0, TBI_NMMREF)) {
+    *r = TCREFSHARP;
+  } else if (typ_isa(t0, TBI_ANY_NMREF)) {
+    *r = TCREFBANG;
+  } else if (typ_isa(t0, TBI_ANY_NREF)) {
+    *r = TCREFDOT;
   } else {
     assert(false);
   }
@@ -824,6 +909,14 @@ rewrote_op:
     // FIXME: it's not OK to take a mutable reference of:
     //   fun foo p:@t = void
     //     let mut = @!(p.)
+    if ((rop == TCREFDOT || rop == TCREFBANG || rop == TCREFSHARP || rop == TCREFWILDCARD)
+        && !(term->flags & NODE_IS_TYPE)) {
+      e = mk_except_type(mod, node,
+                         "counted reference specifiers (@ @! @# @$)"
+                         " can only be applied to types, not values (hint: see Borrow)");
+      THROW(e);
+    }
+
     e = reference_functor(&i, mod, node, rfunctor, term->typ);
     EXCEPT(e);
     set_typ(&node->typ, i);
@@ -1857,6 +1950,10 @@ static enum token_type accop_for_refop[] = {
   [TREFBANG] = TBANG,
   [TREFSHARP] = TSHARP,
   [TREFWILDCARD] = TWILDCARD,
+  [TCREFDOT] = TDOT,
+  [TCREFBANG] = TBANG,
+  [TCREFSHARP] = TSHARP,
+  [TCREFWILDCARD] = TWILDCARD,
 };
 
 static enum token_type derefop_for_accop[] = {
@@ -1890,10 +1987,17 @@ struct node *expr_ref(struct module *mod, struct node *par,
 static ERROR rewrite_self(struct module *mod, struct node *node,
                           struct node *old_fun) {
   assert(old_fun->which == BIN);
+  const ident name_old_fun = typ_definition_ident(old_fun->typ);
 
   struct node *old_self = subs_first(old_fun);
   struct node *self;
-  if (typ_is_reference(old_self->typ)) {
+  if (typ_is_reference(old_self->typ)
+      // We don't want those coming from autointf.c
+      && !(typ_is_counted_reference(old_self->typ)
+           && old_fun->as.BIN.is_operating_on_counted_ref
+           && (name_old_fun == ID_DTOR
+               || name_old_fun == ID_MOVE
+               || name_old_fun == ID_COPY_CTOR))) {
     node_subs_remove(old_fun, old_self);
     node_subs_insert_after(node, subs_first(node), old_self);
     self = old_self;
@@ -1906,13 +2010,21 @@ static ERROR rewrite_self(struct module *mod, struct node *node,
     self = s;
   }
 
-  const struct node *except[] = { old_self, NULL };
-  error e = catchup(mod, except, self, CATCHUP_BELOW_CURRENT);
-  EXCEPT(e);
+  if (self != old_self) {
+    const struct node *except[] = { old_self, NULL };
+    error e = catchup(mod, except, self, CATCHUP_BELOW_CURRENT);
+    EXCEPT(e);
+  }
 
-  if (typ_is_reference(self->typ)) {
-    e = typ_check_can_deref(mod, old_fun, self->typ,
-                            derefop_for_accop[old_fun->as.BIN.operator]);
+  if (typ_is_counted_reference(self->typ)
+      && (name_old_fun == ID_DTOR
+          || name_old_fun == ID_MOVE
+          || name_old_fun == ID_COPY_CTOR)) {
+    // No need to check, only Move, Copy_Ctor, Dtor operating directly on a
+    // counted reference could have made it here.
+  } else if (typ_is_reference(self->typ)) {
+    error e = typ_check_can_deref(mod, old_fun, self->typ,
+                                  derefop_for_accop[old_fun->as.BIN.operator]);
     EXCEPT(e);
   }
 
@@ -1930,12 +2042,22 @@ static bool compare_ref_depth(const struct typ *target, const struct typ *arg,
   int dtarget = 0;
   while (typ_is_reference(target)) {
     dtarget += 1;
+    if (typ_equal(target, TBI_ANY_ANY_REF)
+        || typ_equal(target, TBI_ANY_ANY_LOCAL_REF)
+        || typ_equal(target, TBI_ANY_ANY_COUNTED_REF)) {
+      break;
+    }
     target = typ_generic_arg_const(target, 0);
   }
 
   int darg = 0;
   while (typ_is_reference(arg)) {
     darg += 1;
+    if (typ_equal(arg, TBI_ANY_ANY_REF)
+        || typ_equal(arg, TBI_ANY_ANY_LOCAL_REF)
+        || typ_equal(arg, TBI_ANY_ANY_COUNTED_REF)) {
+      break;
+    }
     arg = typ_generic_arg_const(arg, 0);
 
     if (typ_equal(arg, TBI_LITERALS_NIL)) {
@@ -2261,9 +2383,26 @@ static ERROR link_wildcard_generics(struct module *mod, struct typ *i,
                                     struct node *call) {
   error e;
   if (typ_definition_which(i) == DEFMETHOD
-      && typ_definition_defmethod_access(i) == TREFWILDCARD) {
-    struct typ *self = subs_at(call, 1)->typ;
+      && typ_definition_defmethod_access_is_wildcard(i)) {
+    struct node *self_node = subs_at(call, 1);
+    struct typ *self = self_node->typ;
     struct typ *self0 = typ_generic_functor(self);
+
+    struct node *self_def = NULL;
+    struct typ *pre_conv_cref0 = NULL;
+    if (self_node->which == IDENT
+        && (self_def = self_node->as.IDENT.def)->which == DEFNAME
+        && self_def->which == DEFNAME
+        && self_def->as.DEFNAME.ssa_user == self_node) {
+      struct node *self_expr = subs_last(self_def);
+      if (self_expr->which == CONV) {
+        struct typ *pre_conv = subs_first(self_expr)->typ;
+        if (typ_is_counted_reference(pre_conv)) {
+          // See implicit_function_instantiation() CONV early insertion.
+          pre_conv_cref0 = typ_generic_functor(pre_conv);
+        }
+      }
+    }
 
     struct typ *wildcard = typ_definition_defmethod_wildcard_functor(i);
     struct typ *self_wildcard = typ_definition_defmethod_self_wildcard_functor(i);
@@ -2274,10 +2413,36 @@ static ERROR link_wildcard_generics(struct module *mod, struct typ *i,
     // Update after the link.
     self_wildcard = typ_definition_defmethod_self_wildcard_functor(i);
 
+    if (pre_conv_cref0 != NULL) {
+      struct typ *ref0 = NULL;
+      if (typ_equal(pre_conv_cref0, TBI_CREF)) {
+        ref0 = TBI_REF;
+      } else if (typ_equal(pre_conv_cref0, TBI_CMREF)) {
+        ref0 = TBI_MREF;
+      } else if (typ_equal(pre_conv_cref0, TBI_CMMREF)) {
+        ref0 = TBI_MMREF;
+      } else if (typ_equal(pre_conv_cref0, TBI_CNREF)) {
+        ref0 = TBI_NREF;
+      } else if (typ_equal(pre_conv_cref0, TBI_CNMREF)) {
+        ref0 = TBI_NMREF;
+      } else if (typ_equal(pre_conv_cref0, TBI_CNMMREF)) {
+        ref0 = TBI_NMMREF;
+      }
+
+      e = unify(mod, call, self_wildcard, ref0);
+      EXCEPT(e);
+      self_wildcard = typ_definition_defmethod_self_wildcard_functor(i);
+    }
+
     if ((typ_toplevel_flags(i) & TOP_IS_SHALLOW) && typ_equal(self0, TBI_MREF)) {
       e = unify(mod, call, wildcard, TBI_MMREF);
       EXCEPT(e);
       e = unify(mod, call, nullable_wildcard, TBI_NMMREF);
+      EXCEPT(e);
+    } else if ((typ_toplevel_flags(i) & TOP_IS_SHALLOW) && typ_equal(self0, TBI_CMREF)) {
+      e = unify(mod, call, wildcard, TBI_CMMREF);
+      EXCEPT(e);
+      e = unify(mod, call, nullable_wildcard, TBI_CNMMREF);
       EXCEPT(e);
     } else {
       e = unify(mod, call, wildcard, self_wildcard);
@@ -2288,7 +2453,7 @@ static ERROR link_wildcard_generics(struct module *mod, struct typ *i,
       EXCEPT(e);
     }
   } else if (typ_definition_which(i) == DEFFUN
-             && typ_definition_deffun_access(i) == TREFWILDCARD) {
+             && typ_definition_deffun_access_is_wildcard(i)) {
     struct typ *wildcard = typ_definition_deffun_wildcard_functor(i);
     struct typ *nullable_wildcard = typ_definition_deffun_nullable_wildcard_functor(i);
 
@@ -2322,7 +2487,41 @@ static ERROR implicit_function_instantiation(struct module *mod, struct node *no
 
   size_t n = 0;
   FOREACH_SUB_EVERY(s, node, 1, 1) {
-    e = unify_refcompat(mod, s, typ_function_arg(*i, n), s->typ);
+    struct typ *arg = typ_function_arg(*i, n);
+
+    if (typ_isa(arg, TBI_ANY_LOCAL_REF)
+        && typ_is_counted_reference(s->typ)) {
+      // We need to insert any necessary CONV now. Consider the case
+      //    function foo s:@Stringbuf = []U8
+      //      return s.Bytes
+      // Stringbuf.Bytes is a wildcard method on uncounted references. The
+      // unify_refcompat() below would try to unify the (`Any_local_ref Stringbuf)
+      // from the wildcard with the type of s:(Cref Stringbuf). While these
+      // two references are indeed (ref-)compatible, we do not want to unify
+      // `Any_local_ref to Cref, as Bytes is met$, not met@$ or met$@$.
+      //
+      // CONV are usually inserted much later, after inference. In this case
+      // we need to do it right away.
+      //
+      // The unification of the reference functors on both sides of the CONV
+      // is completed in link_wildcard_generics().
+
+      // First unify the arguments themselves.
+      e = unify(mod, s, typ_generic_arg(arg, 0), typ_generic_arg(s->typ, 0));
+      EXCEPT(e);
+      // May have changed:
+      arg = typ_function_arg(*i, n);
+
+      struct node *expr = s;
+      e = insert_conv(&expr, mod, node, arg);
+      EXCEPT(e);
+
+      s = expr;
+      // May have changed:
+      arg = typ_function_arg(*i, n);
+    }
+
+    e = unify_refcompat(mod, s, arg, s->typ);
     EXCEPT(e);
 
     n += 1;
@@ -2381,12 +2580,15 @@ static ERROR type_inference_explicit_unary_call(struct module *mod, struct node 
     THROW(e);
   }
 
-  if (typ_definition_which(*ft) == DEFMETHOD) {
+  enum node_which ft_which = typ_definition_which(*ft);
+  const ident ft_name = typ_definition_ident(*ft);
+  if (ft_which == DEFMETHOD) {
     struct node *self = subs_at(node, 1);
+
     error e = unify_refcompat(mod, self, typ_function_arg(*ft, 0), self->typ);
     EXCEPT(e);
 
-    if (typ_definition_ident(*ft) == ID_MOVE) {
+    if (ft_name == ID_MOVE) {
       // FIXME(e): Properly detect that it's actually `Any.Move
       node->flags |= NODE_IS_MOVE_TARGET;
     }
@@ -2980,6 +3182,18 @@ static enum token_type refop_for_typ(struct typ *r) {
     return TNULREFBANG;
   } else if (r0 == TBI_NMMREF) {
     return TNULREFSHARP;
+  } else if (r0 == TBI_CREF) {
+    return TCREFDOT;
+  } else if (r0 == TBI_CMREF) {
+    return TCREFBANG;
+  } else if (r0 == TBI_CMMREF) {
+    return TCREFSHARP;
+  } else if (r0 == TBI_CNREF) {
+    return TNULCREFDOT;
+  } else if (r0 == TBI_CNMREF) {
+    return TNULCREFBANG;
+  } else if (r0 == TBI_CNMMREF) {
+    return TNULCREFSHARP;
   }
   return 0;
 }
@@ -3315,9 +3529,9 @@ error step_type_inference(struct module *mod, struct node *node,
     e = type_inference_try(mod, node);
     EXCEPT(e);
     break;
-  case DYN:
+  case CONV:
     assert(typ_is_reference(subs_first(node)->typ));
-    set_typ(&node->typ, node->as.DYN.intf_typ);
+    set_typ(&node->typ, node->as.CONV.to);
     break;
   case TYPECONSTRAINT:
     e = type_inference_typeconstraint(mod, node);

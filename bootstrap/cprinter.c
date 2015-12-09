@@ -318,6 +318,31 @@ static bool ident_is_spurious_ssa_var(const struct node *node) {
     && node->as.IDENT.def->as.DEFNAME.ssa_user != NULL;
 }
 
+static void print_bin_sym_ptr_term(struct out *out, const struct module *mod,
+                                   const struct node *term, uint32_t op) {
+
+  if (typ_is_counted_reference(term->typ)) {
+    pf(out, "(");
+    print_typ(out, mod, typ_generic_arg_const(term->typ, 0));
+    pf(out, "*)");
+  }
+
+  if (typ_is_dyn(term->typ) && term->which != NIL) {
+    pf(out, "(");
+    print_expr(out, mod, term, op);
+    pf(out, ").ref");
+    if (typ_is_counted_reference(term->typ)) {
+      pf(out, ".ref");
+    }
+  } else if (typ_is_counted_reference(term->typ)) {
+    pf(out, "(");
+    print_expr(out, mod, term, op);
+    pf(out, ").ref");
+  } else {
+    print_expr(out, mod, term, op);
+  }
+}
+
 static void print_bin_sym(struct out *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   const uint32_t op = node->as.BIN.operator;
   const struct node *left = subs_first_const(node);
@@ -336,21 +361,9 @@ static void print_bin_sym(struct out *out, const struct module *mod, const struc
              && !typ_isa(right->typ, TBI_RETURN_BY_COPY)) {
     print_expr(out, mod, right, T__STATEMENT);
   } else if (op == TEQPTR || op == TNEPTR) {
-    if (typ_is_dyn(left->typ) && left->which != NIL) {
-      pf(out, "(");
-      print_expr(out, mod, left, op);
-      pf(out, ").obj");
-    } else {
-      print_expr(out, mod, left, op);
-    }
+    print_bin_sym_ptr_term(out, mod, left, op);
     print_token(out, op);
-    if (typ_is_dyn(right->typ) && right->which != NIL) {
-      pf(out, "(");
-      print_expr(out, mod, right, op);
-      pf(out, ").obj");
-    } else {
-      print_expr(out, mod, right, op);
-    }
+    print_bin_sym_ptr_term(out, mod, right, op);
   } else {
     const bool is_assign = OP_IS_ASSIGN(op);
     if (is_assign) {
@@ -434,9 +447,22 @@ static void print_bin_acc(struct out *out, const struct module *mod,
     bare_print_typ(out, mod, base->typ);
     pf(out, "$%s", name_s);
   } else {
+    bool need_cast = false;
     const char *deref = ".";
-    if (typ_is_reference(base->typ)) {
+    if (typ_is_dyn(base->typ) && typ_is_counted_reference(base->typ)) {
+      need_cast = true;
+      deref = ".ref.ref)->";
+    } else if (typ_is_counted_reference(base->typ)) {
+      need_cast = true;
+      deref = ".ref)->";
+    } else if (typ_is_reference(base->typ)) {
       deref = "->";
+    }
+
+    if (need_cast) {
+      pf(out, "((");
+      print_typ(out, mod, typ_generic_arg_const(base->typ, 0));
+      pf(out, "*) ");
     }
     print_expr(out, mod, base, op);
     pf(out, "%s", deref);
@@ -528,7 +554,16 @@ static void print_un(struct out *out, const struct module *mod, const struct nod
       if (typ_is_dyn(term->typ)) {
         pf(out, "(");
         print_expr(out, mod, term, parent_op);
-        pf(out, ").obj != NULL");
+        pf(out, ").ref");
+        if (typ_is_counted_reference(term->typ)) {
+          pf(out, ".ref");
+        }
+        pf(out, " != NULL");
+      } else if (typ_is_counted_reference(term->typ)) {
+        pf(out, "(");
+        print_expr(out, mod, term, parent_op);
+        pf(out, ").ref");
+        pf(out, " != NULL");
       } else if (typ_is_reference(term->typ)) {
         pf(out, "(");
         print_expr(out, mod, term, parent_op);
@@ -571,6 +606,10 @@ static void print_un(struct out *out, const struct module *mod, const struct nod
   case OP_UN_DEREF:
     if (node->flags & NODE_IS_TYPE) {
       print_typ(out, mod, term->typ);
+    } else if (typ_is_counted_reference(term->typ)) {
+      pf(out, "(*(");
+      print_expr(out, mod, term, op);
+      pf(out, ").ref)");
     } else {
       pf(out, "(*");
       print_expr(out, mod, term, op);
@@ -714,11 +753,23 @@ static bool callconv_callees(const struct typ *t) {
 
 static void print_defer_dtor_callees(struct out *out, const struct module *mod,
                                      const struct node *arg) {
-  pf(out, "NLANG_DEFER_VIA_REF(");
-  struct tit *it = typ_definition_one_member(arg->typ, ID_DTOR);
-  print_typ(out, mod, tit_typ(it));
-  tit_next(it);
-  pf(out, "__$Ndynwrapper, " CALLCONV_CALLEES_PREFIX);
+  if (typ_is_counted_reference(arg->typ)) {
+    pf(out, "NLANG_DEFER_VIA_CREF(");
+  } else {
+    pf(out, "NLANG_DEFER_VIA_REF(");
+  }
+
+  if (typ_is_counted_reference(arg->typ) && typ_is_dyn(arg->typ)) {
+    pf(out, "n$builtins$__cdyn_dtor, ");
+  } else if (typ_is_counted_reference(arg->typ)) {
+    pf(out, "n$builtins$__cref_dtor, ");
+  } else {
+    struct tit *it = typ_definition_one_member(arg->typ, ID_DTOR);
+    print_typ(out, mod, tit_typ(it));
+    tit_next(it);
+    pf(out, "__$Ndynwrapper, " CALLCONV_CALLEES_PREFIX);
+  }
+
   print_expr(out, mod, subs_first_const(arg), T__CALL);
   pf(out, ");\n");
 }
@@ -749,39 +800,112 @@ static void print_call(struct out *out, const struct module *mod,
     print_typ(out, mod, node->typ);
     pf(out, ")(");
     const struct node *expr = subs_at_const(node, 1);
-    if (typ_is_dyn(expr->typ)) {
+    if (typ_is_dyn(expr->typ) || typ_is_counted_reference(expr->typ)) {
       pf(out, "(");
       print_expr(out, mod, expr, T__CALL);
-      pf(out, ").obj");
+      pf(out, ").ref");
+      if (typ_is_dyn(expr->typ) && typ_is_counted_reference(expr->typ)) {
+        pf(out, ".ref");
+      }
     } else {
       print_expr(out, mod, expr, T__CALL);
     }
     pf(out, ")");
     return;
+  } else if (name == ID_DEBUG_REFERENCE_COUNT) {
+    const struct node *expr = subs_at_const(node, 1);
+    pf(out, "(");
+    print_typ(out, mod, node->typ);
+    pf(out, ")((");
+    print_expr(out, mod, expr, T__CALL);
+    pf(out, ").cnt == NULL ? 0 : (*(");
+    print_expr(out, mod, expr, T__CALL);
+    pf(out, ").cnt - 1))");
+    return;
+  } else if (name == ID_UNSAFE_ACQUIRE) {
+    const struct node *expr = subs_at_const(node, 1);
+    const struct node *rtr = node->as.CALL.return_through_ref_expr;
+    if (typ_is_dyn(expr->typ)) {
+      pf(out, "NLANG_CDYN_Acquire(");
+    } else {
+      pf(out, "NLANG_CREF_Acquire(");
+    }
+    print_expr(out, mod, expr, T__CALL);
+    pf(out, ", &(");
+    print_expr(out, mod, rtr, T__CALL);
+    pf(out, "))");
+    return;
+  } else if (name == ID_UNSAFE_RELEASE) {
+    const struct node *expr = subs_at_const(node, 1);
+    if (typ_is_dyn(expr->typ)) {
+      pf(out, "NLANG_CDYN_Release(");
+    } else {
+      pf(out, "NLANG_CREF_Release(");
+    }
+    print_typ(out, mod, node->typ);
+    pf(out, ", &(");
+    print_expr(out, mod, expr, T__CALL);
+    pf(out, "))");
+    return;
+  } else if ((name == ID_COPY_CTOR || name == ID_MOVE || name == ID_DTOR)
+             && typ_is_reference(subs_at_const(node, 1)->typ)
+             && typ_is_counted_reference(typ_generic_arg(subs_at_const(node, 1)->typ, 0))
+             && typ_is_dyn(typ_generic_arg(subs_at_const(node, 1)->typ, 0))) {
+    const struct node *self = subs_at_const(node, 1);
+    pf(out, "NLANG_CDYN_%s(", idents_value(mod->gctx, name));
+    print_expr(out, mod, self, T__CALL);
+    if (name == ID_COPY_CTOR) {
+      pf(out, ", ");
+      print_expr(out, mod, subs_at_const(node, 2), T__CALL);
+    } else if (name == ID_MOVE) {
+      pf(out, ", &(");
+      print_expr(out, mod, node->as.CALL.return_through_ref_expr, T__CALL);
+      pf(out, ")");
+    }
+    pf(out, ")");
+    return;
   } else if (name == ID_DYNCAST) {
     const struct typ *i = typ_generic_arg_const(tfun, 0);
+    const struct node *arg = subs_at_const(node, 1);
     if (typ_definition_which(i) == DEFINTF) {
       // Result is dyn.
-      pf(out, "NLANG_MKDYN(struct _$Ndyn_");
+      if (typ_is_counted_reference(arg->typ)) {
+        const struct node *rtr = node->as.CALL.return_through_ref_expr;
+        pf(out, "(");
+        print_expr(out, mod, rtr, T__CALL);
+        pf(out, ") = NLANG_MKCDYN(struct _$Ncdyn_");
+      } else {
+        pf(out, "NLANG_MKDYN(struct _$Ndyn_");
+      }
       bare_print_typ(out, mod, i);
       pf(out, ", n$reflect$Get_dyntable_for((void *)(");
-      print_expr(out, mod, subs_at_const(node, 1), T__CALL);
+      print_expr(out, mod, arg, T__CALL);
       pf(out, ").dyntable, (void *)&");
       bare_print_typ_actual(out, mod, i);
       pf(out, "$Reflect_type), (");
-      print_expr(out, mod, subs_at_const(node, 1), T__CALL);
-      pf(out, ").obj)");
+      print_expr(out, mod, arg, T__CALL);
+      pf(out, ").ref)");
     } else {
       // Result is DEFTYPE.
       pf(out, "(n$reflect$Get_dyntable_for((void *)(");
-      print_expr(out, mod, subs_at_const(node, 1), T__CALL);
+      print_expr(out, mod, arg, T__CALL);
       pf(out, ").dyntable, (void *)&");
       bare_print_typ_actual(out, mod, i);
       pf(out, "$Reflect_type) != NULL ? (");
-      print_typ(out, mod, i);
-      pf(out, " *)(");
-      print_expr(out, mod, subs_at_const(node, 1), T__CALL);
-      pf(out, ").obj : NULL)");
+      if (typ_is_counted_reference(arg->typ)) {
+        pf(out, "NLANG_CREF_CAST(");
+        print_typ(out, mod, node->typ);
+        pf(out, ", NLANG_CREF_INCR((");
+        print_expr(out, mod, arg, T__CALL);
+        pf(out, ").ref))) : (");
+        print_typ(out, mod, node->typ);
+        pf(out, ") { 0 })");
+      } else {
+        print_typ(out, mod, i);
+        pf(out, " *)(");
+        print_expr(out, mod, arg, T__CALL);
+        pf(out, ").ref : NULL)");
+      }
     }
     return;
   } else if (name == ID_NEXT && typ_isa(parentd->typ, TBI_VARARG)) {
@@ -814,8 +938,13 @@ static void print_call(struct out *out, const struct module *mod,
 
   if (parentd->which == DEFINTF) {
     if (dfun->which == DEFMETHOD) {
-      print_expr(out, mod, call_dyn_expr(node), T__CALL);
-      pf(out, ".obj");
+      const struct node *a = call_dyn_expr(node);
+      print_expr(out, mod, a, T__CALL);
+      pf(out, ".ref");
+      if (typ_is_counted_reference(a->typ)
+          && !typ_is_counted_reference(typ_function_arg_const(tfun, 0))) {
+        pf(out, ".ref");
+      }
       n = 2;
     }
   }
@@ -828,7 +957,8 @@ static void print_call(struct out *out, const struct module *mod,
 
     print_call_vararg_count(&did_retval_throughref, out, mod, dfun, node, arg, n - 1);
 
-    if (callconv_callees(arg->typ)) {
+    if ((dfun->which != DEFMETHOD || n > 1 /* i.e. not for self */)
+        && callconv_callees(arg->typ)) {
       pf(out, "&");
     }
 
@@ -1046,43 +1176,75 @@ static void print_ident(struct out *out, const struct module *mod, const struct 
   print_ident_locally_shadowed(out, node->as.IDENT.def);
 }
 
-static void print_dyn(struct out *out, const struct module *mod, const struct node *node) {
+static void print_conv(struct out *out, const struct module *mod, const struct node *node) {
   const struct node *arg = subs_first_const(node);
-  const struct typ *intf = typ_generic_arg_const(node->typ, 0);
 
-  if (typ_is_dyn(arg->typ)) {
-    pf(out, "NLANG_MKDYN(struct _$Ndyn_");
+  if (typ_is_dyn(node->typ) && typ_is_dyn(arg->typ)) {
+    const struct typ *intf = typ_generic_arg_const(node->typ, 0);
+      if (typ_is_counted_reference(node->typ)) {
+        assert(typ_is_counted_reference(arg->typ));
+        pf(out, "NLANG_MKCDYN(struct _$Ncdyn_");
+      } else {
+        pf(out, "NLANG_MKDYN(struct _$Ndyn_");
+      }
+      bare_print_typ(out, mod, intf);
+      pf(out, ", n$reflect$Get_dyntable_for((void *)(");
+      print_expr(out, mod, arg, T__CALL);
+      pf(out, ").dyntable, (void *)&");
+      bare_print_typ_actual(out, mod, intf);
+      pf(out, "$Reflect_type), (");
+      print_expr(out, mod, arg, T__CALL);
+      pf(out, ").ref");
+      if (typ_is_counted_reference(arg->typ) && !typ_is_counted_reference(node->typ)) {
+        pf(out, ".ref");
+      }
+      pf(out, ")");
+      return;
+
+  } else if (typ_is_dyn(node->typ)) {
+    const struct typ *intf = typ_generic_arg_const(node->typ, 0);
+    const struct typ *concrete = typ_generic_arg_const(arg->typ, 0);
+    if (typ_is_counted_reference(node->typ)) {
+      assert(typ_is_counted_reference(arg->typ));
+      pf(out, "NLANG_MKCDYN(struct _$Ncdyn_");
+    } else {
+      pf(out, "NLANG_MKDYN(struct _$Ndyn_");
+    }
     bare_print_typ(out, mod, intf);
-    pf(out, ", n$reflect$Get_dyntable_for((void *)(");
-    print_expr(out, mod, arg, T__CALL);
-    pf(out, ").dyntable, (void *)&");
+    pf(out, ", &");
+    bare_print_typ_actual(out, mod, concrete);
+    pf(out, "$Dyntable__");
     bare_print_typ_actual(out, mod, intf);
-    pf(out, "$Reflect_type), (");
+    pf(out, ", ");
+    if (!typ_is_counted_reference(arg->typ)) {
+      pf(out, "(void *)");
+    }
+    pf(out, "(");
     print_expr(out, mod, arg, T__CALL);
-    pf(out, ").obj)");
+    pf(out, ")");
+    if (typ_is_counted_reference(arg->typ) && !typ_is_counted_reference(node->typ)) {
+      pf(out, ".ref");
+    }
+    pf(out, ")");
     return;
-  }
 
-  const struct typ *concrete = typ_generic_arg_const(arg->typ, 0);
-  pf(out, "NLANG_MKDYN(struct _$Ndyn_");
-  bare_print_typ(out, mod, intf);
-  pf(out, ", &");
-  bare_print_typ_actual(out, mod, concrete);
-  pf(out, "$Dyntable__");
-  bare_print_typ_actual(out, mod, intf);
-  pf(out, ", (void *)");
-  print_expr(out, mod, arg, T__CALL);
-  pf(out, ")");
+  } else if (typ_is_counted_reference(arg->typ)) {
+    assert(!typ_is_counted_reference(node->typ));
+    pf(out, "(void *)(");
+    print_expr(out,mod, arg, T__CALL);
+    pf(out, ").ref");
+
+  } else {
+    assert(false && "unreached");
+  }
 }
 
 static void print_expr(struct out *out, const struct module *mod, const struct node *node, uint32_t parent_op) {
   switch (node->which) {
   case NIL:
-    if (typ_is_dyn(node->typ)) {
-      pf(out, "(");
-      print_typ(out, mod, node->typ);
-      pf(out, "){ NULL, NULL }");
-    } else if (typ_is_reference(node->typ)) {
+    if (typ_is_reference(node->typ)
+        && !typ_is_counted_reference(node->typ)
+        && !typ_is_dyn(node->typ)) {
       pf(out, "NULL");
     } else {
       pf(out, "(");
@@ -1148,8 +1310,8 @@ static void print_expr(struct out *out, const struct module *mod, const struct n
   case INIT:
     print_init(out, mod, node);
     break;
-  case DYN:
-    print_dyn(out, mod, node);
+  case CONV:
+    print_conv(out, mod, node);
     break;
   case BLOCK:
     {
@@ -1422,7 +1584,16 @@ static void print_typ_data(struct out *out, const struct module *mod, const stru
     print_typ_name(out, mod, typ, false);
     return;
   } else if (typ_is_dyn(typ)) {
-    pf(out, "_$Ndyn_");
+    if (typ_is_counted_reference(typ)) {
+      pf(out, "_$Ncdyn_");
+    } else {
+      pf(out, "_$Ndyn_");
+    }
+    print_typ_data(out, mod, typ_generic_arg_const(typ, 0), newtype_override);
+    return;
+  } else if (typ_is_counted_reference(typ)
+             || typ_generic_functor_const(typ) == TBI_CREF_IMPL) {
+    pf(out, "_$Ncref_");
     print_typ_data(out, mod, typ_generic_arg_const(typ, 0), newtype_override);
     return;
   } else if (typ_is_reference(typ)) {
@@ -1464,13 +1635,14 @@ static void bare_print_typ(struct out *out, const struct module *mod, const stru
 
 static void print_typ(struct out *out, const struct module *mod, const struct typ *typ) {
   if (!typ_is_function(typ)
-      && (typ_is_dyn(typ) || !typ_is_reference(typ))
+      && (typ_is_dyn(typ) || typ_is_counted_reference(typ) || !typ_is_reference(typ))
       && !typ_equal(typ, TBI_VOID)
       && (!typ_isa(typ, TBI_NATIVE) || typ_isa(typ, TBI_ANY_TUPLE))
       && (typ_definition_which(typ) != DEFTYPE
           || typ_definition_deftype_kind(typ) != DEFTYPE_ENUM)) {
     pf(out, "struct ");
   }
+
   bare_print_typ(out, mod, typ);
 }
 
@@ -1504,6 +1676,9 @@ static void forward_declare(struct out *out, const struct module *mod,
     pf(out, "\n#define _$Nref_");
     print_deftype_name(out, mod, dd);
     pf(out, " ");
+    if (typ_is_counted_reference(t)) {
+      pf(out, "struct ");
+    }
     print_deftype_name(out, mod, dd);
     pf(out, "*\n#endif\n");
     return;
@@ -1543,9 +1718,17 @@ static void print_defname_linkage(struct out *out, bool difft_mod, enum forward 
 static void print_defer_dtor(struct out *out, const struct module *mod,
                              struct typ *t) {
   pf(out, " NLANG_DEFER(");
-  struct tit *it = typ_definition_one_member(t, ID_DTOR);
-  print_typ(out, mod, tit_typ(it));
-  tit_next(it);
+
+  if (typ_is_counted_reference(t) && typ_is_dyn(t)) {
+    pf(out, "n$builtins$__cdyn_dtor");
+  } else if (typ_is_counted_reference(t)) {
+    pf(out, "n$builtins$__cref_dtor");
+  } else {
+    struct tit *it = typ_definition_one_member(t, ID_DTOR);
+    print_typ(out, mod, tit_typ(it));
+    tit_next(it);
+  }
+
   pf(out, ") ");
 }
 
@@ -1555,8 +1738,10 @@ static void print_defname_cleanup(struct out *out, const struct module *mod,
     return;
   } else if (subs_last_const(node)->flags & NODE_IS_LOCAL_STATIC_CONSTANT) {
     return;
+  } else if (typ_is_counted_reference(node->typ)) {
+    // noop
   } else if (typ_isa(node->typ, TBI_TRIVIAL_DTOR)) {
-    // Includes references.
+    // Includes uncounted references.
     return;
   } else if (node->flags & NODE_IS_CALLEES) {
     return;
@@ -1803,7 +1988,11 @@ static void print_defarg(struct out *out, const struct module *mod, const struct
                          bool return_through_ref, bool dynwrapper) {
   if (return_through_ref) {
     if (DEF(node->typ)->which == DEFINTF) {
-      pf(out, "struct _$Ndyn_");
+      if (typ_is_counted_reference(node->typ)) {
+        pf(out, "struct _$Ncdyn_");
+      } else {
+        pf(out, "struct _$Ndyn_");
+      }
       bare_print_typ(out, mod, node->typ);
     } else {
       print_typ(out, mod, node->typ);
@@ -1905,12 +2094,17 @@ static void print_fun_prototype(struct out *out, bool header, enum forward fwd,
       break;
     }
 
+    const struct node *arg = subs_at_const(funargs, n);
+
     if (n == 0 && proto->which == DEFMETHOD && as_dyn_fun_pointer) {
-      pf(out, "void *self");
+      if (typ_is_counted_reference(arg->typ)) {
+        pf(out, "struct NLANG_CREF() self");
+      } else {
+        pf(out, "void *self");
+      }
       continue;
     }
 
-    const struct node *arg = subs_at_const(funargs, n);
     print_defarg(out, mod, arg, false, as_dynwrapper);
   }
 
@@ -2118,6 +2312,7 @@ static bool do_fun_nonnull_attribute(struct out *out, const struct typ *tfun) {
   for (size_t n = 0, arity = typ_function_arity(tfun); n < arity; ++n) {
     const struct typ *a = typ_function_arg_const(tfun, n);
     if (typ_is_reference(a)
+        && !typ_is_counted_reference(a)
         && !typ_isa(a, TBI_ANY_NREF)
         && !typ_is_dyn(a)) {
       if (count > 0) {
@@ -2243,13 +2438,29 @@ static void print_deffun_dynwrapper(struct out *out, bool header, enum forward f
     if (next_const(arg) == NULL) {
       break;
     }
+    bool need_closing_par = false;
+    if (n == 0) {
+      const struct typ *to_self = typ_function_arg_const(node->typ, 0);
+      if (typ_is_counted_reference(to_self)) {
+        need_closing_par = true;
+        pf(out, "NLANG_CREF_CAST(");
+        print_typ(out, mod, to_self);
+        pf(out, ", NLANG_CREF_INCR(");
+      }
+    }
     if (n > 0) {
       pf(out, ", ");
     }
     if (n == typ_function_first_vararg(node->typ)) {
       pf(out, "NLANG_BUILTINS_VACOUNT_VARARGREF, &");
     }
+
     print_ident(out, mod, subs_first_const(arg));
+
+    if (need_closing_par) {
+      pf(out, "))");
+    }
+
     n += 1;
   }
 
@@ -2349,10 +2560,10 @@ static void print_deffun(struct out *out, bool header, enum forward fwd,
         break;
       }
       if (callconv_callees(arg->typ)) {
-        print_defer_dtor_callees(out, mod, arg);
-
         const char *narg = idents_value(mod->gctx, node_ident(arg));
         pf(out, "#define _Narg_%s (*" CALLCONV_CALLEES_PREFIX "_Narg_%s)\n", narg, narg);
+
+        print_defer_dtor_callees(out, mod, arg);
       }
     }
 
@@ -2559,9 +2770,20 @@ static void print_dyntable_type(struct out *out, bool header, enum forward fwd,
       pf(out, "struct _$Ndyn_");
       print_deftype_name(out, mod, node);
       pf(out, " {\n");
-      // 'obj' comes first so that a dyn can be brutally cast to the
+      // 'ref' comes first so that a dyn can be brutally cast to the
       // underlying pointer.
-      pf(out, "void *obj;\n");
+      pf(out, "void *ref;\n");
+      pf(out, "const struct _$Ndyntable_");
+      bare_print_typ(out, mod, node->typ);
+      pf(out, " *dyntable;\n");
+      pf(out, "};\n");
+
+      pf(out, "struct _$Ncdyn_");
+      print_deftype_name(out, mod, node);
+      pf(out, " {\n");
+      // ref' comes first so that a cdyn can be brutally cast to the
+      // underlying Cref.
+      pf(out, "struct NLANG_CREF() ref;\n");
       pf(out, "const struct _$Ndyntable_");
       bare_print_typ(out, mod, node->typ);
       pf(out, " *dyntable;\n");
@@ -3112,7 +3334,11 @@ static void print_deftype_reference(struct out *out, bool header, enum forward f
   if (typ_is_dyn(d->typ)) {
     prefix = "struct ";
     const struct node *dd = DEF(typ_generic_arg_const(d->typ, 0));
-    pf(out, "struct _$Ndyn_");
+    if (typ_is_counted_reference(d->typ)) {
+      pf(out, "struct _$Ncdyn_");
+    } else {
+      pf(out, "struct _$Ndyn_");
+    }
     print_deftype_name(out, mod, dd);
     pf(out, ";\n");
   } else if (d->which == DEFTYPE && d->as.DEFTYPE.kind == DEFTYPE_ENUM) {
@@ -3150,10 +3376,26 @@ static void print_deftype(struct out *out, bool header, enum forward fwd,
     return;
   }
 
+  if ((typ_is_counted_reference(node->typ) && !typ_is_dyn(node->typ))
+      || typ_has_same_generic_functor(mod, node->typ, TBI_CREF_IMPL)) {
+    if (fwd == FWD_DECLARE_TYPES) {
+      guard_generic(out, header, fwd, mod, node, true);
+      pf(out, "struct ");
+      bare_print_typ(out, mod, node->typ);
+
+      pf(out, " {\n");
+      print_typ(out, mod, typ_generic_arg(node->typ, 0));
+      pf(out, " *ref;\nn$builtins$U32 *cnt;\n};\n");
+      guard_generic(out, header, fwd, mod, node, false);
+    }
+    return;
+  }
+
   if (typ_is_reference(node->typ)) {
     print_deftype_reference(out, header, fwd, mod, node);
     return;
   }
+
 
   if ((fwd != FWD_DECLARE_FUNCTIONS && fwd != FWD_DEFINE_FUNCTIONS)
       && node->as.DEFTYPE.newtype_expr != NULL) {
@@ -3537,7 +3779,7 @@ static void print_module(struct out *out, bool header, const struct module *mod)
       useorder_build(&uorder, mod, header, fwd);
 #if 0
       fprintf(stderr, "%d %s\n", header, mod->filename);
-      if (!header && strcmp(mod->filename, "lib/n/builtins/builtins.n")==0) {
+      if (!header && strcmp(mod->filename, "lib/n/env/env.n")==0) {
         debug_useorder_print(&uorder);
       }
 #endif

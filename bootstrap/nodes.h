@@ -64,7 +64,7 @@ enum node_which {
   JUMP,
   PHI,
   TYPECONSTRAINT,
-  DYN,
+  CONV,
   DEFFUN,
   DEFTYPE,
   DEFINCOMPLETE,
@@ -257,6 +257,7 @@ struct node_string {
 struct node_bin {
   enum token_type operator;
   bool is_generated;
+  bool is_operating_on_counted_ref;
 };
 struct node_un {
   enum token_type operator;
@@ -349,8 +350,8 @@ struct node_phi {
 struct node_typeconstraint {
   bool is_constraint;
 };
-struct node_dyn {
-  struct typ *intf_typ;
+struct node_conv {
+  struct typ *to;
 };
 struct node_deffun {
   struct toplevel toplevel;
@@ -527,7 +528,7 @@ union node_as {
   struct node_jump JUMP;
   struct node_phi PHI;
   struct node_typeconstraint TYPECONSTRAINT;
-  struct node_dyn DYN;
+  struct node_conv CONV;
   struct node_deffun DEFFUN;
   struct node_deftype DEFTYPE;
   struct node_defincomplete DEFINCOMPLETE;
@@ -602,8 +603,8 @@ static inline void node_set_which(struct node *node, enum node_which which) {
   case DIRECTDEF:
     unset_typ(&node->as.DIRECTDEF.typ);
     break;
-  case DYN:
-    unset_typ(&node->as.DYN.intf_typ);
+  case CONV:
+    unset_typ(&node->as.CONV.to);
     break;
   case DEFTYPE:
   case DEFINTF:
@@ -1011,6 +1012,9 @@ enum predefined_idents {
   ID_UNLIKELY,
   ID_NLANG,
   ID_NCODELOC,
+  ID_UNSAFE_ACQUIRE,
+  ID_UNSAFE_RELEASE,
+  ID_DEBUG_REFERENCE_COUNT,
 
   ID_TBI_VOID,
   ID_TBI__FIRST = ID_TBI_VOID,
@@ -1059,12 +1063,27 @@ enum predefined_idents {
   ID_TBI_ANY_MREF,
   ID_TBI_ANY_NREF,
   ID_TBI_ANY_NMREF,
+  ID_TBI_ANY_ANY_LOCAL_REF,
+  ID_TBI_ANY_LOCAL_REF,
+  ID_TBI_ANY_LOCAL_MREF,
+  ID_TBI_ANY_LOCAL_NREF,
+  ID_TBI_ANY_LOCAL_NMREF,
+  ID_TBI_ANY_ANY_COUNTED_REF,
+  ID_TBI_ANY_COUNTED_REF,
+  ID_TBI_ANY_COUNTED_NREF,
   ID_TBI_REF,
   ID_TBI_MREF,
   ID_TBI_MMREF,
   ID_TBI_NREF,
   ID_TBI_NMREF,
   ID_TBI_NMMREF,
+  ID_TBI_CREF,
+  ID_TBI_CMREF,
+  ID_TBI_CMMREF,
+  ID_TBI_CNREF,
+  ID_TBI_CNMREF,
+  ID_TBI_CNMMREF,
+  ID_TBI_CREF_IMPL,
   ID_TBI_VOIDREF,
   ID_TBI_ANY_ANY_SLICE,
   ID_TBI_ANY_SLICE,
@@ -1145,6 +1164,9 @@ enum predefined_idents {
   ID_COPY_CTOR,
   ID_C,
   ID_X,
+  ID_REF,
+  ID_CNT,
+  ID_IMPL,
   ID_NONNIL,
   ID_OTHER,
   ID_FROM_SLICE,

@@ -13,7 +13,7 @@ fun foo v:?*a = I32
 		return 0
 
 fun mk_nullable = ?*I32
-	let r = Alloc I32
+	let r = Alloc_uncounted I32
 	r! = 1
 	return r
 

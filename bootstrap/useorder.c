@@ -109,7 +109,8 @@ static error fwd_declare_types_each(struct module *mod, struct node *node,
 
   if (!is_at_top
       && !(td & (TD_DYN_NEEDS_TYPE | TD_TYPEBODY_NEEDS_TYPE
-                 | TD_FUN_NEEDS_TYPE | TD_FUNBODY_NEEDS_TYPE | TD_FUNBODY_NEEDS_DYNBODY))) {
+                 | TD_FUN_NEEDS_TYPE | TD_FUNBODY_NEEDS_TYPE | TD_FUNBODY_NEEDS_DYNBODY
+                 | TD_ANY_NEEDS_NODE))) {
     return 0;
   }
 
@@ -127,7 +128,7 @@ static error fwd_declare_types_each(struct module *mod, struct node *node,
   bool pop_state = false;
   switch (which) {
   case LET:
-    if (is_at_top) {
+    if (is_at_top || (td & TD_ANY_NEEDS_NODE)) {
       struct node *dd = DEF(subs_first(d)->typ);
       descend(st, dd);
       need(st->uorder, dd);
@@ -504,9 +505,9 @@ void debug_useorder_print(struct useorder *uorder) {
   for (size_t n = 0, count = vecnode_count(&uorder->dependencies); n < count; ++n) {
     struct node **node = vecnode_get(&uorder->dependencies, n);
     if (*node != NULL) {
-      fprintf(stderr, "%s :%s\n",
+      fprintf(stderr, "%s :%s @%p\n",
               (*node)->which == LET ? scope_name(uorder->mod, subs_first(*node)) : "",
-              pptyp(uorder->mod, (*node)->typ));
+              pptyp(uorder->mod, (*node)->typ), (*node)->typ);
     }
   }
   fprintf(stderr, "-- %s %d %s %zu\n", uorder->mod->filename, uorder->header,

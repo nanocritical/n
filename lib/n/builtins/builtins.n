@@ -239,6 +239,8 @@ intf `Any_mslice t:`Any =
 -- of Slice and Mslice: Slice does not need to carry around a cap
 -- field* It's just easier for now as it lets us avoid generating conversion
 -- operations between kinds of slices.
+--
+-- TODO(e): Implement like Cref_impl.
 
 opaque struct Slice t:`Any =
 	isa (`Any_slice t) -- FIXME missing genarg
@@ -1988,7 +1990,7 @@ intf `Slice_compatible t:`Any =
 	fun From_slice c:[]t = final
 
 
-extern inline (fun$ i:`Any j:`Any) Dyncast x:$j = ?$i
+extern inline (fun$@$ i:`Any j:`Any) Dyncast x:$j = ?$i
 
 
 extern inline fun Likely x:Bool = Bool
@@ -2068,6 +2070,7 @@ inline Vararg met Count_left = Uint
 
 
 inline (struct t:`Any) Envheader r:(`Any_ref t) =
+	isa `Not_moveable
 	Env	:r
 	Parent	:?#this
 
@@ -2080,14 +2083,14 @@ inline (struct t:`Any) Envheader r:(`Any_ref t) =
 (fun t:`Any r:(`Any_ref t)) Internal_globalenv_install env:r header:#(Envheader r) where:!?#(Envheader r) where_env:?#r
 	header#Parent = where!
 	where! = header
-	where_env! = header#Env
+	where_env# = header#Env
 
 (fun t:`Any r:(`Any_ref t)) Internal_globalenv_uninstall env:r where:!?#(Envheader r) where_env:?#r
 	where! = (where!)#Parent
 	if (where!)?
-		where_env! = (where!)#Env
+		where_env# = (where!)#Env
 	else
-		where_env! = nil
+		where_env# = nil
 
 -- Rewritten into Internal_* versions by the compiler.
 extern (fun t:`Any_any_ref) Globalenv_installed env:t = Bool
@@ -2212,9 +2215,34 @@ fun Example_except name:String err:Error
 		return
 	Eprn sep="" "Failed example: " name ": " err
 
+
+-- Ensure_* functions are not meant to be called.
+
+fun Ensure_visible_cref_impl_on_u8
+	var dummy = Alloc U8
+	var other = dummy
+	var another = other#Move
+	assert another == 0
+
+	var x = {}:(Cref_impl U8)
+	var y = x
+	var z = y#Move
+	assert z.ref == 0
+	var a = (Cref_impl U8).Acquire nil
+	var b = a#Release
+	assert not b?
+
 let sysheap:mem.Sysheap
-fun ensure_visible_sysheap_dyn = *`Heap
-	return *sysheap
+let sysheap_cnt:U32
+fun Ensure_visible_heap_dyn = dummy:?@`Heap
+	let r = Alloc mem.Sysheap
+	return r
+
+fun Ensure_visible_any_dyn = dummy:?*`Any
+	noop
+fun Ensure_visible_any_cdyn = dummy:?@`Any
+	noop
+
 fun Ensure_visible_example_dtor
 	let ex = {}:bench.Example
 	ex#Dtor

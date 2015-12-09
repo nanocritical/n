@@ -1,5 +1,7 @@
 intf `Any_any_ref =
-	isa `Return_by_copy `Trivial_copy_but_owned `Trivial_dtor
+	isa `Copyable `Moveable `Trivial_ctor `Default_dtor
+intf `Any_any_local_ref =
+	isa `Any_any_ref `Trivial_copy_but_owned `Trivial_dtor `Return_by_copy
 intf `Any_ref t:`Any =
 	isa `Any_any_ref
 intf `Any_mref t:`Any =
@@ -9,16 +11,195 @@ intf `Any_nref t:`Any =
 intf `Any_nmref t:`Any =
 	isa (`Any_nref t) (`Any_mref t)
 
+intf `Any_local_ref t:`Any =
+	isa (`Any_ref t) `Any_any_local_ref
+intf `Any_local_mref t:`Any =
+	isa (`Any_mref t) (`Any_local_ref t)
+intf `Any_local_nref t:`Any =
+	isa (`Any_nref t) (`Any_local_ref t)
+intf `Any_local_nmref t:`Any =
+	isa (`Any_nmref t) (`Any_local_nref t) (`Any_local_mref t)
+
 extern struct Ref t:`Any =
-	isa (`Any_ref t)
+	isa (`Any_local_ref t)
 extern struct Mref t:`Any =
-	isa (`Any_mref t)
+	isa (`Any_local_mref t)
 extern struct Mmref t:`Any =
-	isa (`Any_mref t)
+	isa (`Any_local_mref t)
 
 extern struct Nref t:`Any =
-	isa (`Any_nref t)
+	isa (`Any_local_nref t)
 extern struct Nmref t:`Any =
-	isa (`Any_nmref t)
+	isa (`Any_local_nmref t)
 extern struct Nmmref t:`Any =
-	isa (`Any_nmref t)
+	isa (`Any_local_nmref t)
+
+
+intf `Any_any_counted_ref =
+	isa `Any_any_ref `Not_return_by_copy `Copyable `Moveable
+intf `Any_counted_ref T:`Any =
+	isa `Any_any_counted_ref (`Any_ref T)
+intf `Any_counted_nref T:`Any =
+	isa (`Any_counted_ref T) (`Any_nref T)
+
+inline struct Cref T:`Any =
+	isa (`Any_counted_ref T)
+	impl	:(Cref_impl T)
+inline struct Cmref T:`Any =
+	isa (`Any_mref T) `Any_counted_ref
+	impl	:(Cref_impl T)
+inline struct Cmmref T:`Any =
+	isa (`Any_mref T) `Any_counted_ref
+	impl	:(Cref_impl T)
+
+inline struct Cnref T:`Any =
+	isa (`Any_nref T) `Any_counted_ref
+	impl	:(Cref_impl T)
+inline struct Cnmref T:`Any =
+	isa (`Any_nmref T) `Any_counted_ref
+	impl	:(Cref_impl T)
+inline struct Cnmmref T:`Any =
+	isa (`Any_nmref T) `Any_counted_nref
+	impl	:(Cref_impl T)
+
+-- noop bodies are unused. ncc0 replaces dependencies to these methods by
+-- dependencies to the implementations in Cref_impl. Then codegen rewrites
+-- all uses of Cn?{,m,mm}ref and Cref_impl and their methods to the same
+-- names, so the implemention Cref_impl is shared by all the counted
+-- references.
+inline Cref met# Dtor -> noop
+inline Cref met# Copy_ctor other:*this -> noop
+inline Cref met# Move = other:this -> noop
+inline Cmref met# Dtor -> noop
+inline Cmref met# Copy_ctor other:*this -> noop
+inline Cmref met# Move = other:this -> noop
+inline Cmmref met# Dtor -> noop
+inline Cmmref met# Copy_ctor other:*this -> noop
+inline Cmmref met# Move = other:this -> noop
+inline Cnref met# Dtor -> noop
+inline Cnref met# Copy_ctor other:*this -> noop
+inline Cnref met# Move = other:this -> noop
+inline Cnmref met# Dtor -> noop
+inline Cnmref met# Copy_ctor other:*this -> noop
+inline Cnmref met# Move = other:this -> noop
+inline Cnmmref met# Dtor -> noop
+inline Cnmmref met# Copy_ctor other:*this -> noop
+inline Cnmmref met# Move = other:this -> noop
+
+
+-- Acquires ownership of the local reference.
+-- The memory will be freed if the reference count goes down to 0.
+--
+-- Unsafe: may acquire memory that in fact already has been given an owner.
+extern (fun T:`Any) Unsafe_acquire ref:?#T = r:?@#T
+
+-- Releases ownership of the memory, without freeing it.
+-- The reference count is asserted to be exactly 1.
+--
+-- Unsafe: may introduce a memory leak.
+extern (fun T:`Any) Unsafe_release Cref_impl:?@#T = r:?#T
+
+-- Provides access to the local reference via a counted reference, safely,
+-- without acquiring ownership. It is equivalent to an Unsafe_acquire followed
+-- by a Unsafe_release (when the Borrower is destroyed), but without running
+-- the risk of holding the reference for too long.
+--
+-- Often used this way:
+--
+--	let cr, _ = Borrow r
+-- 	(Borrow r).X0
+--
+-- assigning the Borrower to an anonymous variable (to which normal lifetime
+-- rules for scoped variables apply).
+--
+-- TODO(e): As an optimization, as we know the reference will not escape,
+-- the count could be stored on the stack, to avoid invoking malloc.
+--
+-- TODO(e): autoborrow could be nice, at least once we are able to avoid an
+-- allocation, although there would be an "invisible" runtime assert to
+-- prevent escape of the Cref. Maybe a better approach would be some
+-- syntactic sugar using a "borrow" keyword:
+--
+-- 	foobar (borrow r)
+-- 	// rather than the current:
+-- 	foobar (Borrow r).X0
+--
+(fun T:`Any) Borrow ref:*T = r:@T, b:(Borrower T)
+	let cr = Unsafe_acquire ((Cast *T #T) ref)
+	b#ref = cr
+	r = cr
+
+(fun T:`Any) Borrow_mutable ref:!T = r:@!T, b:(Borrower T)
+	let cr = Unsafe_acquire ((Cast !T #T) ref)
+	b#ref = cr
+	r = cr
+
+(fun T:`Any) Borrow_mercurial ref:#T = r:@#T, b:(Borrower T)
+	r = Unsafe_acquire ref
+	b#ref = r
+
+-- The Borrower is in charge of releasing the counted ref (without freeing
+-- the object pointed to). This prevents (at runtime) the counted ref from
+-- escaping (ie. surviving past the known lifetime of the local reference).
+--
+-- Lifetime of local references rules guarantee that it lives longer than the
+-- Borrower.
+--
+-- TODO(e): Should not be copyable at all, but ncc0 is currently unable to
+-- return-through-ref multiple values and that's how we want to return
+-- Borrower.
+inline struct Borrower T:`Any =
+	ref	:@#T
+
+Borrower met# Dtor
+	_ = Unsafe_release self#ref
+
+-- Because of possible compiler optimizations, it is generally only useful
+-- to know whether the count is 0, 1, or > 1.
+extern (fun T:`Any) Debug_reference_count r:@T = Uint
+
+
+inline struct Cref_impl T:`Any =
+	isa `Copyable `Moveable `Default_dtor
+	ref	:?#T
+	cnt	:?#U32
+
+Cref_impl fun Acquire ref:?#T = r:this
+	r#ref = ref
+	if ref?
+		r#cnt = Alloc_uncounted U32
+		r!cnt! = 1
+
+Cref_impl met# Release = ref:?#T
+	if not self.cnt?
+		return nil
+
+	assert self.cnt == 1
+	Free_uncounted self.cnt
+	ref = self.ref
+	self#ref = nil
+	self#cnt = nil
+
+inline Cref_impl met# Dtor
+	if not self.cnt?
+		return
+
+	let old_cnt = self.cnt*
+	self#cnt! -= 1
+
+	if old_cnt == 1
+		Free_uncounted self.cnt
+		Free_uncounted self.ref
+
+inline Cref_impl met# Copy_ctor other:*this
+	self#ref = other.ref
+	self#cnt = other.cnt
+	if not self.cnt?
+		return
+	self#cnt# += 1
+
+inline Cref_impl met# Move = ret:this
+	ret#ref = self.ref
+	ret#cnt = self.cnt
+	self#ref = nil
+	self#cnt = nil

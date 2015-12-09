@@ -41,8 +41,8 @@ struct Fd =
 	refc	:?#U32
 
 Fd fun Mk fd:I32 = r:this
-	r#refc = Alloc U32
-	r#fd = Alloc I32
+	r#refc = Alloc_uncounted U32
+	r#fd = Alloc_uncounted I32
 	r#refc# = 1
 	r#fd# = fd
 
@@ -57,8 +57,8 @@ Fd met# Dtor
 	if self.refc == 0
 		let sys_fd = self.Sys_number
 
-		Free self.fd
-		Free self.refc
+		Free_uncounted self.fd
+		Free_uncounted self.refc
 
 		if sys_fd >= 0
 			let err = sys_close sys_fd
@@ -129,8 +129,8 @@ example fd_refc
 	assert a.refc == 1
 
 	-- Prevent closing of 0: destroy by hand.
-	Free a.fd
-	Free a.refc
+	Free_uncounted a.fd
+	Free_uncounted a.refc
 	a#fd = nil
 	a#refc = nil
 

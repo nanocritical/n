@@ -1071,9 +1071,9 @@ fun Shutdown sockfd:Fd how:I32 = Error
 
 extern inline struct Epoll_event =
 	isa `Trivial_copy `Trivial_dtor `Trivial_ctor
-extern inline Epoll_event fun Mk events:U32 rawdata:?#U8 = this
+extern inline Epoll_event fun Mk events:U32 data:Uintptr = this
 extern inline Epoll_event met Events = U32
-extern inline Epoll_event met Rawdata = ?#U8
+extern inline Epoll_event met Data = Uintptr
 
 extern let EPOLL_CLOEXEC:I32
 

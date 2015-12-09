@@ -7,8 +7,51 @@
 
 #define NB(n) n$builtins$##n
 #define NBDYN(t) _$Ndyn_n$builtins$_$Ni_##t
+#define NBCDYN(t) _$Ncdyn_n$builtins$_$Ni_##t
 
-#define heap_header _$Ngen_n$builtins$Envheader$$n$builtins$_$Ni_Heap$$_$Ndyn_n$builtins$_$Ni_Heap_genN$_
+void NB(__cdyn_dtor)(void *cdyn) {
+  struct NBCDYN(Any) *d = cdyn;
+  NLANG_CREF($Dtor)(&d->ref);
+  memset(d, 0, sizeof(*d));
+}
+
+void NB(__cref_dtor)(void *cref) {
+  NLANG_CREF($Dtor)(cref);
+}
+
+void NB(__cdyn_copy_ctor)(void *dst, void *src) {
+  struct NBCDYN(Any) *ddst = dst, *dsrc = src;
+  NLANG_CREF($Copy_ctor)(&ddst->ref, &dsrc->ref);
+  ddst->dyntable = dsrc->dyntable;
+}
+
+void NB(__cdyn_move)(void *src, void *dst) {
+  struct NBCDYN(Any) *ddst = dst, *dsrc = src;
+  NLANG_CREF($Move)(&dsrc->ref, &ddst->ref);
+  ddst->dyntable = dsrc->dyntable;
+}
+
+void NB(__cref_acquire)(void *ref, void *r) {
+  NLANG_CREF($Acquire)(ref, r);
+}
+
+void *NB(__cref_release)(void *r) {
+  return NLANG_CREF($Release)(r);
+}
+
+void NB(__cdyn_acquire)(void *ref, void *r) {
+  struct NBDYN(Any) *dref = ref;
+  struct NBCDYN(Any) *dr = r;
+  NLANG_CREF($Acquire)(dref->ref, &dr->ref);
+}
+
+struct NBDYN(Any) NB(__cdyn_release)(void *r) {
+  struct NBCDYN(Any) *dr = r;
+  void *ref = NLANG_CREF($Release)(&dr->ref);
+  return NLANG_MKDYN(struct NBDYN(Any), dr->dyntable, ref);
+}
+
+#define heap_header _$Ngen_n$builtins$Envheader$$n$builtins$_$Ni_Heap$$_$Ncdyn_n$builtins$_$Ni_Heap_genN$_
 
 static struct heap_header sysheap_header;
 extern const struct _$Ndyntable_n$builtins$_$Ni_Heap n$mem$Sysheap$Dyntable__n$builtins$_$Ni_Heap;
@@ -21,9 +64,15 @@ extern void n$fs$Install_sys(void);
 extern void n$crypto$cryptorand$Install_sys(void);
 
 void _$Nprelude(int *argc, char ***argv, char ***env) {
-  sysheap_header.Env = NLANG_MKDYN(struct _$Ndyn_n$builtins$_$Ni_Heap,
-                                   &n$mem$Sysheap$Dyntable__n$builtins$_$Ni_Heap,
-                                   (void *)&n$builtins$sysheap);
+  struct NLANG_CREF() cref_sysheap = {
+    .ref = (void *) &n$builtins$sysheap,
+    .cnt = &n$builtins$sysheap_cnt,
+  };
+  *cref_sysheap.cnt = 1;
+
+  sysheap_header.Env = NLANG_MKCDYN(struct _$Ncdyn_n$builtins$_$Ni_Heap,
+                                    &n$mem$Sysheap$Dyntable__n$builtins$_$Ni_Heap,
+                                    cref_sysheap);
   sysheap_header.Parent = NULL;
   n$builtins$Install_sysheap(&sysheap_header);
 
@@ -140,7 +189,7 @@ NB(Slice_overlap)(NB(U8) *a, NB(Uint) acnt, NB(Uint) acap, NB(U8) *b, NB(Uint) b
 static void native_write_buffer(struct _$Ndyn_n$fmt$_$Ni_State st, char *s, int cnt) {
   const struct _$Ngen_n$builtins$Slice_impl$$n$builtins$U8_genN$_ bytes =
     NLANG_BYTE_SLICE(s, cnt);
-  st.dyntable->Write(st.obj, bytes);
+  st.dyntable->Write(st.ref, bytes);
 }
 
 void n$builtins$Bool$Show(NB(Bool) *self, struct _$Ndyn_n$fmt$_$Ni_State st) {

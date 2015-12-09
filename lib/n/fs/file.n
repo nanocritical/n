@@ -27,7 +27,7 @@ File met# Dtor
 	self#fd#Dtor
 	self#name#Dtor
 
-File fun Open_fd fd:syscall.Fd = f:#this
+File fun Open_fd fd:syscall.Fd = f:@#this
 	f = Alloc this
 	var buf:Stringbuf
 	fmt.F #buf "/proc/self/fd/%s" fd
@@ -53,7 +53,7 @@ File met! Close = Error
 		return syscall.Close fd
 	return self!fs!File_close self
 
-File met Dup = Error, f2:#this
+File met Dup = Error, f2:@#this
 	if not self.fs?
 		let except, fd = syscall.Dup self.fd
 		f2 = Alloc this
@@ -90,20 +90,20 @@ File met! Truncate size:Uint = Error
 		return syscall.ENOSYS
 	return self.fs!File_truncate self size
 
-File met! Chown f:!File owner:Int group:Int = Error
+File met! Chown f:@!File owner:Int group:Int = Error
 	return syscall.ENOSYS
 
-File met List_xattr f:!File buf:!Stringbuf = Error, list:(Buf String)
+File met List_xattr f:@!File buf:!Stringbuf = Error, list:(Buf String)
 	-- ::(x in list => x::(Owned buf))
 	return syscall.ENOSYS, {}
 
-File met Get_xattr f:!File buf:!(Buf U8) name:String = Error, Uint
+File met Get_xattr f:@!File buf:!(Buf U8) name:String = Error, Uint
 	return syscall.ENOSYS, {}
 
-File met! Set_xattr f:!File name:String value:[]U8 ?create_only:?Bool = Error
+File met! Set_xattr f:@!File name:String value:[]U8 ?create_only:?Bool = Error
 	return syscall.ENOSYS
 
-File met! Remove_xattr f:!File name:String = Error
+File met! Remove_xattr f:@!File name:String = Error
 	return syscall.ENOSYS
 
 File met! Readdir buf:#(Buf Stat) ?max:?Uint = Error

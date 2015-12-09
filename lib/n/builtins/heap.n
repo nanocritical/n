@@ -4,16 +4,20 @@ intf `Heap =
 	met! Free_raw p:?#U8 bytecount:Uint
 	met! Realloc_raw s:#U8 old_bytecount:Uint bytecount:Uint = #U8
 
-globalenv Heap:!`Heap
+globalenv Heap:@!`Heap
 
-fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
+fun Install_sysheap sysheader:#(Envheader @!`Heap) within Heap
 	Globalenv_install Heap sysheader
 
-(fun t:`Any) Alloc = #t within Heap
+(fun t:`Any) Alloc = @#t within Heap
+	let u = Alloc_uncounted t
+	return Unsafe_acquire u
+
+(fun t:`Any) Alloc_uncounted = #t within Heap
 	return (Cast #U8 #t) <- Heap!Alloc_raw (sizeof t)
 
--- FIXME(e): Free should really zero the ref.
-(fun t:`Any) Free p:?#t within Heap
+-- FIXME(e): Free_uncounted should really zero the ref.
+(fun t:`Any) Free_uncounted p:?#t within Heap
 	if not p?
 		return
 
@@ -25,13 +29,13 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 		assert false -- FIXME(e): not supported
 	Heap!Free_raw ((Cast #t #U8) p) (sizeof t)
 
-(fun t:`Any) Alloc_opaque = #t within Heap
+(fun t:`Any) Alloc_uncounted_opaque = #t within Heap
 	let s = t.Sizeof
 	assert s?
 	return (Cast #U8 #t) <- Heap!Alloc_raw s
 
 -- Rename to Free_dyn?
-(fun t:`Any) Free_opaque p:?#t within Heap
+(fun t:`Any) Free_uncounted_opaque p:?#t within Heap
 	if not p?
 		return
 
@@ -47,6 +51,7 @@ fun Install_sysheap sysheader:#(Envheader !`Heap) within Heap
 	let s = p.Sizeof
 	assert s?
 	Heap!Free_raw ((Cast #t #U8) p) s
+
 
 -- If t isn't `Moveable, only two cases are supported:
 --	s.Cap == 0 or cap == 0

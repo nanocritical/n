@@ -25,18 +25,18 @@ struct n$syscall$Signalfd_siginfo {
 
 #ifdef NLANG_DEFINE_FUNCTIONS
 
-static inline void n$syscall$Epoll_event$Mk(n$builtins$U32 events, n$builtins$U8 *rawdata,
+static inline void n$syscall$Epoll_event$Mk(n$builtins$U32 events, n$builtins$Uintptr data,
                                             struct n$syscall$Epoll_event *r) {
   r->sys.events = events;
-  r->sys.data.ptr = rawdata;
+  r->sys.data.u64 = data;
 }
 
 static inline n$builtins$U32 n$syscall$Epoll_event$Events(struct n$syscall$Epoll_event *self) {
   return self->sys.events;
 }
 
-static inline n$builtins$U8 *n$syscall$Epoll_event$Rawdata(struct n$syscall$Epoll_event *self) {
-  return self->sys.data.ptr;
+static inline n$builtins$Uintptr n$syscall$Epoll_event$Data(struct n$syscall$Epoll_event *self) {
+  return self->sys.data.u64;
 }
 
 static inline n$builtins$U32 n$syscall$Signalfd_siginfo$Signo(struct n$syscall$Signalfd_siginfo *self) { return self->ssi.ssi_signo; }

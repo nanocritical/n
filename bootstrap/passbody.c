@@ -10,6 +10,7 @@
 #include "constraints.h"
 #include "topdeps.h"
 #include "unify.h"
+#include "autointf.h"
 
 #include "passzero.h"
 #include "passfwd.h"
@@ -601,7 +602,8 @@ static ERROR step_dtor_call_inference(struct module *mod, struct node *node,
                                       void *user, bool *stop) {
   DSTEP(mod, node);
 
-  if (!typ_isa(node->typ, TBI_TRIVIAL_DTOR)) {
+  if (!typ_isa(node->typ, TBI_TRIVIAL_DTOR)
+      && !(node->flags & NODE_IS_GLOBAL_LET)) {
     struct tit *m = typ_definition_one_member(node->typ, ID_DTOR);
     if (m != NULL) {
       struct typ *mt = tit_typ(m);
@@ -770,7 +772,8 @@ static ERROR arg_copy_call_inference(struct module *mod, struct node *node,
 
 static ERROR try_replace_with_copy(struct module *mod, struct node *node,
                                    struct node *expr) {
-  if (typ_isa(expr->typ, TBI_TRIVIAL_COPY)) {
+  if (typ_isa(expr->typ, TBI_TRIVIAL_COPY)
+      || is_abstract_ref_not_bothering_with_member(expr->typ, ID_COPY_CTOR)) {
     return 0;
   }
 
@@ -905,22 +908,31 @@ static ERROR step_copy_call_inference(struct module *mod, struct node *node,
   return 0;
 }
 
+static bool need_insert_unbox(struct module *mod,
+                              const struct typ *dst,
+                              const struct typ *src) {
+  return !typ_is_counted_reference(dst) && typ_is_counted_reference(src);
+}
+
 static bool need_insert_dyn(struct module *mod,
                             const struct typ *intf,
                             const struct typ *concrete) {
   return (typ_is_dyn(intf) && typ_is_dyn_compatible(concrete))
-    || (typ_is_dyn(intf) && typ_is_dyn(concrete) && !typ_equal(typ_dyn_intf(intf), typ_dyn_intf(concrete)));
+    || (typ_is_dyn(intf) && typ_is_dyn(concrete)
+        && !typ_equal(typ_dyn_intf(intf), typ_dyn_intf(concrete)));
 }
 
-static ERROR insert_dyn(struct node **src,
-                        struct module *mod, struct node *node,
-                        struct typ *target) {
-  topdeps_record_dyn(mod, (*src)->typ);
-  topdeps_record_mkdyn(mod, typ_generic_arg((*src)->typ, 0));
-  topdeps_record_dyn(mod, target);
+ERROR insert_conv(struct node **src,
+                  struct module *mod, struct node *node,
+                  struct typ *target) {
+  if (typ_is_dyn((*src)->typ) || typ_is_dyn(target)) {
+    topdeps_record_dyn(mod, (*src)->typ);
+    topdeps_record_mkdyn(mod, typ_generic_arg((*src)->typ, 0));
+    topdeps_record_dyn(mod, target);
+  }
 
-  struct node *d = mk_node(mod, node, DYN);
-  set_typ(&d->as.DYN.intf_typ, target);
+  struct node *d = mk_node(mod, node, CONV);
+  set_typ(&d->as.CONV.to, target);
 
   node_subs_remove(node, d);
   node_subs_replace(node, *src, d);
@@ -935,24 +947,25 @@ static ERROR insert_dyn(struct node **src,
   return 0;
 }
 
-static ERROR try_insert_dyn(struct node **src,
-                            struct module *mod, struct node *node,
-                            struct typ *target) {
-  if (!need_insert_dyn(mod, target, (*src)->typ)) {
+struct conv {
+  bool (*need_insert)(struct module *mod, const struct typ *dst, const struct typ *src);
+};
+
+static ERROR try_insert_conv(const struct conv *conv,
+                             struct node **src,
+                             struct module *mod, struct node *node,
+                             struct typ *target) {
+  if (!conv->need_insert(mod, target, (*src)->typ)) {
     return 0;
   }
 
-  error e = insert_dyn(src, mod, node, target);
+  error e = insert_conv(src, mod, node, target);
   EXCEPT(e);
   return 0;
 }
 
-static STEP_NM(step_dyn_inference,
-               NM(RETURN) | NM(BIN) | NM(DEFNAME) | NM(TYPECONSTRAINT) |
-               NM(CALL) | NM(INIT) | NM(TUPLE));
-static ERROR step_dyn_inference(struct module *mod, struct node *node,
-                                void *user, bool *stop) {
-  DSTEP(mod, node);
+static ERROR conv_inference(struct module *mod, struct node *node,
+                            const struct conv *conv) {
   const struct node *target;
   struct node *src;
 
@@ -965,23 +978,23 @@ static ERROR step_dyn_inference(struct module *mod, struct node *node,
     target = module_retval_get(mod);
     src = subs_first(node);
 
-    e = try_insert_dyn(&src, mod, node, target->typ);
+    e = try_insert_conv(conv, &src, mod, node, target->typ);
     EXCEPT(e);
     return 0;
   case BIN:
     if (node->as.BIN.operator == TASSIGN) {
       target = subs_first(node);
       src = subs_at(node, 1);
-      e = try_insert_dyn(&src, mod, node, target->typ);
+      e = try_insert_conv(conv, &src, mod, node, target->typ);
       EXCEPT(e);
     }
     return 0;
   case DEFNAME:
     if (!(node->flags & NODE_IS_TYPE)) {
-      target = subs_first(node);
+      target = node;
       src = subs_last(node);
       if (src != NULL) {
-        e = try_insert_dyn(&src, mod, node, target->typ);
+        e = try_insert_conv(conv, &src, mod, node, target->typ);
         EXCEPT(e);
       }
     }
@@ -989,7 +1002,7 @@ static ERROR step_dyn_inference(struct module *mod, struct node *node,
   case TYPECONSTRAINT:
     target = subs_first(node);
     src = subs_last(node);
-    e = try_insert_dyn(&src, mod, node, target->typ);
+    e = try_insert_conv(conv, &src, mod, node, target->typ);
     EXCEPT(e);
     return 0;
   case CALL:
@@ -1010,7 +1023,7 @@ static ERROR step_dyn_inference(struct module *mod, struct node *node,
         target = typ_generic_arg(target, 0);
       }
 
-      e = try_insert_dyn(&src, mod, node, target);
+      e = try_insert_conv(conv, &src, mod, node, target);
       EXCEPT(e);
 
       if (n != first_vararg) {
@@ -1024,7 +1037,7 @@ static ERROR step_dyn_inference(struct module *mod, struct node *node,
       size_t n = 0;
       FOREACH_SUB(x, node) {
         src = x;
-        e = try_insert_dyn(&src, mod, node, typ_generic_arg(node->typ, n));
+        e = try_insert_conv(conv, &src, mod, node, typ_generic_arg(node->typ, n));
         EXCEPT(e);
         n += 1;
       }
@@ -1039,7 +1052,7 @@ static ERROR step_dyn_inference(struct module *mod, struct node *node,
       struct typ *target = typ_generic_arg(node->typ, 0);
       FOREACH_SUB(el, node) {
         src = el;
-        e = try_insert_dyn(&src, mod, node, target);
+        e = try_insert_conv(conv, &src, mod, node, target);
         EXCEPT(e);
       }
       return 0;
@@ -1051,7 +1064,7 @@ static ERROR step_dyn_inference(struct module *mod, struct node *node,
       FOREACH_SUB_EVERY(name, node, 0, 2) {
         src = next(name);
         struct tit *target = tit_defchoice_lookup_field(leaf, node_ident(name));
-        e = try_insert_dyn(&src, mod, node, tit_typ(target));
+        e = try_insert_conv(conv, &src, mod, node, tit_typ(target));
         EXCEPT(e);
         tit_next(target);
       }
@@ -1061,7 +1074,7 @@ static ERROR step_dyn_inference(struct module *mod, struct node *node,
       FOREACH_SUB_EVERY(name, node, 0, 2) {
         src = next(name);
         struct tit *target = typ_definition_one_member(node->typ, node_ident(name));
-        e = try_insert_dyn(&src, mod, node, tit_typ(target));
+        e = try_insert_conv(conv, &src, mod, node, tit_typ(target));
         EXCEPT(e);
         tit_next(target);
       }
@@ -1071,6 +1084,34 @@ static ERROR step_dyn_inference(struct module *mod, struct node *node,
     assert(false && "Unreached");
     return 0;
   }
+}
+
+static STEP_NM(step_unbox_inference,
+               NM(BIN) | NM(DEFNAME) | NM(TYPECONSTRAINT) |
+               NM(CALL) | NM(INIT) | NM(TUPLE));
+static ERROR step_unbox_inference(struct module *mod, struct node *node,
+                                void *user, bool *stop) {
+  DSTEP(mod, node);
+  struct conv conv_unbox = {
+    .need_insert = need_insert_unbox,
+  };
+  error e = conv_inference(mod, node, &conv_unbox);
+  EXCEPT(e);
+  return 0;
+}
+
+static STEP_NM(step_dyn_inference,
+               NM(RETURN) | NM(BIN) | NM(DEFNAME) | NM(TYPECONSTRAINT) |
+               NM(CALL) | NM(INIT) | NM(TUPLE));
+static ERROR step_dyn_inference(struct module *mod, struct node *node,
+                                void *user, bool *stop) {
+  DSTEP(mod, node);
+  struct conv conv_dyn = {
+    .need_insert = need_insert_dyn,
+  };
+  error e = conv_inference(mod, node, &conv_dyn);
+  EXCEPT(e);
+  return 0;
 }
 
 static bool is_block_like(struct node *node) {
@@ -1314,7 +1355,9 @@ static ERROR step_debug_check_assign_copy(struct module *mod, struct node *node,
   }
 
   struct node *expr = subs_last(node);
-  assert(typ_isa(expr->typ, TBI_TRIVIAL_MOVE) || expr_is_return_through_ref(NULL, mod, expr));
+  assert(typ_isa(expr->typ, TBI_TRIVIAL_MOVE)
+         || is_abstract_ref_not_bothering_with_member(expr->typ, ID_COPY_CTOR)
+         || expr_is_return_through_ref(NULL, mod, expr));
   return 0;
 }
 
@@ -1362,8 +1405,9 @@ static ERROR passbody1(struct module *mod, struct node *root,
     UP_STEP(step_from_number_literal_call_inference);
     UP_STEP(step_dtor_call_inference);
     UP_STEP(step_dtor_before_assign);
-    UP_STEP(step_copy_call_inference);
+    UP_STEP(step_unbox_inference);
     UP_STEP(step_dyn_inference);
+    UP_STEP(step_copy_call_inference);
 
     UP_STEP(step_local_constant_substitution);
 

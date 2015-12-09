@@ -152,19 +152,24 @@ References counting is handled automatically by the compiler.
 A local reference does not own the memory it points to, but it does offer the
 static guarantee that the location pointed to is valid.
 
-A counted reference, whether local or global, is an owner of the memory it
+A counted reference, whether local or global, is the owner of the memory it
 points to.
 
 To use an uncounted local reference as a local counted reference, it must be
 bridged.
 
-	let refc_x = Bridge ref_x
+	let refc_x = Unsafe_acquire ref_x
 	...
-	Unbridge refc_x
+	Unsafe_release refc_x
 
-`Unbridge` checks: (i) that the count is `1`, ensuring that the bridged
+`Unsafe_release` checks: (i) that the count is `1`, ensuring that the bridged
 reference hasn't escaped; (ii) it doesn't free the memory, as `ref_x` must
 remain valid.  If the count is not `1`, the program aborts.
+
+### Lifetime
+
+An anonymous variable (as in `_ = expr`) has the same lifetime as a named
+variable.
 
 
 ### Reference compatibility

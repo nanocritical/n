@@ -107,13 +107,13 @@ inline Whence met sys = I32
 	return self.Tag.Signed
 
 
-fun Path_handle name:path.Path ?at:?*File = Error, #File within Fs
+fun Path_handle name:path.Path ?at:?*File = Error, @#File within Fs
 	return Fs!Open_file name at=at flags={PATH}
 
-fun Open name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #File within Fs
+fun Open name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, @#File within Fs
 	return Fs!Open_file name at=at flags=(flags else {READ}) attr=attr
 
-fun Create ?name:?path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #File within Fs
+fun Create ?name:?path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, @#File within Fs
 	flags = (flags else {}) | {CREATE WRITE TRUNCATE}
 	var _attr:Openattr
 	if attr?
@@ -123,7 +123,7 @@ fun Create ?name:?path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Erro
 		_attr!Access |= {UR UW GR GW OR OW}
 	return Fs!Open_file name at=at flags=flags attr=_attr
 
-fun Open_dir name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #File within Fs
+fun Open_dir name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, @#File within Fs
 	flags = (flags else {}) | {DIRECTORY}
 	return Fs!Open_file name at=at attr=attr
 
@@ -161,11 +161,12 @@ fun Temporary ?at:?*File
 	\ ?named:?Bool
 	\ ?prefix:?String
 	\ ?postfix:?String
-	\ = Error, #File within Fs
+	\ = Error, @#File within Fs
 	let dir = at
 	if not dir?
 		try
-			except, dir = Path_handle "/tmp"
+			let except, tmp_dir = Path_handle "/tmp"
+			dir = tmp_dir
 		catch err
 			return err, nil
 
@@ -191,14 +192,14 @@ fun Temporary ?at:?*File
 			flags &= ~{CREATE EXCLUSIVE}:Openflags
 			return Fs!Open_file "." at=dir flags=flags attr=attr
 
-globalenv Fs:!`Fs
+globalenv Fs:@!`Fs
 
 fun Install_sys within Fs
 	let fs = Alloc linux
 	let err = fs!Init
 	if err != OK
 		Fatal err
-	let header = Alloc (Envheader !`Fs)
+	let header = Alloc (Envheader @!`Fs)
 	header#Env = fs
 	Globalenv_install Fs header
 
@@ -206,8 +207,8 @@ fun Install_sys within Fs
 intf `Fs =
 	isa (bench.`Observable_of Stats)
 
-	met Wd = !File
-	met! Pushdir dir:!File = Error
+	met Wd = @!File
+	met! Pushdir dir:@!File = Error
 	met! Popdir = Error
 
 	met! Global_chdir dir:*File = Error
@@ -215,11 +216,11 @@ intf `Fs =
 	met! Mkdir name:path.Path ?at:?*File ?attr:?*Openattr ?recursive:?Bool = Error
 	met! Rmdir name:path.Path ?at:?*File ?recursive:?Bool ?even_not_empty:?Bool = Error
 
-	met! Open_file name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #File
+	met! Open_file name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, @#File
 
 	-- Act on a file* Called by File.
 	met! File_close f:!File = Error
-	met! File_dup f:*File = Error, #File
+	met! File_dup f:*File = Error, @#File
 	met! File_stat f:*File = Error, Stat
 	met File_readlink f:*File = Error, path.Path
 	met! File_datasync f:!File = Error
@@ -237,7 +238,7 @@ intf `Fs =
 	met! File_read_at f:!File b:[!]U8 off:Uint = [!]U8, Error
 	met! File_write f:!File b:[]U8 = []U8, Error
 	met! File_write_at f:!File b:[]U8 off:Uint = []U8, Error
-	met! File_mmap f:!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, #Mmap
+	met! File_mmap f:!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, @#Mmap
 	met! Munmap m:#Mmap
 
 	-- Act on a Path.
@@ -252,7 +253,7 @@ intf `Fs =
 struct linux =
 	isa `Fs
 	init		:Bool
-	dirstack	:(Buf ?!File)
+	dirstack	:(Buf ?@!File)
 	stats		:(bench.Stack Stats)
 
 linux met! Init = Error
@@ -263,23 +264,23 @@ linux met! Init = Error
 		let cwd = Alloc File such
 			cwd!fs = self
 			cwd!fd = fd
-		self!dirstack#Push! = cwd
+		self!dirstack#Push# = cwd
 		return OK
 	catch err
 		self!init = false
 		return err
 
-linux met Wd = !File
+linux met Wd = @!File
 	assert self.init
 	assert self.dirstack.Count > 0
 	return self.dirstack.Last*
 
-linux met! Pushdir dir:!File = Error
+linux met! Pushdir dir:@!File = Error
 	assert self.init
 	let except, st = dir.Stat
 	if not st.Is_dir
 		return syscall.ENOTDIR
-	self!dirstack#Push! = dir
+	self!dirstack#Push# = dir
 	return OK
 
 linux met! Popdir = Error
@@ -320,7 +321,7 @@ linux met! Rmdir name:path.Path ?at:?*File ?recursive:?Bool ?even_non_empty:?Boo
 	except = syscall.Unlinkat (at?.Fd else self.Wd.Fd) name.String syscall.AT_REMOVEDIR
 	return OK
 
-linux met! Open_file name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, #File
+linux met! Open_file name:path.Path ?at:?*File ?flags:?Openflags ?attr:?*Openattr = Error, @#File
 	let flags = flags else {}
 	let attr = attr else {}
 	let mode = attr.sys_open_mode such
@@ -374,7 +375,7 @@ linux met! File_close f:!File = Error
 	self!stats!Current!Maintain
 	return OK
 
-linux met! File_dup f:*File = Error, f2:#File
+linux met! File_dup f:*File = Error, f2:@#File
 	let except, fd = syscall.Dup f.fd
 	f2 = Alloc File
 	f2#fs = f.fs
@@ -505,7 +506,7 @@ linux met! Save_measurements = bench.Restorer
 linux met Measure = Stats
 	return self.stats.Current
 
-linux met! File_mmap f:!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, #Mmap
+linux met! File_mmap f:!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?Bool = Error, @#Mmap
 	let offset = offset else 0
 	let size = size else block
 		let except, st = f.Stat
@@ -518,7 +519,7 @@ linux met! File_mmap f:!File ?offset:?Uint ?size:?Uint ?prot:?Protmask ?shared:?
 		\ f.Fd offset
 
 	let m = Alloc Mmap such
-		m!file = f
+		m!fs = self
 		m!range = offset .. offset+size
 		m!bytes#Unsafe_wrap addr size size
 		m!shared = shared

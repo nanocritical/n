@@ -62,7 +62,9 @@ enum deftype_kind typ_definition_deftype_kind(const struct typ *t);
 bool typ_definition_is_member(const struct typ *t);
 struct typ *typ_definition_tag_type(const struct typ *t);
 enum token_type typ_definition_deffun_access(const struct typ *t);
+bool typ_definition_deffun_access_is_wildcard(const struct typ *t);
 enum token_type typ_definition_defmethod_access(const struct typ *t);
+bool typ_definition_defmethod_access_is_wildcard(const struct typ *t);
 struct typ *typ_definition_defmethod_self_wildcard_functor(const struct typ *t);
 struct typ *typ_definition_defmethod_wildcard_functor(const struct typ *t);
 struct typ *typ_definition_defmethod_nullable_wildcard_functor(const struct typ *t);
@@ -150,6 +152,7 @@ ERROR typ_check_isa(const struct module *mod, const struct node *for_error,
                     const struct typ *a, const struct typ *intf);
 
 bool typ_is_reference(const struct typ *t);
+bool typ_is_counted_reference(const struct typ *t);
 bool typ_is_nullable_reference(const struct typ *t);
 ERROR typ_check_is_reference(const struct module *mod, const struct node *for_error,
                              const struct typ *a);
@@ -257,12 +260,27 @@ extern struct typ *TBI_ANY_REF;
 extern struct typ *TBI_ANY_MREF;
 extern struct typ *TBI_ANY_NREF;
 extern struct typ *TBI_ANY_NMREF;
-extern struct typ *TBI_REF; // @
-extern struct typ *TBI_MREF; // @!
-extern struct typ *TBI_MMREF; // @#
-extern struct typ *TBI_NREF; // ?@
-extern struct typ *TBI_NMREF; // ?@!
-extern struct typ *TBI_NMMREF; // ?@#
+extern struct typ *TBI_ANY_ANY_LOCAL_REF;
+extern struct typ *TBI_ANY_LOCAL_REF;
+extern struct typ *TBI_ANY_LOCAL_MREF;
+extern struct typ *TBI_ANY_LOCAL_NREF;
+extern struct typ *TBI_ANY_LOCAL_NMREF;
+extern struct typ *TBI_ANY_ANY_COUNTED_REF;
+extern struct typ *TBI_ANY_COUNTED_REF;
+extern struct typ *TBI_ANY_COUNTED_NREF;
+extern struct typ *TBI_REF; // *
+extern struct typ *TBI_MREF; // !
+extern struct typ *TBI_MMREF; // #
+extern struct typ *TBI_NREF; // ?*
+extern struct typ *TBI_NMREF; // ?!
+extern struct typ *TBI_NMMREF; // ?#
+extern struct typ *TBI_CREF; // @
+extern struct typ *TBI_CMREF; // @!
+extern struct typ *TBI_CMMREF; // @#
+extern struct typ *TBI_CNREF; // ?@
+extern struct typ *TBI_CNMREF; // ?@!
+extern struct typ *TBI_CNMMREF; // ?@#
+extern struct typ *TBI_CREF_IMPL;
 extern struct typ *TBI_VOIDREF;
 extern struct typ *TBI_ANY_ANY_SLICE;
 extern struct typ *TBI_ANY_SLICE;

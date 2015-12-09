@@ -35,8 +35,8 @@ intf `Request_writer =
 
 struct request_writer =
 	isa `Request_writer
-	conn			:#tcp.Conn
-	bufw			:#bufio.Writer
+	conn			:@#tcp.Conn
+	bufw			:@#bufio.Writer
 	proto_version		:Uint
 	method			:Stringbuf
 	url			:url.Url
@@ -48,7 +48,7 @@ struct request_writer =
 	close_because_of	:Error
 	done			:Bool
 
-request_writer met# init_io conn:#tcp.Conn bufw:#bufio.Writer
+request_writer met# init_io conn:@#tcp.Conn bufw:@#bufio.Writer
 	self#conn = conn
 	self#bufw = bufw
 
@@ -60,7 +60,7 @@ request_writer met# init method:String u:*url.Url
 request_writer met# Header = #Header
 	return #self#header
 
-fun write_request_line w:#bufio.Writer method:*Stringbuf u:*url.Url proto_version:Uint
+fun write_request_line w:@#bufio.Writer method:*Stringbuf u:*url.Url proto_version:Uint
 	fmt.F w "%s %s " method u.Full_path
 	Write_http_version w proto_version
 	fmt.F w crlf
@@ -150,30 +150,30 @@ enum client_handling_state =
 
 struct client_conn_handler =
 	isa ev.`Handler `Not_copyable
-	coh		:!client_one_host
+	coh		:@!client_one_host
 
 	connected	:Bool
 
 	state		:client_handling_state
 	socket		:tcp.Socket
-	conn		:tcp.Conn
+	conn		:@#tcp.Conn
 
 	addr		:tcp.Addr
 
-	bufw		:bufio.Writer
+	bufw		:@#bufio.Writer
 	request		:request_writer
 
-	bufr		:bufio.Reader
+	bufr		:@#bufio.Reader
 	response	:Response
 
 	close_because_hup	:Bool
 
-	handler		:?#`Client_handler
+	handler		:?@#`Client_handler
 
 client_conn_handler met debug ?_Ncodeloc:?Codeloc ...s:(Vararg ?*`Show)
 	Log#Debug "%s: %s" _Ncodeloc=_Ncodeloc self.conn.Fd (fmt.S ...s)
 
-client_conn_handler met# init coh:!client_one_host
+client_conn_handler met# init coh:@!client_one_host
 	self#coh = coh
 
 fun addr_specific_connect_error err:Error = Bool
@@ -181,7 +181,7 @@ fun addr_specific_connect_error err:Error = Bool
 		\ or err == syscall.EAFNOSUPPORT
 		\ or err == syscall.ENETUNREACH
 
-client_conn_handler met# ensure_connected method:String u:*url.Url h:#`Client_handler = Error
+client_conn_handler met@# ensure_connected method:String u:*url.Url h:@#`Client_handler = Error
 	self#request#init method u
 	self#response#init method u
 	self#handler = h
@@ -200,7 +200,7 @@ client_conn_handler met# ensure_connected method:String u:*url.Url h:#`Client_ha
 		return OK
 	except = connect_err
 
-client_conn_handler met# initiate_connection = Error
+client_conn_handler met@# initiate_connection = Error
 	let except, addrs = tcp.Resolve_address self.request.url.Host.String
 
 	-- TODO(e): It's very challenging to try another address if this one
@@ -216,7 +216,8 @@ client_conn_handler met# initiate_connection = Error
 			addr!Port = 443
 
 	var connect_err
-	connect_err, self#conn = self#socket#Connect addr
+	self#conn = Alloc tcp.Conn
+	connect_err, self#conn# = self#socket#Connect addr
 
 	if connect_err == OK or connect_err == syscall.EINPROGRESS
 		except = self.coh.client.poll!Register self.conn.Fd:ev.Source.FD {READ WRITE RDHUP} self
@@ -241,11 +242,13 @@ client_conn_handler met# initiate_connection = Error
 
 client_conn_handler met# complete_connection
 	self#connected = true
-	self#bufr = bufio.Reader.Mk #self#conn
-	self#bufw = bufio.Writer.Mk #self#conn
-	self#request#init_io #self#conn #self#bufw
+	self#bufr = Alloc bufio.Reader
+	self#bufw = Alloc bufio.Writer
+	self#bufr# = bufio.Reader.Mk self#conn
+	self#bufw# = bufio.Writer.Mk self#conn
+	self#request#init_io self#conn self#bufw
 
-client_conn_handler met# recycle
+client_conn_handler met@# recycle
 	self.debug
 	if not self.connected
 		self#state = CLOSE
@@ -264,7 +267,7 @@ client_conn_handler met# recycle
 
 	self.coh!i_am_recycled self
 
-client_conn_handler met# Close = err:Error
+client_conn_handler met@# Close = err:Error
 	if not self.conn.Fd.Is_valid
 		return OK
 
@@ -299,7 +302,7 @@ client_conn_handler met can_progress e:ev.Event = Bool
 	| RECYCLE -> return true
 	| CLOSE -> return true
 
-client_conn_handler met# On e:ev.Event = err:Error
+client_conn_handler met@# On e:ev.Event = err:Error
 	self.debug self.state e
 
 	var pending_err:?Error
@@ -346,7 +349,6 @@ client_conn_handler met# On e:ev.Event = err:Error
 		let close_err = self#Close
 		if close_err == io.WOULD_BLOCK
 			return close_err
-		Free self
 		return OK
 
 	if pending_err? and pending_err != OK
@@ -371,7 +373,7 @@ client_conn_handler met# waiting_conn connect_err:?Error = Error
 	self#complete_connection
 	self#state = HANDLING_REQUEST
 
-client_conn_handler met# handling_request = Error
+client_conn_handler met@# handling_request = Error
 	self.debug self.state
 
 	let handler_err = self.handler#On #self#response #self#request
@@ -415,9 +417,9 @@ client_conn_handler met# waiting_header = Error
 		if rerr == io.WOULD_BLOCK
 			return rerr
 
-	except = read_response_header #self#response !self!bufr self.conn.Remote_addr
+	except = read_response_header #self#response self!bufr self.conn.Remote_addr
 
-	except = prepare_response_reception #self#response #self#bufr
+	except = prepare_response_reception #self#response self#bufr
 
 	self#state = HANDLING_RESPONSE
 
@@ -453,39 +455,34 @@ fun mk_hostkey u:*url.Url = r:Stringbuf
 struct client_one_host =
 	hostkey		:Stringbuf
 	config		:Client_config
-	idles		:(Set (Ref_as_key ?#client_conn_handler)) -- up to config.Max_idle_connections_per_host
-	actives		:(Set (Ref_as_key ?#client_conn_handler))
-	client		:!Client
+	idles		:(Set (Ref_as_key ?@#client_conn_handler)) -- up to config.Max_idle_connections_per_host
+	actives		:(Set (Ref_as_key ?@#client_conn_handler))
+	client		:@!Client
 
 client_one_host met# Dtor
 	self#hostkey#Dtor
 	self#config#Dtor
-
-	for rconnh over self.idles.Iter
-		Free rconnh.Ref
 	self#idles#Dtor
 
 	if self.actives.Count != 0
 		Log#Warning "%s connections to host '%s' were still active"
 			\ self.actives.Count self.hostkey
-	for rconnh over self.actives.Iter
-		Free rconnh.Ref
 	self#actives#Dtor
 
-client_one_host met! i_am_recycled connh:#client_conn_handler
+client_one_host met! i_am_recycled connh:@#client_conn_handler
 	let removed = self!actives#Remove {Ref=connh}
 	assert removed
 	let added = self!idles#Add {Ref=connh}
 	assert added
 
-client_one_host met! i_am_closed connh:#client_conn_handler
+client_one_host met! i_am_closed connh:@#client_conn_handler
 	let removed = self!actives#Remove {Ref=connh}
 	if not removed
 		let removed_idle = self!idles#Remove {Ref=connh}
 		if not removed_idle
 			Log#Debug "i_am_closed on unknown client_conn_handler; ignored"
 
-client_one_host met! initiate_request method:String u:*url.Url h:#`Client_handler = Error
+client_one_host met@! initiate_request method:String u:*url.Url h:@#`Client_handler = Error
 	var connh
 	if self.idles.Count > 0
 		connh = self.idles.Any_one.Ref
@@ -502,19 +499,14 @@ client_one_host met! initiate_request method:String u:*url.Url h:#`Client_handle
 
 struct Client =
 	default_config	:Client_config
-	poll		:#ev.Poll
-	hosts		:(Map Stringbuf ?#client_one_host)
+	poll		:@#ev.Poll
+	hosts		:(Map Stringbuf ?@#client_one_host)
 
-Client fun Mk poll:#ev.Poll ?default_config:?Client_config = r:this
+Client fun Mk poll:@#ev.Poll ?default_config:?Client_config = r:this
 	r#poll = poll
 	r#default_config = default_config else {Max_idle_connections_per_host=10}
 
-Client met# Dtor
-	for _, coh over self.hosts.Iter
-		Free coh*
-	self#hosts#Dtor
-
-Client met! get_host u:*url.Url = #client_one_host
+Client met@! get_host u:*url.Url = @#client_one_host
 	let hostkey = mk_hostkey u
 	let added, phost = self!hosts#Try_store hostkey
 	if not added
@@ -527,11 +519,11 @@ Client met! get_host u:*url.Url = #client_one_host
 	host#client = self
 	return host
 
-Client met! Initiate_request method:String u:*url.Url h:#`Client_handler = Error
+Client met@! Initiate_request method:String u:*url.Url h:@#`Client_handler = Error
 	let host = self!get_host u
 	except = host!initiate_request method u h
 
--- Client met# Initiate_buffered_request u:*url header:*Header h:#`Client_handler_buffered = Error
+-- Client met# Initiate_buffered_request u:*url header:*Header h:@#`Client_handler_buffered = Error
 
 
 

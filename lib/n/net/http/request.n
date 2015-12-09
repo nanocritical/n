@@ -13,7 +13,7 @@ inline struct Request =
 	expect_continue_reader	:expect_continue_reader
 
 	Header		:Header
-	Body		:bufio.Reader
+	Body		:@#bufio.Reader
 	Close_conn	:Bool
 
 	Content_length		:?Uint

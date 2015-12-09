@@ -23,7 +23,7 @@ enum Events =
 	| MANUAL
 
 intf `Handler =
-	met# On ev:Event = Error
+	met@# On ev:Event = Error
 
 intf `Pollable =
 	met Source = Source
@@ -86,6 +86,7 @@ Event met Show st:#fmt.`State
 
 struct sinks =
 	source		:Source
+	uid		:Uint -- Used for tracking by kernel-side event
 	total_ask	:(Enumset Events)
 	handlers	:(Map (Ref_as_key ?@#`Handler) (Enumset Events))
 	-- Only one handler can be registered for CLOSE.
@@ -93,6 +94,8 @@ struct sinks =
 
 inline struct Poll =
 	sinks_for_source:(Map Source ?@#sinks)
+	sinks_for_uid	:(Map Uint ?@#sinks)
+	next_uid	:Uint
 
 	manuals		:(Buf ?@#`Handler)
 	closes		:(Set Source)
@@ -182,10 +185,14 @@ Poll met! Register source:Source ask:(Enumset Events) handler:?@#`Handler = Erro
 	and op = syscall.EPOLL_CTL_MOD such
 		if added
 			p_sks# = Alloc sinks
-			(p_sks*)!init source
-			op = syscall.EPOLL_CTL_ADD
-
 	let sks = p_sks#
+	if added
+		sks!init source
+		sks!uid = self.next_uid
+		self!next_uid += 1
+		(self!sinks_for_uid#Store sks.uid)# = sks
+		op = syscall.EPOLL_CTL_ADD
+
 	sks!register ask handler
 
 	if CLOSE in ask and handler?
@@ -202,14 +209,13 @@ Poll met! Register source:Source ask:(Enumset Events) handler:?@#`Handler = Erro
 		for f over sks.total_ask.Iter
 			events |= events_to_sys_events f
 
-	let rawdata = (unsafe.Cast ?@#sinks ?#U8) sks
-	let sys_event = syscall.Epoll_event.Mk events rawdata
+	let sys_event = syscall.Epoll_event.Mk events sks.uid.Uintptr
 	except = syscall.Epoll_ctl self.epfd op source.FD sys_event
 
 Poll met! sys_unregister_all source:Source
 	if source ==| FD
 		-- Old Linux does not accept a nil event.
-		let sys_event = syscall.Epoll_event.Mk 0 nil
+		let sys_event = syscall.Epoll_event.Mk 0 0
 		never = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_DEL source.FD sys_event
 
 -- Unless you call Unregister with an explicit (Enumset Events).ALL, the source
@@ -221,7 +227,6 @@ Poll met! Unregister source:Source un_ask:(Enumset Events) handler:?@#`Handler =
 			return INVAL
 		self!sys_unregister_all source
 		let sks = self!remove_sinks source
-		Free sks
 		return OK
 
 	let p_sks = self!sinks_for_source![source]
@@ -241,8 +246,7 @@ Poll met! Unregister source:Source un_ask:(Enumset Events) handler:?@#`Handler =
 	let events = sys_events_defaults such
 		for f over sks.total_ask.Iter
 			events |= events_to_sys_events f
-	let rawdata = (unsafe.Cast ?@#sinks ?#U8) sks
-	let sys_event = syscall.Epoll_event.Mk 0 rawdata
+	let sys_event = syscall.Epoll_event.Mk 0 sks.uid.Uintptr
 	except = syscall.Epoll_ctl self.epfd syscall.EPOLL_CTL_MOD source.FD sys_event
 
 Poll met! Schedule_manually h:@#`Handler = Error
@@ -328,7 +332,6 @@ Poll met! process_closes = closed_some:Bool
 		let sks = p_sks*
 		let did_close = sks!close self
 		if did_close
-			Free sks
 			closed_some = true
 
 -- In a few places, we introduce a pseudo io.WOULD_BLOCK that does not come
@@ -382,7 +385,11 @@ Poll met! Wait ?timeout:?time.Duration = Error, e:Event
 	let sys_e = self.sys_pending.[0]
 	self!sys_pending = self.sys_pending.[1 ..]
 
-	let sks = (unsafe.Cast ?#U8 ?@#sinks) sys_e.Rawdata
+	let sks_uid = sys_e.Data.U64.To_uint
+	let sks = self.sinks_for_uid.[sks_uid] else nil
+	if not sks?
+		Log#Critical "unknown sinks uid '%s' in a kernel event" sks_uid
+		return UNKNOWN, NONE
 
 	let pending_got = sys_events_to_events sys_e.Events
 
@@ -414,7 +421,7 @@ Poll met! pop_pending = e:Event
 	e!Handler = handler
 	e!Got = got
 
-fun Loop poll:#Poll ?continue_despite_handler_error:?Bool = Error
+fun Loop poll:@#Poll ?continue_despite_handler_error:?Bool = Error
 	while poll.Has_waiters
 		let wait_err, e = poll!Wait
 		if wait_err == io.WOULD_BLOCK

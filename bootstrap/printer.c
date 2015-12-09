@@ -129,6 +129,12 @@ const char *token_strings[TOKEN__NUM] = {
   [TNULREFBANG] = " ?!",
   [TNULREFSHARP] = " ?#",
   [TNULREFWILDCARD] = " ?$",
+  [TCREFDOT] = " @",
+  [TCREFBANG] = " @!",
+  [TCREFSHARP] = " @#",
+  [TNULCREFDOT] = " ?@",
+  [TNULCREFBANG] = " ?@!",
+  [TNULCREFSHARP] = " ?@#",
   [TPREQMARK] = " ?",
   [TPOSTQMARK] = "? ",
   [TDOTDOT] = "..",
@@ -364,7 +370,7 @@ static void print_expr(FILE *out, const struct module *mod, const struct node *n
     fprintf(out, "%s",
             scope_name(mod, DEF(node->as.DIRECTDEF.typ)));
     break;
-  case DYN:
+  case CONV:
     print_expr(out, mod, subs_first_const(node), parent_op);
     break;
   case BLOCK:

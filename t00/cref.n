@@ -1,0 +1,11 @@
+from n import *
+
+fun foo = @U32
+	let x = Alloc U32
+	x! = 42
+	return x
+
+fun Main = Error
+	let x = foo
+	Eprn <- Debug_reference_count x
+	return OK

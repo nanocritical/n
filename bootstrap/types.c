@@ -93,15 +93,16 @@ enum typ_flags {
   TYPF_TRIVIAL = 0x8,
   TYPF_REF = 0x10,
   TYPF_NREF = 0x20,
-  TYPF_SLICE = 0x40,
-  TYPF_OPTIONAL = 0x80,
-  TYPF_LITERAL = 0x100,
-  TYPF_CONCRETE = 0x200,
-  TYPF_GENARG = 0x400,
-  TYPF_TUPLE = 0x800,
+  TYPF_CREF = 0x40,
+  TYPF_SLICE = 0x80,
+  TYPF_OPTIONAL = 0x100,
+  TYPF_LITERAL = 0x200,
+  TYPF_CONCRETE = 0x400,
+  TYPF_GENARG = 0x800,
+  TYPF_TUPLE = 0x1000,
   TYPF__INHERIT_FROM_FUNCTOR = TYPF_TENTATIVE
     | TYPF_BUILTIN | TYPF_PSEUDO_BUILTIN
-    | TYPF_TRIVIAL | TYPF_REF | TYPF_NREF | TYPF_OPTIONAL
+    | TYPF_TRIVIAL | TYPF_REF | TYPF_NREF | TYPF_CREF | TYPF_OPTIONAL
     | TYPF_LITERAL | TYPF_CONCRETE | TYPF_GENARG | TYPF_TUPLE,
   TYPF__INHERIT_FROM_GENARG = TYPF_TENTATIVE | TYPF_GENARG,
   TYPF__MASK_HASH = 0xffff & ~(TYPF_TENTATIVE | TYPF_CONCRETE | TYPF_GENARG),
@@ -618,7 +619,9 @@ static void create_flags(struct typ *t, struct typ *tbi) {
   }
 
   if (t == TBI_LITERALS_NIL
-      || t == TBI_ANY_ANY_REF) {
+      || t == TBI_ANY_ANY_REF
+      || t == TBI_ANY_ANY_LOCAL_REF
+      || t == TBI_ANY_ANY_COUNTED_REF) {
     t->flags |= TYPF_REF;
   }
 
@@ -637,21 +640,47 @@ static void create_flags(struct typ *t, struct typ *tbi) {
       || maybe_ref == TBI_ANY_MREF
       || maybe_ref == TBI_ANY_NREF
       || maybe_ref == TBI_ANY_NMREF
+      || maybe_ref == TBI_ANY_LOCAL_REF
+      || maybe_ref == TBI_ANY_LOCAL_MREF
+      || maybe_ref == TBI_ANY_LOCAL_NREF
+      || maybe_ref == TBI_ANY_LOCAL_NMREF
+      || maybe_ref == TBI_ANY_COUNTED_REF
+      || maybe_ref == TBI_ANY_COUNTED_NREF
       || maybe_ref == TBI_REF
       || maybe_ref == TBI_MREF
       || maybe_ref == TBI_MMREF
       || maybe_ref == TBI_NREF
       || maybe_ref == TBI_NMREF
-      || maybe_ref == TBI_NMMREF) {
+      || maybe_ref == TBI_NMMREF
+      || maybe_ref == TBI_CREF
+      || maybe_ref == TBI_CMREF
+      || maybe_ref == TBI_CMMREF
+      || maybe_ref == TBI_CNREF
+      || maybe_ref == TBI_CNMREF
+      || maybe_ref == TBI_CNMMREF) {
     t->flags |= TYPF_REF;
   }
 
   if (maybe_ref == TBI_ANY_NREF
       || maybe_ref == TBI_ANY_NMREF
+      || maybe_ref == TBI_ANY_LOCAL_NREF
+      || maybe_ref == TBI_ANY_LOCAL_NMREF
       || maybe_ref == TBI_NREF
       || maybe_ref == TBI_NMREF
-      || maybe_ref == TBI_NMMREF) {
+      || maybe_ref == TBI_NMMREF
+      || maybe_ref == TBI_CNREF
+      || maybe_ref == TBI_CNMREF
+      || maybe_ref == TBI_CNMMREF) {
     t->flags |= TYPF_NREF;
+  }
+
+  if (maybe_ref == TBI_CREF
+      || maybe_ref == TBI_CMREF
+      || maybe_ref == TBI_CMMREF
+      || maybe_ref == TBI_CNREF
+      || maybe_ref == TBI_CNMREF
+      || maybe_ref == TBI_CNMMREF) {
+    t->flags |= TYPF_CREF;
   }
 
   if (maybe_ref == TBI_ANY_ANY_SLICE
@@ -1417,9 +1446,14 @@ enum token_type typ_definition_defmethod_access(const struct typ *t) {
   return d->as.DEFMETHOD.access;
 }
 
+bool typ_definition_defmethod_access_is_wildcard(const struct typ *t) {
+  enum token_type access = typ_definition_defmethod_access(t);
+  return access == TREFWILDCARD || access == TCREFWILDCARD || access == TREFCREFWILDCARD;
+}
+
 struct typ *typ_definition_defmethod_self_wildcard_functor(const struct typ *t) {
   assert(t->definition->which == DEFMETHOD);
-  if (typ_definition_defmethod_access(t) != TREFWILDCARD) {
+  if (!typ_definition_defmethod_access_is_wildcard(t)) {
     return NULL;
   }
   const struct node *genargs = subs_at_const(definition_const(t), IDX_GENARGS);
@@ -1428,7 +1462,7 @@ struct typ *typ_definition_defmethod_self_wildcard_functor(const struct typ *t) 
 
 struct typ *typ_definition_defmethod_wildcard_functor(const struct typ *t) {
   assert(t->definition->which == DEFMETHOD);
-  if (typ_definition_defmethod_access(t) != TREFWILDCARD) {
+  if (!typ_definition_defmethod_access_is_wildcard(t)) {
     return NULL;
   }
   const struct node *genargs = subs_at_const(definition_const(t), IDX_GENARGS);
@@ -1437,7 +1471,7 @@ struct typ *typ_definition_defmethod_wildcard_functor(const struct typ *t) {
 
 struct typ *typ_definition_defmethod_nullable_wildcard_functor(const struct typ *t) {
   assert(t->definition->which == DEFMETHOD);
-  if (typ_definition_defmethod_access(t) != TREFWILDCARD) {
+  if (!typ_definition_defmethod_access_is_wildcard(t)) {
     return NULL;
   }
   const struct node *genargs = subs_at_const(definition_const(t), IDX_GENARGS);
@@ -1450,9 +1484,14 @@ enum token_type typ_definition_deffun_access(const struct typ *t) {
   return d->as.DEFFUN.access;
 }
 
+bool typ_definition_deffun_access_is_wildcard(const struct typ *t) {
+  enum token_type access = typ_definition_deffun_access(t);
+  return access == TREFWILDCARD || access == TCREFWILDCARD || access == TREFCREFWILDCARD;
+}
+
 struct typ *typ_definition_deffun_wildcard_functor(const struct typ *t) {
   assert(t->definition->which == DEFFUN);
-  if (typ_definition_deffun_access(t) != TREFWILDCARD) {
+  if (!typ_definition_deffun_access_is_wildcard(t)) {
     return NULL;
   }
   const struct node *genargs = subs_at_const(definition_const(t), IDX_GENARGS);
@@ -1461,7 +1500,7 @@ struct typ *typ_definition_deffun_wildcard_functor(const struct typ *t) {
 
 struct typ *typ_definition_deffun_nullable_wildcard_functor(const struct typ *t) {
   assert(t->definition->which == DEFFUN);
-  if (typ_definition_deffun_access(t) != TREFWILDCARD) {
+  if (!typ_definition_deffun_access_is_wildcard(t)) {
     return NULL;
   }
   const struct node *genargs = subs_at_const(definition_const(t), IDX_GENARGS);
@@ -1662,6 +1701,20 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
   struct typ *real_left_typ = left->typ;
   const bool was_ref = bin_accessor_maybe_ref(&real_left_typ, mod);
 
+  struct node *name = subs_last(node);
+  const ident name_ident = node_ident(name);
+
+  // These act on the counted reference, not the underlying object, they
+  // come from autointf.c.
+  if (was_ref
+      && typ_is_counted_reference(left->typ)
+      && node->as.BIN.is_operating_on_counted_ref
+      && (name_ident == ID_DTOR
+          || name_ident == ID_MOVE
+          || name_ident == ID_COPY_CTOR)) {
+    real_left_typ = left->typ;
+  }
+
   struct node *dcontainer = definition(real_left_typ);
   if (!was_ref) {
     bin_accessor_maybe_defchoice_field(&dcontainer, node, mod, left);
@@ -1669,10 +1722,9 @@ struct tit *typ_resolve_accessor__has_effect(error *e,
 
   *container_is_tentative = typ_is_tentative(dcontainer->typ);
 
-  struct node *name = subs_last(node);
   struct node *field = NULL;
   *e = scope_lookup_ident_immediate(&field, name, mod, dcontainer,
-                                    node_ident(name), *container_is_tentative);
+                                    name_ident, *container_is_tentative);
   if (*e) {
     return NULL;
   }
@@ -2209,12 +2261,27 @@ struct typ *TBI_ANY_REF;
 struct typ *TBI_ANY_MREF;
 struct typ *TBI_ANY_NREF;
 struct typ *TBI_ANY_NMREF;
-struct typ *TBI_REF; // @
-struct typ *TBI_MREF; // @!
-struct typ *TBI_MMREF; // @#
-struct typ *TBI_NREF; // ?@
-struct typ *TBI_NMREF; // ?@!
-struct typ *TBI_NMMREF; // ?@#
+struct typ *TBI_ANY_ANY_LOCAL_REF;
+struct typ *TBI_ANY_LOCAL_REF;
+struct typ *TBI_ANY_LOCAL_MREF;
+struct typ *TBI_ANY_LOCAL_NREF;
+struct typ *TBI_ANY_LOCAL_NMREF;
+struct typ *TBI_ANY_ANY_COUNTED_REF;
+struct typ *TBI_ANY_COUNTED_REF;
+struct typ *TBI_ANY_COUNTED_NREF;
+struct typ *TBI_REF;
+struct typ *TBI_MREF;
+struct typ *TBI_MMREF;
+struct typ *TBI_NREF;
+struct typ *TBI_NMREF;
+struct typ *TBI_NMMREF;
+struct typ *TBI_CREF;
+struct typ *TBI_CMREF;
+struct typ *TBI_CMMREF;
+struct typ *TBI_CNREF;
+struct typ *TBI_CNMREF;
+struct typ *TBI_CNMMREF;
+struct typ *TBI_CREF_IMPL;
 struct typ *TBI_VOIDREF;
 struct typ *TBI_ANY_ANY_SLICE;
 struct typ *TBI_ANY_SLICE;
@@ -2640,6 +2707,10 @@ bool typ_is_reference(const struct typ *t) {
   return t->flags & TYPF_REF;
 }
 
+bool typ_is_counted_reference(const struct typ *t) {
+  return t->flags & TYPF_CREF;
+}
+
 bool typ_is_nullable_reference(const struct typ *t) {
   return t->flags & TYPF_NREF;
 }
@@ -2719,7 +2790,9 @@ error typ_check_can_deref(const struct module *mod, const struct node *for_error
                      "'%s' type is not a reference", na);
   }
 
-  if (typ_equal(a, TBI_ANY_ANY_REF)) {
+  if (typ_equal(a, TBI_ANY_ANY_REF)
+      || typ_equal(a, TBI_ANY_ANY_LOCAL_REF)
+      || typ_equal(a, TBI_ANY_ANY_COUNTED_REF)) {
     na = pptyp(mod, a);
     GOTO_EXCEPT_TYPE(try_node_module_owner_const(mod, for_error), for_error,
                      "cannot dereference type '%s'", na);
@@ -2736,7 +2809,9 @@ error typ_check_can_deref(const struct module *mod, const struct node *for_error
     break;
   case TDEREFSHARP:
     ok = typ_has_same_generic_functor(mod, a, TBI_MMREF)
-      || typ_has_same_generic_functor(mod, a, TBI_NMMREF);
+      || typ_has_same_generic_functor(mod, a, TBI_NMMREF)
+      || typ_has_same_generic_functor(mod, a, TBI_CMMREF)
+      || typ_has_same_generic_functor(mod, a, TBI_CNMMREF);
     break;
   default:
     assert(false);

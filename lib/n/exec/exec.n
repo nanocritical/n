@@ -25,7 +25,7 @@ Status met Success = Bool
 
 
 intf `Completion_handler =
-	met# On_completion cmd:!Cmd
+	met@# On_completion cmd:!Cmd
 
 
 inline struct Cmd =
@@ -35,15 +35,15 @@ inline struct Cmd =
 	Args	:(Buf Stringbuf)
 	Envs	:(Buf Stringbuf)
 
-	Wd	:?!fs.File
+	Wd	:?@!fs.File
 
-	Stdin	:?#bufio.`Fillable_reader
-	Stdout	:?#bufio.`Flushable_writer
+	Stdin	:?@#bufio.`Fillable_reader
+	Stdout	:?@#bufio.`Flushable_writer
 	-- If Stderr === Stdout, a single pipe is created and used for both
 	-- stdout and stderr of the child.
-	Stderr	:?#bufio.`Flushable_writer
+	Stderr	:?@#bufio.`Flushable_writer
 
-	Completion	:?#`Completion_handler
+	Completion	:?@#`Completion_handler
 
 	using_pin	:Bool
 	using_pout	:Bool
@@ -54,48 +54,51 @@ inline struct Cmd =
 	stdin_empty	:bufio.Bytes_reader
 	stdout_discard	:ioutil.Discard
 	stderr_discard	:ioutil.Discard
-	buf_stdin_empty		:bufio.Reader
-	buf_stdout_discard	:bufio.Writer
-	buf_stderr_discard	:bufio.Writer
+	buf_stdin_empty		:@#bufio.Reader
+	buf_stdout_discard	:@#bufio.Writer
+	buf_stderr_discard	:@#bufio.Writer
 
 	stdin_copier	:io.Copier
 	stdout_copier	:io.Copier
 	stderr_copier	:io.Copier
 
-	poll	:#ev.Poll
+	poll	:@#ev.Poll
 	Pid	:Uint
 	Status	:?Status
 
-	pin_rd	:?#fs.File
-	pin_wr	:?#fs.File
-	pout_rd	:?#fs.File
-	pout_wr	:?#fs.File
-	perr_rd	:?#fs.File
-	perr_wr	:?#fs.File
+	pin_rd	:?@#fs.File
+	pin_wr	:?@#fs.File
+	pout_rd	:?@#fs.File
+	pout_wr	:?@#fs.File
+	perr_rd	:?@#fs.File
+	perr_wr	:?@#fs.File
 
 example cmd_failure
-	var poll:ev.Poll
+	var poll = Alloc ev.Poll
 	except = poll#Init
 
-	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "exit 1"}}:Cmd
+	var cmd = Alloc Cmd
+	cmd# = {Path="/bin/bash" Args={"/bin/bash" "-c" "exit 1"}}
 
-	except = cmd#Run #poll
-	except = ev.Loop #poll
+	except = cmd#Run poll
+	except = ev.Loop poll
 
 	assert not cmd.Status.Success
 	assert cmd.Status.Exit == 1
 
 example cmd_stdout_only
-	var poll:ev.Poll
+	var poll = Alloc ev.Poll
 	except = poll#Init
 
 	var buf:Stringbuf
-	var bbuf = bufio.Writer.Mk #buf
-	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo stdout; >&2 echo stderr"}
-		\ Stdout=#bbuf}:Cmd
+	var bbuf = Alloc bufio.Writer
+	bbuf# = bufio.Writer.Mk #buf
+	var cmd = Alloc Cmd
+	cmd# = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo stdout; >&2 echo stderr"}
+		\ Stdout=bbuf}
 
-	except = cmd#Run #poll
-	except = ev.Loop #poll
+	except = cmd#Run poll
+	except = ev.Loop poll
 
 	assert cmd.Status.Success
 	assert cmd.Status.Exit == 0
@@ -103,16 +106,18 @@ example cmd_stdout_only
 	assert buf.Index "stderr" < 0
 
 example cmd_stderr_only
-	var poll:ev.Poll
+	var poll = Alloc ev.Poll
 	except = poll#Init
 
 	var buf:Stringbuf
-	var bbuf = bufio.Writer.Mk #buf
-	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo stdout; >&2 echo stderr"}
-		\ Stderr=#bbuf}:Cmd
+	var bbuf = Alloc bufio.Writer
+	bbuf# = bufio.Writer.Mk #buf
+	var cmd = Alloc Cmd
+	cmd# = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo stdout; >&2 echo stderr"}
+		\ Stderr=bbuf}
 
-	except = cmd#Run #poll
-	except = ev.Loop #poll
+	except = cmd#Run poll
+	except = ev.Loop poll
 
 	assert cmd.Status.Success
 	assert cmd.Status.Exit == 0
@@ -120,16 +125,18 @@ example cmd_stderr_only
 	assert buf.Index "stderr" >= 0
 
 example cmd_same_stdout_stderr
-	var poll:ev.Poll
+	var poll = Alloc ev.Poll
 	except = poll#Init
 
 	var buf:Stringbuf
-	var bbuf = bufio.Writer.Mk #buf
-	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo stdout; >&2 echo stderr"}
-		\ Stdout=#bbuf Stderr=#bbuf}:Cmd
+	var bbuf = Alloc bufio.Writer
+	bbuf# = bufio.Writer.Mk #buf
+	var cmd = Alloc Cmd
+	cmd# = {Path="/bin/bash" Args={"/bin/bash" "-c" "echo stdout; >&2 echo stderr"}
+		\ Stdout=bbuf Stderr=bbuf}
 
-	except = cmd#Run #poll
-	except = ev.Loop #poll
+	except = cmd#Run poll
+	except = ev.Loop poll
 
 	assert cmd.Status.Success
 	assert cmd.Status.Exit == 0
@@ -138,13 +145,13 @@ example cmd_same_stdout_stderr
 
 struct example_handler =
 	isa ev.`Handler
-	i	:!fs.File
-	o	:#io.`Read_closer
-	poll	:#ev.Poll
+	i	:@!fs.File
+	o	:@#io.`Read_closer
+	poll	:@#ev.Poll
 
 -- This silly example assumes that reads and writes of 4 bytes always
 -- complete fully, or not at all.
-example_handler met# On e:ev.Event = Error
+example_handler met@# On e:ev.Event = Error
 	Log#Debug "%s" e
 	if HUP in e.Got or ERROR in e.Got
 		never = self.poll!Schedule_close e.Source
@@ -160,26 +167,30 @@ example_handler met# On e:ev.Event = Error
 		assert (err == OK or err == io.EOF) and buf == "test"
 
 example cmd_nonblocking_pipes
-	var poll:ev.Poll
+	var poll = Alloc ev.Poll
 	except = poll#Init
 
-	var cmd = {Path="/bin/bash" Args={"/bin/bash" "-c" "cat"}}:Cmd
+	var cmd = Alloc Cmd
+	cmd# = {Path="/bin/bash" Args={"/bin/bash" "-c" "cat"}}
 
 	let except, input = cmd#Stdin_pipe
 	let except, output = cmd#Stdout_pipe
-	let h = {i=input o=output poll=#poll}:example_handler
+	let h = Alloc example_handler such
+		h# = {i=input o=output poll=poll}
 
-	except = poll!Register input.Fd:ev.Source.FD {WRITE} #h
-	except = poll!Register output.Fd:ev.Source.FD {READ} #h
+	except = poll!Register input.Fd:ev.Source.FD {WRITE} h
+	except = poll!Register output.Fd:ev.Source.FD {READ} h
 
-	except = cmd#Run #poll
-	except = ev.Loop #poll
+	except = cmd#Run poll
+	except = ev.Loop poll
 
 	assert cmd.Status.Success
 
 Cmd met# Dtor within the_nanny
+	if self.Path == ""
+		return
 	if not self.Status?
-		drop = the_nanny#Unwait_for self
+		drop = the_nanny#Unwait_for (Borrow_mutable self).X0
 
 Cmd met# init_pipes = Error
 	-- We check if Stdin_pipe et al. have already setup the pipes.
@@ -195,24 +206,27 @@ Cmd met# init_pipes = Error
 
 	if not self.using_pin
 		if not self.Stdin?
-			self#buf_stdin_empty = bufio.Reader.Mk #self#stdin_empty
-			self#Stdin = #self#buf_stdin_empty
+			self#buf_stdin_empty = Alloc
+			self#buf_stdin_empty# = bufio.Reader.Mk #self#stdin_empty
+			self#Stdin = self#buf_stdin_empty
 		self#stdin_copier#Reset self#pin_wr self.Stdin
 
 	if not self.using_pout
 		if not self.Stdout?
-			self#buf_stdout_discard = bufio.Writer.Mk #self#stdout_discard
-			self#Stdout = #self#buf_stdout_discard
+			self#buf_stdout_discard = Alloc
+			self#buf_stdout_discard# = bufio.Writer.Mk #self#stdout_discard
+			self#Stdout = self#buf_stdout_discard
 		self#stdout_copier#Reset self.Stdout self#pout_rd
 
 	if not self.using_perr
 		if not self.Stderr?
-			self#buf_stderr_discard = bufio.Writer.Mk #self#stderr_discard
-			self#Stderr = #self#buf_stderr_discard
+			self#buf_stderr_discard = Alloc
+			self#buf_stderr_discard# = bufio.Writer.Mk #self#stderr_discard
+			self#Stderr = self#buf_stderr_discard
 		self#stderr_copier#Reset self.Stderr self#perr_rd
 
 
-Cmd met# Run poll:#ev.Poll = Error within the_nanny
+Cmd met@# Run poll:@#ev.Poll = Error within the_nanny
 	install_nanny
 
 	self#poll = poll
@@ -270,7 +284,7 @@ Cmd met# Run poll:#ev.Poll = Error within the_nanny
 		Log#Error "failed to exec '%s': %s" self.Path err
 		syscall.Exit 1
 
-Cmd met# on_pin e:ev.Event = Error
+Cmd met@# on_pin e:ev.Event = Error
 	if not ERROR in e.Got and (
 		\ (WRITE in e.Got and e.Source.FD == self.pin_wr.Fd)
 		\ or (MANUAL in e.Got and self.pin_wr.Fd.Is_valid) -- Maybe we already closed it.
@@ -287,7 +301,7 @@ Cmd met# on_pin e:ev.Event = Error
 		else
 			except = err
 
-Cmd met# on_pout e:ev.Event = Error
+Cmd met@# on_pout e:ev.Event = Error
 	if (READ in e.Got and e.Source.FD == self.pout_rd.Fd)
 		\ or (HUP in e.Got and e.Source.FD == self.pout_rd.Fd)
 		let _, err = self!stdout_copier#Copy
@@ -304,7 +318,7 @@ Cmd met# on_pout e:ev.Event = Error
 		if err == io.EOF
 			never = self!poll!Schedule_close self.pout_rd.Fd:ev.Source.FD
 
-Cmd met# on_perr e:ev.Event = Error
+Cmd met@# on_perr e:ev.Event = Error
 	if (READ in e.Got and e.Source.FD == self.perr_rd.Fd and not self.perr_is_pout)
 		\ or (HUP in e.Got and e.Source.FD == self.perr_rd.Fd and not self.perr_is_pout)
 		let _, err = self!stderr_copier#Copy
@@ -321,7 +335,7 @@ Cmd met# on_perr e:ev.Event = Error
 		if err == io.EOF
 			never = self!poll!Schedule_close self.perr_rd.Fd:ev.Source.FD
 
-Cmd met# On e:ev.Event = Error
+Cmd met@# On e:ev.Event = Error
 	Log#Debug "%s" e
 
 	except = self#on_pin e
@@ -344,7 +358,7 @@ Cmd met# prepare_stdin_pipe = Error
 	self#pin_wr = fs.File.Open_fd wr
 
 -- If establishing pipes, Stdin, Stdout, Stderr are unused.
-Cmd met# Stdin_pipe = Error, #fs.File
+Cmd met# Stdin_pipe = Error, @#fs.File
 	except = self#prepare_stdin_pipe
 	self#using_pin = true
 	return OK, self#pin_wr
@@ -354,7 +368,7 @@ Cmd met# prepare_stdout_pipe = Error
 	self#pout_rd = fs.File.Open_fd rd
 	self#pout_wr = fs.File.Open_fd wr
 
-Cmd met# Stdout_pipe = Error, #fs.File
+Cmd met# Stdout_pipe = Error, @#fs.File
 	except = self#prepare_stdout_pipe
 	self#using_pout = true
 	return OK, self#pout_rd
@@ -370,24 +384,24 @@ Cmd met# prepare_stderr_pipe ?reuse_stdout:?Bool = Error
 	self#perr_rd = fs.File.Open_fd rd
 	self#perr_wr = fs.File.Open_fd wr
 
-Cmd met# Stderr_pipe ?reuse_stdout:?Bool = Error, #fs.File
+Cmd met# Stderr_pipe ?reuse_stdout:?Bool = Error, @#fs.File
 	except = self#prepare_stderr_pipe reuse_stdout=reuse_stdout
 	self#using_perr = true
 	return OK, self#perr_rd
 
-Cmd met! on_status status:Status
+Cmd met@! on_status status:Status
 	self!Status = status
 
 	if self.Completion?
 		self.Completion#On_completion self
 
 
-globalenv the_nanny:#nanny
+globalenv the_nanny:@#nanny
 
 fun install_nanny within the_nanny
 	if Globalenv_installed the_nanny
 		return
-	let header = Alloc (Envheader #nanny)
+	let header = Alloc_uncounted (Envheader @#nanny)
 	header#Env = Alloc nanny
 	Globalenv_install the_nanny header
 
@@ -399,10 +413,10 @@ fun install_nanny within the_nanny
 inline struct nanny =
 	isa ev.`Handler
 	signalfd	:syscall.Fd
-	pids		:(Map Uint ?!Cmd)
-	poll_usecnt	:(Map (Ref_as_key ?#ev.Poll) Uint)
+	pids		:(Map Uint ?@!Cmd)
+	poll_usecnt	:(Map (Ref_as_key ?@#ev.Poll) Uint)
 
-nanny met# Wait_for cmd:!Cmd = Error
+nanny met@# Wait_for cmd:@!Cmd = Error
 	if not self.signalfd.Is_valid
 		let except, mask = syscall.Sigset.Mk syscall.SIGCHLD
 		except = syscall.Sigprocmask syscall.SIG_BLOCK mask nil
@@ -418,7 +432,7 @@ nanny met# Wait_for cmd:!Cmd = Error
 
 	(self!poll_usecnt#Store {Ref=cmd.poll})# += 1
 
-nanny met# Unwait_for cmd:!Cmd = Error
+nanny met@# Unwait_for cmd:@!Cmd = Error
 	let pcmd = self!pids![cmd.Pid]
 	if not pcmd?
 		Log#Warning "nanny: trying to unwait for an unknown process with PID '%s'" cmd.Pid
@@ -429,7 +443,7 @@ nanny met# Unwait_for cmd:!Cmd = Error
 
 	except = self#decrement_poll_usecnt cmd
 
-nanny met# decrement_poll_usecnt cmd:!Cmd = Error
+nanny met@# decrement_poll_usecnt cmd:@!Cmd = Error
 	let usecnt = self.poll_usecnt.[{Ref=cmd.poll}]
 	assert usecnt?
 	if usecnt* == 1
@@ -437,7 +451,7 @@ nanny met# decrement_poll_usecnt cmd:!Cmd = Error
 		_ = self!poll_usecnt#Delete {Ref=cmd.poll}
 		except = cmd.poll!Unregister self.signalfd:ev.Source.FD (Enumset ev.Events).ALL self
 
-nanny met# On e:ev.Event = Error
+nanny met@# On e:ev.Event = Error
 	Log#Debug "%s" e
 	if not READ in e.Got
 		return OK

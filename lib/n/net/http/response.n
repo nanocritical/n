@@ -13,7 +13,7 @@ inline struct Response =
 	done		:Bool
 
 	Header		:Header
-	Body		:bufio.Reader
+	Body		:@#bufio.Reader
 	Close_conn	:Bool
 
 	Content_length		:?Uint

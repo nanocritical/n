@@ -8,9 +8,9 @@ intf `Response_writer =
 
 struct response_writer =
 	isa `Response_writer
-	conn			:#tcp.Conn
-	req			:#Request
-	bufw			:#bufio.Writer
+	conn			:@#tcp.Conn
+	req			:@#Request
+	bufw			:@#bufio.Writer
 	header			:Header
 	wrote_header		:Bool
 	wrote_status_code	:Uint
@@ -21,7 +21,7 @@ struct response_writer =
 	close_because_of	:Error
 	done			:Bool
 
-response_writer met# init conn:#tcp.Conn req:#Request bufw:#bufio.Writer
+response_writer met# init conn:@#tcp.Conn req:@#Request bufw:@#bufio.Writer
 	self#conn = conn
 	self#req = req
 	self#bufw = bufw
@@ -205,36 +205,41 @@ enum server_handling_state =
 
 struct server_conn_handler =
 	isa ev.`Handler `Not_copyable
-	server		:#Server
+	server		:@#Server
 
 	connected	:Bool
 	connected_wr	:Bool
 
 	state		:server_handling_state
-	conn		:#tcp.Conn -- Owner
+	conn		:@#tcp.Conn
 
-	bufr		:bufio.Reader
-	request		:Request
+	bufr		:@#bufio.Reader
+	request		:@#Request
 
-	bufw		:bufio.Writer
-	response	:response_writer
+	bufw		:@#bufio.Writer
+	response	:@#response_writer
 
-	server_handler		:?#`Server
-	handler			:?#`Server_handler
-	handler_buffered	:?#`Server_handler_buffered
+	server_handler		:?@#`Server
+	handler			:?@#`Server_handler
+	handler_buffered	:?@#`Server_handler_buffered
 
-	on_done_handler		:on_done_handler
+	on_done_handler		:@#on_done_handler
 
 server_conn_handler met debug ?_Ncodeloc:?Codeloc ...s:(Vararg ?*`Show)
 	Log#Debug "%s: %s" _Ncodeloc=_Ncodeloc self.conn.Fd (fmt.S ...s)
 
-server_conn_handler met# init server:#Server conn:#tcp.Conn = Error
+server_conn_handler met@# init server:@#Server conn:@#tcp.Conn = Error
 	self#server = server
 	self#connected = true
 	self#connected_wr = true
 	self#conn = conn
-	self#bufr = bufio.Reader.Mk self#conn
-	self#bufw = bufio.Writer.Mk self#conn
+	self#bufr = Alloc bufio.Reader
+	self#request = Alloc Request
+	self#bufw = Alloc bufio.Writer
+	self#response = Alloc response_writer
+	self#on_done_handler = Alloc on_done_handler
+	self#bufr# = bufio.Reader.Mk self#conn
+	self#bufw# = bufio.Writer.Mk self#conn
 
 	except = self.server.poll!Register self.conn.Fd:ev.Source.FD {READ WRITE RDHUP CLOSE} self
 
@@ -313,7 +318,6 @@ server_conn_handler met# Close = err:Error
 
 	-- If other error, give up trying to close it.
 
-	Free self#conn
 	self#conn = nil
 	self#connected = false
 	self!connected_wr = false
@@ -329,7 +333,7 @@ server_conn_handler met can_progress e:ev.Event = Bool
 	| RECYCLE -> return true
 	| CLOSE -> return true
 
-server_conn_handler met# On e:ev.Event = err:Error
+server_conn_handler met@# On e:ev.Event = err:Error
 	self.debug self.state e
 
 	var pending_err
@@ -377,7 +381,6 @@ server_conn_handler met# On e:ev.Event = err:Error
 		let close_err = self#Close
 		if close_err == io.WOULD_BLOCK
 			return close_err
-		Free self
 		return OK
 
 	if self.state == RECYCLE
@@ -402,7 +405,7 @@ server_conn_handler met# waiting_header = Error
 		if rerr == io.WOULD_BLOCK
 			return rerr
 
-	except = read_request_header #self#request !self!bufr self.conn.Remote_addr
+	except = read_request_header self#request self!bufr self.conn.Remote_addr
 
 	var handler
 	foreach server_handler over self.server.Handlers
@@ -418,8 +421,8 @@ server_conn_handler met# waiting_header = Error
 	self#handler = handler
 	self#handler_buffered = (Dyncast `Server_handler_buffered) handler
 
-	except = prepare_request_reception #self#request #self#bufr #self#bufw
-	self#response#init self#conn #self#request #self#bufw
+	except = prepare_request_reception self#request self#bufr self#bufw
+	self#response#init self#conn self#request self#bufw
 
 	self#state = HANDLING
 	return OK
@@ -430,7 +433,7 @@ server_conn_handler met# handling = Error
 
 	self.debug self.state
 
-	let handler_err = self.handler#On #self#response #self#request
+	let handler_err = self.handler#On self#response self#request
 
 	if handler_err == io.WOULD_BLOCK
 		return handler_err
@@ -453,7 +456,7 @@ server_conn_handler met# handling_buffered = Error
 			break
 		except = rerr
 
-	let handler_err = self.handler#On #self#response #self#request
+	let handler_err = self.handler#On self#response self#request
 	if handler_err != OK
 		Log#Error "will close connection because of handler error: %s" handler_err
 		self#state = CLOSE
@@ -467,10 +470,10 @@ server_conn_handler met# handling_buffered = Error
 
 struct on_done_handler =
 	isa ev.`Handler
-	server_handler	:?#`Server
-	handler		:?#`Server_handler
+	server_handler	:?@#`Server
+	handler		:?@#`Server_handler
 
-on_done_handler met# On e:ev.Event = Error
+on_done_handler met@# On e:ev.Event = Error
 	Log#Debug "%s" e
 	self.server_handler#On_done self.handler
 	self# = {}
@@ -494,8 +497,8 @@ server_conn_handler met# flush = Error within time.Clock
 		\ self.request.Method self.request.Url version
 		\ self.response.wrote_status_code
 
-	self#on_done_handler = {server_handler=self.server_handler handler=self.handler}
-	never = self.server.poll!Schedule_manually #self#on_done_handler
+	self#on_done_handler# = {server_handler=self.server_handler handler=self.handler}
+	never = self.server.poll!Schedule_manually self#on_done_handler
 
 	if self.response.wants_close
 		self#state = CLOSE
@@ -506,28 +509,27 @@ server_conn_handler met# flush = Error within time.Clock
 
 struct Server =
 	isa ev.`Handler
-	poll		:#ev.Poll
+	poll		:@#ev.Poll
 
 	listening	:tcp.Socket
-	Handlers	:(Buf ?#`Server)
+	Handlers	:(Buf ?@#`Server)
 
-Server fun Mk poll:#ev.Poll ?handler:?#`Server = r:this
+Server fun Mk poll:@#ev.Poll ?handler:?@#`Server = r:this
 	r#poll = poll
 	if handler?
 		r!Handlers#Push# = handler
 
-Server met# Listen addr:tcp.Addr = Error
+Server met@# Listen addr:tcp.Addr = Error
 	except = self#listening#Listen addr
 
 	except = self.poll!Register self.listening.Fd:ev.Source.FD {READ} self
 
-Server met# On e:ev.Event = Error
+Server met@# On e:ev.Event = Error
 	while true
 		let conn = Alloc tcp.Conn
 		var err
 		err, conn# = self.listening.Accept
 		if err != OK
-			Free conn
 			if err != io.WOULD_BLOCK
 				Log#Error "Accept failed with: %s" err
 			return err

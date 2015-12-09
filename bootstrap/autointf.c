@@ -174,12 +174,45 @@ static void like_arg(struct module *mod, struct node *par,
   }
 }
 
+bool is_abstract_ref_not_bothering_with_member(const struct typ *t, const ident member) {
+  const struct typ *t0 = typ_generic_functor_const(t);
+  return (t0 != NULL
+      && (member == ID_DTOR || member == ID_MOVE || member == ID_COPY_CTOR)
+      && (typ_equal(t0, TBI_ANY_REF)
+          || typ_equal(t0, TBI_ANY_MREF)
+          || typ_equal(t0, TBI_ANY_NREF)
+          || typ_equal(t0, TBI_ANY_NMREF)
+          || typ_equal(t0, TBI_ANY_LOCAL_REF)
+          || typ_equal(t0, TBI_ANY_LOCAL_MREF)
+          || typ_equal(t0, TBI_ANY_LOCAL_NREF)
+          || typ_equal(t0, TBI_ANY_LOCAL_NMREF)));
+}
+
 static void gen_on_field(struct module *mod, struct node *m,
                          struct node *body, struct node *f,
                          struct typ *ftyp) {
   const ident mident = node_ident(m);
   if ((mident == ID_CTOR || mident == ID_DTOR) && typ_is_reference(ftyp)) {
     // Not deep operations.
+    return;
+  }
+
+  if (is_abstract_ref_not_bothering_with_member(ftyp, mident)) {
+    // In a very particular case: uninstantiated generic structs with
+    // type arguments of the form (`Any_n?{,m,mm}ref T), as these intf are
+    // shared between uncounted local references (which are trivial dtor,
+    // move, and copy) and local counted references (which are not:
+    // therefore the `Any_n?{,m,mm}ref cannot be trivial here either),
+    // autointf would try to generate Dtor, Move, and Copy_ctor methods for
+    // such structs. The body of these methods is purely abstract, but it
+    // will be type-checked.  And in the process we may look for the Dtor,
+    // Move, and Copy_ctor methods on uncounted local references. But for
+    // bootstrapping reasons (we don't want to need references to type
+    // references), these methods do not exists on uncounted local
+    // references.
+    //
+    // So we skip fields of this kind, in purely abstract code, never
+    // codegen.
     return;
   }
 
@@ -229,12 +262,14 @@ static void gen_on_field(struct module *mod, struct node *m,
                rfn->as.IDENT.name = node_ident(f)));
            G(move, BIN,
              move->as.BIN.operator = TSHARP;
+             move->as.BIN.is_operating_on_counted_ref = true;
              like_arg(mod, move, arg_self, f);
              G_IDENT(movename, "Move")));
       }
     } else {
       G0(assign, body, BIN,
          assign->as.BIN.operator = TASSIGN;
+         assign->as.BIN.is_operating_on_counted_ref = true;
          like_arg(mod, assign, arg_self, f);
          like_arg(mod, assign, arg_other, f));
     }
@@ -250,6 +285,7 @@ static void gen_on_field(struct module *mod, struct node *m,
     G0(call, body, CALL,
        G(fun, BIN,
          fun->as.BIN.operator = arg_ref_accessor(arg_self);
+         fun->as.BIN.is_operating_on_counted_ref = true;
          like_arg(mod, fun, arg_self, f);
          G(name, IDENT,
            name->as.IDENT.name = node_ident(m))));
@@ -609,8 +645,8 @@ static void add_auto_member(struct module *mod,
     return;
   }
 
-non_bg:
-  ;GSTART();
+non_bg:;
+  GSTART();
   G0(body, m, BLOCK);
 
   switch (tit_ident(mi)) {

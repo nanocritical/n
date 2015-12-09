@@ -21,3 +21,5 @@ ERROR step_autointf_isalist_literal_protos(struct module *mod, struct node *node
 const uint64_t step_autointf_inherit_filter;
 ERROR step_autointf_inherit(struct module *mod, struct node *node,
                             void *user, bool *stop);
+
+bool is_abstract_ref_not_bothering_with_member(const struct typ *t, const ident member);

@@ -5,12 +5,12 @@ intf `Clock =
 	met Runtime_cpu = Duration
 	met Runtime_cpu_thread = Duration
 
-globalenv Clock:!`Clock
+globalenv Clock:@!`Clock
 
 fun Install_sys within Clock
 	let c = Alloc Sysclock such
 		c!Init
-	let header = Alloc (Envheader !`Clock)
+	let header = Alloc_uncounted (Envheader @!`Clock)
 	header#Env = c
 	Globalenv_install Clock header
 

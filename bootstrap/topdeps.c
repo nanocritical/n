@@ -332,6 +332,20 @@ static void do_topdeps_record(struct module *mod, struct typ *t, uint32_t force_
 }
 
 void topdeps_record(struct module *mod, struct typ *t) {
+  // Rewrites methods on counted references to the implementations in Cref_impl.
+  if (typ_definition_which(t) == DEFMETHOD) {
+    const ident name = typ_definition_ident(t);
+    if (name == ID_DTOR || name == ID_COPY_CTOR || name == ID_MOVE) {
+      struct tit *p = typ_definition_parent(t);
+      struct typ *tp = tit_typ(p);
+      tit_next(p);
+      if (typ_is_counted_reference(tp) && !typ_is_dyn(tp)) {
+        struct typ *impl = typ_member(tp, ID_IMPL);
+        t = typ_member(impl, name);
+      }
+    }
+  }
+
   do_topdeps_record(mod, t, 0);
 }
 

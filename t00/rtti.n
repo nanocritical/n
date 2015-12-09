@@ -43,10 +43,10 @@ struct X =
 	con	:?#contribs
 
 X fun Mk = r:this
-	r#refc = Alloc U32
+	r#refc = Alloc_uncounted U32
 	r#refc# = 1
 	r#me = #r
-	r#con = Alloc contribs
+	r#con = Alloc_uncounted contribs
 	r#con#rec r +1
 
 X met# Dtor
@@ -58,8 +58,8 @@ X met# Dtor
 	self#con#rec self -1
 
 	if self.refc == 0
-		Free self.refc
-		Free self.con
+		Free_uncounted self.refc
+		Free_uncounted self.con
 
 X met# Copy_ctor other:*this
 	assert not other.me? or other === other.me

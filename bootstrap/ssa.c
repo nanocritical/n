@@ -215,7 +215,7 @@ static ERROR fix_ssa_sub(struct module *mod, struct node *node, struct node *sub
 STEP_NM(step_ssa_convert_shallow_catchup,
         NM(BIN) | NM(SIZEOF) | NM(ALIGNOF) | NM(UN) | NM(TUPLE) |
         NM(CALLNAMEDARG) | NM(INIT) | NM(RETURN) | NM(PRE) | NM(POST) |
-        NM(INVARIANT) | NM(THROW) | NM(CALL) | NM(BLOCK));
+        NM(INVARIANT) | NM(THROW) | NM(CALL) | NM(CONV) | NM(BLOCK));
 error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   DSTEP(mod, node);
@@ -236,7 +236,7 @@ error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
         EXCEPT(e);
       }
 
-      if (!(NM(subs_last(node)->which) & (NM(CALL) | NM(INIT)))) {
+      if (!(NM(subs_last(node)->which) & (NM(CALL) | NM(CONV) | NM(INIT)))) {
         e = ssa_sub(mod, node, subs_last(node));
         EXCEPT(e);
       }
@@ -257,6 +257,7 @@ error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
   case POST:
   case INVARIANT:
   case THROW:
+  case CONV:
     FOREACH_SUB(sub, node) {
       e = fix_ssa_sub(mod, node, sub);
       EXCEPT(e);
@@ -364,7 +365,7 @@ error step_ssa_convert(struct module *mod, struct node *node,
   switch (par->which) {
   case BIN:
     if (OP_IS_ASSIGN(par->as.BIN.operator)) {
-      if (!(NM(node->which) & (NM(CALL) | NM(INIT)))
+      if (!(NM(node->which) & (NM(CALL) | NM(CONV) | NM(INIT)))
           && (node == subs_last(par)
               || (node == subs_first(par) && node->which != TUPLE))) {
         e = ssa_sub(mod, par, node);
@@ -384,6 +385,7 @@ error step_ssa_convert(struct module *mod, struct node *node,
   case POST:
   case INVARIANT:
   case THROW:
+  case CONV:
     e = ssa_sub(mod, par, node);
     EXCEPT(e);
     break;

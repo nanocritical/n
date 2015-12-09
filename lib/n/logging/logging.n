@@ -5,7 +5,7 @@ import n.bufio
 import n.syscall
 import n.fmt
 
-globalenv Log:#`Log
+globalenv Log:@#`Log
 
 intf `Log =
 	isa io.`Writer
@@ -20,7 +20,7 @@ intf `Log =
 
 fun Install_sys within Log
 	let s = Alloc formatter
-	let header = Alloc (Envheader #`Log)
+	let header = Alloc_uncounted (Envheader @#`Log)
 	header#Env = s
 	Globalenv_install Log header
 

@@ -43,13 +43,16 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_CAST] = "Cast",
   [ID_DYNCAST] = "Dyncast",
   [ID_NULLABLE] = "nullable",
-  [ID_NCODELOC] = "_Ncodeloc",
   [ID_WILDCARD_REF_ARG] = "__wildcard_ref_arg__",
   [ID_WILDCARD_REF_ARG_SELF] = "__wildcard_ref_arg_self__",
   [ID_WILDCARD_REF_ARG_NULLABLE] = "__wildcard_ref_arg_nullable__",
   [ID_LIKELY] = "Likely",
   [ID_UNLIKELY] = "Unlikely",
   [ID_NLANG] = "n",
+  [ID_NCODELOC] = "_Ncodeloc",
+  [ID_UNSAFE_ACQUIRE] = "Unsafe_acquire",
+  [ID_UNSAFE_RELEASE] = "Unsafe_release",
+  [ID_DEBUG_REFERENCE_COUNT] = "Debug_reference_count",
   [ID_TBI_VOID] = "Void",
   [ID_TBI_LITERALS_NIL] = "`__literal_nil__",
   [ID_TBI_LITERALS_INTEGER] = "`__literal_integer__",
@@ -96,12 +99,27 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_TBI_ANY_MREF] = "`Any_mref",
   [ID_TBI_ANY_NREF] = "`Any_nref",
   [ID_TBI_ANY_NMREF] = "`Any_nmref",
+  [ID_TBI_ANY_ANY_LOCAL_REF] = "`Any_any_local_ref",
+  [ID_TBI_ANY_LOCAL_REF] = "`Any_local_ref",
+  [ID_TBI_ANY_LOCAL_MREF] = "`Any_local_mref",
+  [ID_TBI_ANY_LOCAL_NREF] = "`Any_local_nref",
+  [ID_TBI_ANY_LOCAL_NMREF] = "`Any_local_nmref",
+  [ID_TBI_ANY_ANY_COUNTED_REF] = "`Any_any_counted_ref",
+  [ID_TBI_ANY_COUNTED_REF] = "`Any_counted_ref",
+  [ID_TBI_ANY_COUNTED_NREF] = "`Any_counted_nref",
   [ID_TBI_REF] = "Ref",
   [ID_TBI_MREF] = "Mref",
   [ID_TBI_MMREF] = "Mmref",
   [ID_TBI_NREF] = "Nref",
   [ID_TBI_NMREF] = "Nmref",
   [ID_TBI_NMMREF] = "Nmmref",
+  [ID_TBI_CREF] = "Cref",
+  [ID_TBI_CMREF] = "Cmref",
+  [ID_TBI_CMMREF] = "Cmmref",
+  [ID_TBI_CNREF] = "Cnref",
+  [ID_TBI_CNMREF] = "Cnmref",
+  [ID_TBI_CNMMREF] = "Cnmmref",
+  [ID_TBI_CREF_IMPL] = "Cref_impl",
   [ID_TBI_VOIDREF] = "Voidref",
   [ID_TBI_ANY_ANY_SLICE] = "`Any_any_slice",
   [ID_TBI_ANY_SLICE] = "`Any_slice",
@@ -178,6 +196,9 @@ const char *predefined_idents_strings[ID__NUM] = {
   [ID_DTOR] = "Dtor",
   [ID_COPY_CTOR] = "Copy_ctor",
   [ID_C] = "c",
+  [ID_REF] = "ref",
+  [ID_CNT] = "cnt",
+  [ID_IMPL] = "impl",
   [ID_X] = "X",
   [ID_NONNIL] = "Nonnil",
   [ID_OTHER] = "other",
@@ -451,12 +472,27 @@ static void init_tbis(struct globalctx *gctx) {
   TBI_ANY_MREF = gctx->builtin_typs_by_name[ID_TBI_ANY_MREF];
   TBI_ANY_NREF = gctx->builtin_typs_by_name[ID_TBI_ANY_NREF];
   TBI_ANY_NMREF = gctx->builtin_typs_by_name[ID_TBI_ANY_NMREF];
-  TBI_REF = gctx->builtin_typs_by_name[ID_TBI_REF]; // @
-  TBI_MREF = gctx->builtin_typs_by_name[ID_TBI_MREF]; // @!
-  TBI_MMREF = gctx->builtin_typs_by_name[ID_TBI_MMREF]; // @#
-  TBI_NREF = gctx->builtin_typs_by_name[ID_TBI_NREF]; // ?@
-  TBI_NMREF = gctx->builtin_typs_by_name[ID_TBI_NMREF]; // ?@!
-  TBI_NMMREF = gctx->builtin_typs_by_name[ID_TBI_NMMREF]; // ?@#
+  TBI_ANY_ANY_LOCAL_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_ANY_LOCAL_REF];
+  TBI_ANY_LOCAL_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_LOCAL_REF];
+  TBI_ANY_LOCAL_MREF = gctx->builtin_typs_by_name[ID_TBI_ANY_LOCAL_MREF];
+  TBI_ANY_LOCAL_NREF = gctx->builtin_typs_by_name[ID_TBI_ANY_LOCAL_NREF];
+  TBI_ANY_LOCAL_NMREF = gctx->builtin_typs_by_name[ID_TBI_ANY_LOCAL_NMREF];
+  TBI_ANY_ANY_COUNTED_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_ANY_COUNTED_REF];
+  TBI_ANY_COUNTED_REF = gctx->builtin_typs_by_name[ID_TBI_ANY_COUNTED_REF];
+  TBI_ANY_COUNTED_NREF = gctx->builtin_typs_by_name[ID_TBI_ANY_COUNTED_NREF];
+  TBI_REF = gctx->builtin_typs_by_name[ID_TBI_REF];
+  TBI_MREF = gctx->builtin_typs_by_name[ID_TBI_MREF];
+  TBI_MMREF = gctx->builtin_typs_by_name[ID_TBI_MMREF];
+  TBI_NREF = gctx->builtin_typs_by_name[ID_TBI_NREF];
+  TBI_NMREF = gctx->builtin_typs_by_name[ID_TBI_NMREF];
+  TBI_NMMREF = gctx->builtin_typs_by_name[ID_TBI_NMMREF];
+  TBI_CREF = gctx->builtin_typs_by_name[ID_TBI_CREF];
+  TBI_CMREF = gctx->builtin_typs_by_name[ID_TBI_CMREF];
+  TBI_CMMREF = gctx->builtin_typs_by_name[ID_TBI_CMMREF];
+  TBI_CNREF = gctx->builtin_typs_by_name[ID_TBI_CNREF];
+  TBI_CNMREF = gctx->builtin_typs_by_name[ID_TBI_CNMREF];
+  TBI_CNMMREF = gctx->builtin_typs_by_name[ID_TBI_CNMMREF];
+  TBI_CREF_IMPL = gctx->builtin_typs_by_name[ID_TBI_CREF_IMPL];
   TBI_VOIDREF = gctx->builtin_typs_by_name[ID_TBI_VOIDREF];
   TBI_ANY_ANY_SLICE = gctx->builtin_typs_by_name[ID_TBI_ANY_ANY_SLICE];
   TBI_ANY_SLICE = gctx->builtin_typs_by_name[ID_TBI_ANY_SLICE];
@@ -533,15 +569,23 @@ static void init_tbis(struct globalctx *gctx) {
   gctx->builtin_typs_for_refop[TREFDOT] = TBI_REF;
   gctx->builtin_typs_for_refop[TREFBANG] = TBI_MREF;
   gctx->builtin_typs_for_refop[TREFSHARP] = TBI_MMREF;
-  gctx->builtin_typs_for_refop[TREFWILDCARD] = TBI_ANY_REF;
+  gctx->builtin_typs_for_refop[TREFWILDCARD] = TBI_ANY_LOCAL_REF;
+  gctx->builtin_typs_for_refop[TCREFDOT] = TBI_CREF;
+  gctx->builtin_typs_for_refop[TCREFBANG] = TBI_CMREF;
+  gctx->builtin_typs_for_refop[TCREFSHARP] = TBI_CMMREF;
+  gctx->builtin_typs_for_refop[TCREFWILDCARD] = TBI_ANY_COUNTED_REF;
   gctx->builtin_typs_for_refop[TDEREFDOT] = TBI_REF;
   gctx->builtin_typs_for_refop[TDEREFBANG] = TBI_MREF;
   gctx->builtin_typs_for_refop[TDEREFSHARP] = TBI_MMREF;
-  gctx->builtin_typs_for_refop[TDEREFWILDCARD] = TBI_ANY_REF;
+  gctx->builtin_typs_for_refop[TDEREFWILDCARD] = TBI_ANY_LOCAL_REF;
   gctx->builtin_typs_for_refop[TNULREFDOT] = TBI_NREF;
   gctx->builtin_typs_for_refop[TNULREFBANG] = TBI_NMREF;
   gctx->builtin_typs_for_refop[TNULREFSHARP] = TBI_NMMREF;
-  gctx->builtin_typs_for_refop[TNULREFWILDCARD] = TBI_ANY_NREF;
+  gctx->builtin_typs_for_refop[TNULREFWILDCARD] = TBI_ANY_LOCAL_NREF;
+  gctx->builtin_typs_for_refop[TNULCREFDOT] = TBI_CNREF;
+  gctx->builtin_typs_for_refop[TNULCREFBANG] = TBI_CNMREF;
+  gctx->builtin_typs_for_refop[TNULCREFSHARP] = TBI_CNMMREF;
+  gctx->builtin_typs_for_refop[TNULCREFWILDCARD] = TBI_ANY_COUNTED_NREF;
   gctx->builtin_typs_for_refop[TSLICEBRAKETS] = TBI_SLICE;
   gctx->builtin_typs_for_refop[TMSLICEBRAKETS] = TBI_MSLICE;
   gctx->builtin_typs_for_refop[TWSLICEBRAKETS] = TBI_MSLICE;
@@ -2127,7 +2171,11 @@ static void add_self_arg(struct module *mod, struct node *node,
   struct node *name = mk_node(mod, arg, IDENT);
   name->as.IDENT.name = ID_SELF;
 
-  if (node->as.DEFMETHOD.access == TREFWILDCARD) {
+  if (node->as.DEFMETHOD.access == TREFWILDCARD
+      || node->as.DEFMETHOD.access == TCREFWILDCARD
+      || node->as.DEFMETHOD.access == TREFCREFWILDCARD) {
+    bool is_either = node->as.DEFMETHOD.access == TREFCREFWILDCARD;
+    bool is_cref = node->as.DEFMETHOD.access == TCREFWILDCARD;
     struct node *genargs = subs_at(node, IDX_GENARGS);
     node->as.DEFMETHOD.first_wildcard_genarg = subs_count(genargs);
     GSTART();
@@ -2135,17 +2183,17 @@ static void add_self_arg(struct module *mod, struct node *node,
        G(gasid, IDENT,
          gasid->as.IDENT.name = ID_WILDCARD_REF_ARG_SELF);
        G(gast, IDENT,
-         gast->as.IDENT.name = ID_TBI_ANY_REF));
+         gast->as.IDENT.name = is_either ? ID_TBI_ANY_REF : is_cref ? ID_TBI_ANY_COUNTED_REF : ID_TBI_ANY_LOCAL_REF));
     G0(ga, genargs, DEFGENARG,
        G(gaid, IDENT,
          gaid->as.IDENT.name = ID_WILDCARD_REF_ARG);
        G(gat, IDENT,
-         gat->as.IDENT.name = ID_TBI_ANY_REF));
+         gat->as.IDENT.name = is_either ? ID_TBI_ANY_REF : is_cref ? ID_TBI_ANY_COUNTED_REF : ID_TBI_ANY_LOCAL_REF));
     G0(gan, genargs, DEFGENARG,
        G(ganid, IDENT,
          ganid->as.IDENT.name = ID_WILDCARD_REF_ARG_NULLABLE);
        G(gant, IDENT,
-         gant->as.IDENT.name = ID_TBI_ANY_NREF));
+         gant->as.IDENT.name = is_either ? ID_TBI_ANY_NREF : is_cref ? ID_TBI_ANY_COUNTED_NREF : ID_TBI_ANY_LOCAL_NREF));
 
     G0(argt, arg, CALL,
        G(ref, IDENT,
@@ -2161,7 +2209,11 @@ static void add_self_arg(struct module *mod, struct node *node,
 }
 
 static void add_fun_wildcard_genarg(struct module *mod, struct node *node) {
-  if (node->as.DEFFUN.access == TREFWILDCARD) {
+  if (node->as.DEFFUN.access == TREFWILDCARD
+      || node->as.DEFFUN.access == TCREFWILDCARD
+      || node->as.DEFFUN.access == TREFCREFWILDCARD) {
+    bool is_either = node->as.DEFMETHOD.access == TREFCREFWILDCARD;
+    bool is_cref = node->as.DEFMETHOD.access == TCREFWILDCARD;
     struct node *genargs = subs_at(node, IDX_GENARGS);
     node->as.DEFFUN.first_wildcard_genarg = subs_count(genargs);
     GSTART();
@@ -2169,12 +2221,12 @@ static void add_fun_wildcard_genarg(struct module *mod, struct node *node) {
        G(gaid, IDENT,
          gaid->as.IDENT.name = ID_WILDCARD_REF_ARG);
        G(gat, IDENT,
-         gat->as.IDENT.name = ID_TBI_ANY_REF));
+         gat->as.IDENT.name = is_either ? ID_TBI_ANY_REF : is_cref ? ID_TBI_ANY_COUNTED_REF : ID_TBI_ANY_LOCAL_REF));
     G0(gan, genargs, DEFGENARG,
        G(ganid, IDENT,
          ganid->as.IDENT.name = ID_WILDCARD_REF_ARG_NULLABLE);
        G(gant, IDENT,
-         gant->as.IDENT.name = ID_TBI_ANY_NREF));
+         gant->as.IDENT.name = is_either ? ID_TBI_ANY_NREF : is_cref ? ID_TBI_ANY_COUNTED_NREF : ID_TBI_ANY_LOCAL_NREF));
   }
 }
 
@@ -2183,6 +2235,10 @@ static ERROR p_defmethod_access(struct node *node, struct module *mod) {
   error e = scan(&tok, mod);
   EXCEPT(e);
   switch (tok.t) {
+  case TIDENT:
+    back(mod, &tok);
+    node->as.DEFMETHOD.access = TREFDOT;
+    break;
   case TDEREFBANG:
     node->as.DEFMETHOD.access = TREFBANG;
     break;
@@ -2192,9 +2248,20 @@ static ERROR p_defmethod_access(struct node *node, struct module *mod) {
   case TDEREFWILDCARD:
     node->as.DEFMETHOD.access = TREFWILDCARD;
     break;
-  case TIDENT:
-    back(mod, &tok);
-    node->as.DEFMETHOD.access = TREFDOT;
+  case TCREFDOT_POST:
+    node->as.DEFMETHOD.access = TCREFDOT;
+    break;
+  case TCREFBANG_POST:
+    node->as.DEFMETHOD.access = TCREFBANG;
+    break;
+  case TCREFSHARP_POST:
+    node->as.DEFMETHOD.access = TCREFSHARP;
+    break;
+  case TCREFWILDCARD_POST:
+    node->as.DEFMETHOD.access = TCREFWILDCARD;
+    break;
+  case TREFCREFWILDCARD:
+    node->as.DEFMETHOD.access = TREFCREFWILDCARD;
     break;
   default:
     // In 't (method@ u:`any) foobar x:@u = void', p_defmethod_access() is
@@ -2216,6 +2283,12 @@ static ERROR p_deffun_access(struct node *node, struct module *mod) {
   switch (tok.t) {
   case TDEREFWILDCARD:
     node->as.DEFFUN.access = TREFWILDCARD;
+    break;
+  case TCREFWILDCARD_POST:
+    node->as.DEFFUN.access = TCREFWILDCARD;
+    break;
+  case TREFCREFWILDCARD:
+    node->as.DEFFUN.access = TREFCREFWILDCARD;
     break;
   case TIDENT:
     back(mod, &tok);

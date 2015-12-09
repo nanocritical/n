@@ -11,29 +11,30 @@ within logging.Log
 
 struct echo_server =
 	isa http.`Server
-	server		:http.Server
+	server		:@#http.Server
 
-echo_server met# init poll:#ev.Poll = Error
-	self#server = http.Server.Mk poll handler=self
+echo_server met@# init poll:@#ev.Poll = Error
+	self#server = Alloc http.Server
+	self#server# = http.Server.Mk poll handler=self
 	except = self#server#Listen {Port=8000}
 
-echo_server met# On_incoming r:*http.Request = ?#http.`Server_handler
+echo_server met@# On_incoming r:*http.Request = ?@#http.`Server_handler
 	return Alloc echo
 
-echo_server met# On_done h:#http.`Server_handler
-	Free <- (Dyncast echo) h
+echo_server met@# On_done h:@#http.`Server_handler
+	noop
 
 
 struct echo =
 	isa http.`Server_handler_buffered
 
-echo met# On w:#http.`Response_writer r:#http.Request = Error
+echo met@# On w:#http.`Response_writer r:#http.Request = Error
 	let ct = r.Header.Get "Content-Type"
 	if ct?
 		(w#Header#Set "Content-Type")# = ct
 
 	var copier:io.Copier
-	copier#Reset w #r#Body
+	copier#Reset w r#Body
 
 	let _, err = copier#Copy
 	if err != io.EOF
@@ -42,10 +43,10 @@ echo met# On w:#http.`Response_writer r:#http.Request = Error
 
 
 fun Main = Error
-	var poll:ev.Poll
+	var poll = Alloc ev.Poll
 	except = poll#Init
 
-	var server:echo_server
-	except = server#init #poll
+	var server = Alloc echo_server
+	except = server#init poll
 
-	except = ev.Loop #poll
+	except = ev.Loop poll

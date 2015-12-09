@@ -3,6 +3,19 @@
 
 #define NB(n) n$builtins$##n
 
+#ifdef NLANG_DECLARE_TYPES
+
+#define NLANG_CREF(x) _$Ncref_n$builtins$U8##x
+// Declared very early to ensure it is available for cdyn definitions
+// and prevent its redefinition by cprinter's output:
+#define HAS0__$Ncref_n$builtins$U8
+struct NLANG_CREF() {
+  NB(U8) *ref;
+  NB(U32) *cnt;
+};
+
+#endif
+
 #ifdef NLANG_DEFINE_TYPES
 
 struct n$builtins$dtor_via_ref {
@@ -35,6 +48,34 @@ struct NB(Varargint) {
 
 #ifdef NLANG_DECLARE_FUNCTIONS
 
+#define NLANG_CREF_CAST(cref_type, cref) ( (cref_type){ .ref = (void *) (cref).ref, .cnt = (cref).cnt } )
+
+#define NLANG_CREF_INCR(cref) ({ \
+   if ((cref).cnt != NULL) { \
+     *(cref).cnt += 1; \
+   } \
+   (cref); \
+})
+
+void NB(__cref_dtor)(void *cref);
+void NB(__cdyn_dtor)(void *cdyn);
+void NB(__cdyn_copy_ctor)(void *dst, void *src);
+void NB(__cdyn_move)(void *dst, void *src);
+#define NLANG_CDYN_Dtor(cdyn) n$builtins$__cdyn_dtor((void *)cdyn)
+#define NLANG_CDYN_Copy_ctor(dst, src) n$builtins$__cdyn_copy_ctor((void *)dst, (void *)src)
+#define NLANG_CDYN_Move(src, dst) n$builtins$__cdyn_move((void *)src, (void *)dst)
+
+void NB(__cref_acquire)(void *r, void *ref);
+void *NB(__cref_release)(void *ref);
+void NB(__cdyn_acquire)(void *r, void *ref);
+struct _$Ndyn_n$builtins$_$Ni_Any NB(__cdyn_release)(void *ref);
+#define NLANG_CREF_Acquire(...) n$builtins$__cref_acquire(__VA_ARGS__)
+#define NLANG_CREF_Release(ref_type, ...) (ref_type)n$builtins$__cref_release(__VA_ARGS__)
+#define NLANG_CDYN_Acquire(...) n$builtins$__cdyn_acquire(__VA_ARGS__)
+#define NLANG_CDYN_Release(dyn_type, ...) ({ \
+  struct _$Ndyn_n$builtins$_$Ni_Any __r = n$builtins$__cdyn_release(__VA_ARGS__); \
+  dyn_type __rr = { .ref = __r.ref; .dyntable = (void *)__r.dyntable; }; })
+
 #define NLANG_DEFER(dtor) __attribute__((__cleanup__(dtor)))
 
 // Hopefully the compiler will see through this dance and it will get
@@ -44,6 +85,11 @@ struct NB(Varargint) {
 #define NLANG_DEFER_VIA_REF(dt, x) \
   __attribute__((__cleanup__(n$builtins$invoke_dtor_via_ref))) \
   struct n$builtins$dtor_via_ref __Ndtorcallees_##x = { .obj = (x), .dtor = (dt) }
+
+// For both cref and cdyn:
+#define NLANG_DEFER_VIA_CREF(dt, x) \
+  __attribute__((__cleanup__(n$builtins$invoke_dtor_via_ref))) \
+  struct n$builtins$dtor_via_ref __Ndtorcallees_##x = { .obj = &(x).ref, .dtor = (dt) }
 
 static inline void n$builtins$invoke_dtor_via_ref(struct n$builtins$dtor_via_ref *c);
 
@@ -171,8 +217,14 @@ static inline void n$builtins$clean_zero(struct n$builtins$cleaner *c);
   } \
   NLANG_BUILTINS_VARARG_NEXT_DYN_(t, rt, _Nap); })
 
-#define NLANG_MKDYN(dyn_type, _dyntable, _obj) \
-  (dyn_type){ .obj = (_dyntable) ? (_obj) : NULL, .dyntable = (void *)(_dyntable) }
+// The cast of _dyntable to uintptr_t in the comparison is to prevent a
+// -Waddress warning with GCC: when MKDYN is used statically, it always
+// evaluate to true.
+#define NLANG_MKDYN(dyn_type, _dyntable, _ref) \
+  (dyn_type){ .ref = ((uintptr_t)_dyntable != 0) ? ((void *) _ref) : NULL, .dyntable = (void *)(_dyntable) }
+#define NLANG_MKCDYN(dyn_type, _dyntable, _ref) \
+  ( ((uintptr_t)(_dyntable) != 0) ? (dyn_type){ .ref = NLANG_CREF_CAST(struct NLANG_CREF(), NLANG_CREF_INCR(_ref)), .dyntable = (void *)(_dyntable) } \
+    : (dyn_type){ 0 } )
 
 struct n$reflect$Type;
 n$builtins$Bool n$reflect$Isa(void *dyntable, struct n$reflect$Type *i);

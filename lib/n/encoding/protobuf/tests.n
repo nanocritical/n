@@ -26,8 +26,9 @@ capped_block_writer met# Writing_buffer ?min:?Uint = Error, [!]U8
 
 fun test_varint32 bs:Uint bytes:[]U8 value:U64 = Error
 	var br = bufio.Bytes_reader.Mk bytes
-	var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
-	var coded = Reader.Mk #bufr block_size=bs
+	var bufr = Alloc bufio.Reader
+	bufr# = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
+	var coded = Reader.Mk bufr block_size=bs
 
 	let err, res = coded#Read_varint32
 	if bytes.Count == 10 and bytes.Last & 0x80 != 0
@@ -53,8 +54,9 @@ fun test_varint32 bs:Uint bytes:[]U8 value:U64 = Error
 
 fun test_varint64 bs:Uint bytes:[]U8 value:U64 = Error
 	var br = bufio.Bytes_reader.Mk bytes
-	var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
-	var coded = Reader.Mk #bufr block_size=bs
+	var bufr = Alloc bufio.Reader
+	bufr# = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
+	var coded = Reader.Mk bufr block_size=bs
 
 	let err, res = coded#Read_varint64
 	if bytes.Count == 10 and bytes.Last & 0x80 != 0
@@ -64,7 +66,9 @@ fun test_varint64 bs:Uint bytes:[]U8 value:U64 = Error
 		assert res == value
 
 	var bufw:Stringbuf
-	var codedw = Writer.Mk #({w=#bufw block_size=bs}:capped_block_writer)
+	var cbw = Alloc capped_block_writer
+	cbw# = {w=#bufw block_size=bs}
+	var codedw = Writer.Mk cbw
 	codedw#Write_varint64 value
 	except = codedw#Flush
 	assert bufw.Bytes.Const == bytes
@@ -104,13 +108,16 @@ example varint_signext
 
 	foreach value over varint_cases
 		var bufw:Stringbuf
-		var codedw = Writer.Mk #(bufio.Writer.Mk #bufw)
+		var bbufw = Alloc bufio.Writer
+		bbufw# = bufio.Writer.Mk #bufw
+		var codedw = Writer.Mk bbufw
 		codedw#Write_varint32_sign_extended value
 		except = codedw#Flush
 
 		var br = bufio.Bytes_reader.Mk bufw.Bytes
-		var bufr = bufio.Reader.Mk #br
-		var coded = Reader.Mk #bufr
+		var bufr = Alloc bufio.Reader
+		bufr# = bufio.Reader.Mk #br
+		var coded = Reader.Mk bufr
 
 		let except, res = coded#Read_varint64
 		assert res.Bitwise_signed == value.I64
@@ -136,16 +143,18 @@ example varint_error
 	foreach bs over block_sizes
 		foreach bytes, expected_err over varint_cases
 			var br = bufio.Bytes_reader.Mk bytes
-			var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
-			var coded = Reader.Mk #bufr block_size=bs*
+			var bufr = Alloc bufio.Reader
+			bufr# = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
+			var coded = Reader.Mk bufr block_size=bs*
 
 			let err, _ = coded#Read_varint32
 			assert err == expected_err
 
 		foreach bytes, expected_err over varint_cases
 			var br = bufio.Bytes_reader.Mk bytes
-			var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
-			var coded = Reader.Mk #bufr block_size=bs*
+			var bufr = Alloc bufio.Reader
+			bufr# = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
+			var coded = Reader.Mk bufr block_size=bs*
 
 			let err, _ = coded#Read_varint64
 			assert err == expected_err
@@ -161,8 +170,9 @@ example fixed
 	foreach bs over block_sizes
 		foreach bytes, value over cases_32
 			var br = bufio.Bytes_reader.Mk bytes
-			var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
-			var coded = Reader.Mk #bufr block_size=bs*
+			var bufr = Alloc bufio.Reader
+			bufr# = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
+			var coded = Reader.Mk bufr block_size=bs*
 
 			let except, res = coded#Read_le32
 			assert res == value
@@ -175,8 +185,9 @@ example fixed
 	foreach bs over block_sizes
 		foreach bytes, value over cases_64
 			var br = bufio.Bytes_reader.Mk bytes
-			var bufr = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
-			var coded = Reader.Mk #bufr block_size=bs*
+			var bufr = Alloc bufio.Reader
+			bufr# = bufio.Reader.Mk #({r=#br}:prevent_passthrough_reader)
+			var coded = Reader.Mk bufr block_size=bs*
 
 			let except, res = coded#Read_le64
 			assert res == value
