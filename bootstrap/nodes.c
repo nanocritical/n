@@ -495,12 +495,9 @@ void node_move_content(struct node *dst, struct node *src) {
   struct node copy = *src;
   struct node *saved_dst_parent = parent(dst);
 
-  if (src->typ != NULL) {
-    unset_typ(&src->typ);
-  }
-  if (dst->typ != NULL) {
-    unset_typ(&dst->typ);
-  }
+  // To properly cleanup the multiple internal typ fields.
+  node_set_which(src, 0);
+  node_set_which(dst, 0);
 
   memset(src, 0, sizeof(*src));
 
@@ -523,6 +520,12 @@ void node_move_content(struct node *dst, struct node *src) {
   if (copy.typ != NULL) {
     dst->typ = NULL;
     set_typ(&dst->typ, copy.typ);
+  }
+
+  if (copy.which == DIRECTDEF && copy.as.DIRECTDEF.typ != NULL) {
+    set_typ(&dst->as.DIRECTDEF.typ, copy.as.DIRECTDEF.typ);
+  } else if (copy.which == CONV && copy.as.CONV.to != NULL) {
+    set_typ(&dst->as.CONV.to, copy.as.CONV.to);
   }
 
   dst->prev = prv;

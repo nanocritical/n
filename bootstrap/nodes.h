@@ -593,6 +593,7 @@ extern void unset_typ(struct typ **loc);
 
 // This is a tricky operation when 'node->which' is already set: we may
 // be destroying all sorts of state. We try to do it cleanly.
+// Can be called with which==0 to properly destroy a node.
 static inline void node_set_which(struct node *node, enum node_which which) {
   if (node->which == 0) {
     node->which = which;
