@@ -141,11 +141,12 @@ intf `testable =
 	T x 1
 	block
 		let xx = id <- id <- id <- id x
+		-- +1 because of the temporary resulting from the (implicit) deref of x
 		-- +3 because the temporaries for the 3 rightmost
 		-- intermediate values live until the end of this block.
-		T x 1+1+3
+		T x 1+1+1+3
 		let y:U such y#reset x
-		T x 1+1+3+add
+		T x 1+1+1+3+add
 	T x 1
 
 
