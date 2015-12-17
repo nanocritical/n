@@ -493,7 +493,6 @@ not_wildcard_fun:
       }
       break;
     case TCREFWILDCARD:
-      __break();
       if (!reject_wildcard) {
         *rop = ww->cref;
         *r0 = counted_functor(*r0);
@@ -752,18 +751,18 @@ static ERROR nonnullable_op(enum token_type *r,
     THROW(e);
   }
 
-  if (typ_equal(t0, TBI_NMMREF)) {
+  if (typ_equal(t0, TBI_CNMMREF)) {
+    *r = TCREFSHARP;
+  } else if (typ_equal(t0, TBI_CNMREF)) {
+    *r = TCREFBANG;
+  } else if (typ_isa(t0, TBI_ANY_COUNTED_NREF)) {
+    *r = TCREFDOT;
+  } else if (typ_equal(t0, TBI_NMMREF)) {
     *r = TREFSHARP;
   } else if (typ_isa(t0, TBI_ANY_NMREF)) {
     *r = TREFBANG;
   } else if (typ_isa(t0, TBI_ANY_NREF)) {
     *r = TREFDOT;
-  } else if (typ_equal(t0, TBI_NMMREF)) {
-    *r = TCREFSHARP;
-  } else if (typ_isa(t0, TBI_ANY_NMREF)) {
-    *r = TCREFBANG;
-  } else if (typ_isa(t0, TBI_ANY_NREF)) {
-    *r = TCREFDOT;
   } else {
     assert(false);
   }
