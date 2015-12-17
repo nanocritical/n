@@ -60,6 +60,9 @@ Fd met# Dtor
 		Free_uncounted self.fd
 		Free_uncounted self.refc
 
+		self#fd = nil
+		self#refc = nil
+
 		if sys_fd >= 0
 			let err = sys_close sys_fd
 			if err != OK
