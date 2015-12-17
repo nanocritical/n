@@ -1746,6 +1746,9 @@ static void print_defname_cleanup(struct out *out, const struct module *mod,
   } else if (node->flags & NODE_IS_CALLEES) {
     return;
   } else if (node_ident(node) == ID_OTHERWISE) {
+    // FIXME(e): This is wrong, and quite bad: anonymous variables should be
+    // cleaned-up like any other, and for that reason we're going to have to
+    // give them a gensym name.
     return;
   }
 
