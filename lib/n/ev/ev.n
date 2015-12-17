@@ -170,6 +170,19 @@ sinks met! unregister un_ask:(Enumset Events) handler:?@#`Handler
 		for _, ask over self!handlers!Iter
 			_ = ask!Remove_all un_ask
 
+Poll met! get_fresh_uid = uid:Uint
+	-- Just in case we wrapped around sks.uid and an old one survived
+	-- long enough to clash with a new one, we check for existence:
+	while true
+		uid = self.next_uid
+
+		self!next_uid += 1
+		if self.next_uid == Uint.MAX
+			self!next_uid = 0
+
+		if not uid in self.sinks_for_uid
+			return uid
+
 Poll met! Register source:Source ask:(Enumset Events) handler:?@#`Handler = Error
 	if ask.Count == 0
 		return OK
@@ -188,8 +201,7 @@ Poll met! Register source:Source ask:(Enumset Events) handler:?@#`Handler = Erro
 	let sks = p_sks#
 	if added
 		sks!init source
-		sks!uid = self.next_uid
-		self!next_uid += 1
+		sks!uid = self!get_fresh_uid
 		(self!sinks_for_uid#Store sks.uid)# = sks
 		op = syscall.EPOLL_CTL_ADD
 
