@@ -211,7 +211,7 @@ struct server_conn_handler =
 	connected_wr	:Bool
 
 	state		:server_handling_state
-	conn		:@#tcp.Conn
+	conn		:?@#tcp.Conn
 
 	bufr		:@#bufio.Reader
 	request		:@#Request
@@ -226,7 +226,7 @@ struct server_conn_handler =
 	on_done_handler		:@#on_done_handler
 
 server_conn_handler met debug ?_Ncodeloc:?Codeloc ...s:(Vararg ?*`Show)
-	Log#Debug "%s: %s" _Ncodeloc=_Ncodeloc self.conn.Fd (fmt.S ...s)
+	Log#Debug "%s: %s" _Ncodeloc=_Ncodeloc (self.conn?.Fd else {}) (fmt.S ...s)
 
 server_conn_handler met@# init server:@#Server conn:@#tcp.Conn = Error
 	self#server = server
