@@ -825,6 +825,12 @@ static ERROR try_replace_with_copy(struct module *mod, struct node *node,
   return 0;
 }
 
+static bool structurally_doesnt_need_copy(struct node *expr) {
+  return (NM(expr->which) & (NM(NIL) | NM(NUMBER) | NM(BOOL) | NM(CONV)))
+    || (expr->which == UN && expr->as.UN.operator == T__NULLABLE)
+    || (expr->which == UN && expr->as.UN.operator == T__NONNULLABLE);
+}
+
 static STEP_NM(step_copy_call_inference,
                NM(BIN) | NM(DEFNAME) | NM(CALL) | NM(INIT) | NM(TUPLE));
 static ERROR step_copy_call_inference(struct module *mod, struct node *node,
@@ -848,14 +854,16 @@ static ERROR step_copy_call_inference(struct module *mod, struct node *node,
     }
     return 0;
   case DEFNAME:
-    if (node->as.DEFNAME.ssa_user != NULL) {
+    right = subs_last(node);
+    if (node->as.DEFNAME.ssa_user != NULL
+        && (structurally_doesnt_need_copy(right)
+            || typ_isa(node->typ, TBI_TRIVIAL_MOVE))) {
       return 0;
     }
     if (node_ident(node) == ID_OTHERWISE) {
       return 0;
     }
-    right = subs_last(node);
-    if (right != NULL && right->which != INIT) {
+    if (right->which != INIT) {
       break;
     }
     return 0;
