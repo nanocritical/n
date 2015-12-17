@@ -1788,6 +1788,13 @@ static void print_defname(struct out *out, bool header, enum forward fwd,
     }
   } else if (expr->flags & NODE_IS_LOCAL_STATIC_CONSTANT) {
     pf(out, " static ");
+  } else if ((expr->which == UN && expr->as.UN.operator == T__NULLABLE)
+             || (expr->which == UN && expr->as.UN.operator == T__NONNULLABLE)) {
+    assert(subs_last_const(expr)->which == IDENT);
+    pf(out, "#define %s %s\n",
+       idents_value(mod->gctx, node_ident(node)),
+       idents_value(mod->gctx, node_ident(subs_last_const(expr))));
+    return;
   }
 
   print_defname_cleanup(out, mod, node);
