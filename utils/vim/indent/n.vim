@@ -10,7 +10,7 @@ setlocal nolisp
 setlocal autoindent
 
 setlocal indentexpr=GetNlangIndent(v:lnum)
-setlocal indentkeys="o,O,0{,0},!^F,<\\>,0=elif\ ,0=else,0=catch,0=type\ ,0=intf\ ,0=fun\ ,0=delegate\ ,=method\ ,0\|"
+setlocal indentkeys="o,O,0{,0},!^F,<\\>,0=elif\ ,0=else,0=catch,0=struct\ ,0=intf\ ,0=fun\ ,=met\ ,0\|"
 
 if exists("*GetNlangIndent")
   finish
@@ -31,29 +31,20 @@ function GetNlangIndent(lnum)
   endif
   let pprevl = NlangPrevnonblank(prevl - 1)
 
-  if getline(prevl) =~ '\\$'
-    if prevl > 1 && getline(pprevl) =~ '\\$'
-      return indent(prevl)
-    else
-      return indent(prevl) + &sw
-    endif
-  endif
-
   let TOP = '^\(export\s\+\)\?\(extern\s\+\)\?\(inline\s\+\)\?'
   let FUN = TOP . '(\?fun'
-  let TYPE_INTF = TOP . '\(type\|intf\)'
-  let INTF_FUNMETH = '^\s\+\(fun\|method\)'
-  let TYPE_FUNMETH = TOP . '\w\+\s\+(\?\(fun\|method\)'
+  let STRUCT_INTF = TOP . '\(struct\|intf\)'
+  let INTF_FUN_MET = '^\s\+\(fun\|met\)'
+  let STRUCT_FUN_MET = TOP . '\w\+\s\+(\?\(fun\|met\)'
 
   let in_intf = 0
-  let in_type = 0
-  let in_fun = 0
+  let in_struct = 0
   let pzero = a:lnum - 1
   let pone = - 1
   while pzero >= 0
     let l = getline(pzero)
-    if l =~ '^  \S'
-      let pone = l
+    if l =~ '^\t\S'
+      let pone = pzero
     endif
     if l =~ '^\S'
       break
@@ -64,18 +55,16 @@ function GetNlangIndent(lnum)
   let pzeroline = getline(pzero)
   if pzeroline =~ '\<intf\>'
     let in_intf = 1
-  elseif pzeroline =~ '\<type\>'
-    let in_type = 1
-  elseif pzeroline =~ '\<\(fun\|method\)\>'
-    let in_fun = 1
+  elseif pzeroline =~ '\<struct\>'
+    let in_struct = 1
   endif
 
   let line = getline(a:lnum)
-  if in_intf && line =~ INTF_FUN_METH
+  if in_intf || in_struct
     return &sw
-  elseif line =~ TYPE_INTF
+  elseif line =~ STRUCT_INTF
     return 0
-  elseif line =~ TYPE_FUNMETH || line =~ FUN
+  elseif line =~ STRUCT_FUN_MET || line =~ FUN
     return 0
   endif
 
@@ -149,11 +138,11 @@ function GetNlangIndent(lnum)
   endif
 
   let pline = getline(prevl)
-  if pline =~ FUN  || pline =~ TYPE_INTF || pline =~ TYPE_FUNMETH
+  if pline =~ FUN  || pline =~ STRUCT_INTF || pline =~ STRUCT_FUN_MET
     return indent(prevl) + &sw
-  elseif pline =~ '^\s*\<\(if\|elif\|else\|for\|while\|try\|catch\)\>'
+  elseif pline =~ '^\s*\<\(if\|elif\|else\|for\|while\|try\|catch\|assert\|pre\|post\|invariant\)\>'
     return indent(prevl) + &sw
-  elseif pline =~ '^\s*\<\(assert\|pre\|post\|invariant\|block\|such\)\>$'
+  elseif pline =~ '\<\(block\|such\)\>$'
     return indent(prevl) + &sw
   elseif pline =~ '^\s*|'
     return indent(prevl) + &sw
