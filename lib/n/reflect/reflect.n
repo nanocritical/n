@@ -48,7 +48,7 @@ struct Dynisalist =
 
 Dynisalist met hashmap_addr hash:U32 nth:Uint = Uint
 	-- Quadratic open addressing
-	return (hash.Uint + (nth * (nth+1)/2)) % self.hashmap.Count
+	return (hash.Uint + (nth * (nth+1)/2)) & (self.hashmap.Count - 1)
 
 Dynisalist met find_entry rintf:*Type create:Bool = ?*entry, Uint
 	let hash = rintf.typename_hash32

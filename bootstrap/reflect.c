@@ -2,7 +2,7 @@
 #include "types.h"
 
 static size_t Dynisalist_hashmap_addr(struct __Dynisalist *self, uint32_t hash, size_t nth) {
-  return (hash + (nth * (nth + 1)/2)) % self->hashmap.cnt;
+  return (hash + (nth * (nth + 1)/2)) & (self->hashmap.cnt - 1);
 }
 
 static size_t Dynisalist_find_entry(struct __Dynisalist *self, struct __Type *rintf) {
