@@ -943,6 +943,7 @@ intf `Floating =
 	fun MAX_EXP = Int
 	fun MIN_10_EXP = Int
 	fun MAX_10_EXP = Int
+	met Abs = final
 
 intf `Native_floating =
 	isa `Native `Floating `Show
@@ -1813,6 +1814,7 @@ extern inline Float met Is_normal = Bool
 extern inline Float met Is_nan = Bool
 extern inline Float met Is_inf = Int
 extern inline Float met Signbit = Bool
+extern inline Float met Abs = Float
 
 extern inline struct Double =
 	isa `Native_floating
@@ -1862,6 +1864,7 @@ extern inline Double met Is_normal = Bool
 extern inline Double met Is_nan = Bool
 extern inline Double met Is_inf = Int
 extern inline Double met Signbit = Bool
+extern inline Double met Abs = Double
 
 inline struct Bounds =
 	First	:Bool

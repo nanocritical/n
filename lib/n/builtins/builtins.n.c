@@ -61,6 +61,7 @@ extern void n$logging$Install_sys(void);
 extern void n$env$Install_sys(NB(Uint) argc, NB(U8) **argv);
 extern void n$time$Install_sys(void);
 extern void n$fs$Install_sys(void);
+extern void n$math$rand$Install_sys(void);
 extern void n$crypto$cryptorand$Install_sys(void);
 
 void _$Nprelude(int *argc, char ***argv, char ***env) {
@@ -88,6 +89,7 @@ void _$Nprelude(int *argc, char ***argv, char ***env) {
   n$env$Install_sys(*argc, (NB(U8) **) *argv);
   n$time$Install_sys();
   n$fs$Install_sys();
+  n$math$rand$Install_sys();
   n$crypto$cryptorand$Install_sys();
 }
 
