@@ -1258,6 +1258,8 @@ static void print_expr(struct out *out, const struct module *mod, const struct n
   case NUMBER:
     if (typ_isa(node->typ, TBI_FLOATING)) {
       pf(out, "%s", node->as.NUMBER.value);
+    } else if (typ_isa(node->typ, TBI_UNSIGNED_INTEGER)) {
+      pf(out, "%sULL", node->as.NUMBER.value);
     } else {
       pf(out, "%sLL", node->as.NUMBER.value);
     }
