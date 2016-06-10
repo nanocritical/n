@@ -1,0 +1,63 @@
+from n import *
+import n.math
+import n.math.rand
+
+fun init = r:@#rand.Random within rand.Source
+	r = Alloc rand.Random
+	r# = rand.Random!Init
+
+struct distribution =
+	buckets		:(Buf Uint)
+	bucket_width	:Double
+	min		:Double
+	max		:Double
+
+distribution fun init min:Double max:Double = r:this
+	pre min <= max
+	r!min = min
+	r!max = max
+	r!buckets#Resize 100
+	r!bucket_width = (max - min) / r.buckets.Count.Round_double
+
+distribution met! record x:Double
+	if x < self.min or x >= self.max
+		return
+	let bucket = ((x - self.min) / self.bucket_width)
+		\.Round0_int.Unsigned
+	self!buckets![bucket]! += 1
+
+example uniform
+	var dist = distribution.init 0 U64.MAX.Round_double
+	let tests = 100_000:Uint
+	let expected_count = tests.Signed / dist.buckets.Count.Signed
+	let acceptable_error = expected_count / 10
+
+	var r = init
+	foreach _ over 0 .. tests
+		let x = r!Uniform_u64
+		dist!record x.Round_double
+
+	foreach count over dist.buckets
+		assert (count.Signed - expected_count).Abs <= acceptable_error
+
+example normal
+	var dist = distribution.init -10 10
+	let tests = 10_000_000:Uint
+
+	var r = init
+	foreach _ over 0 .. tests
+		let x = r!Normal
+		dist!record x
+
+	let m = math.RATIO_SQRT1_2 * math.RATIO_2_SQRTPI / 2
+	foreach i over 10 .. 90
+		let x = dist.min + (i.Round_double + 0.5) * dist.bucket_width
+		let expected_count = tests.Round_double * dist.bucket_width
+			\ * m * (math.Exp -x*x/2)
+		let acceptable_error = Max 100 expected_count/10
+
+		let c = dist.buckets.[i].Round_double
+		assert (c - expected_count).Abs <= acceptable_error
+
+fun Main = I32
+	return 0

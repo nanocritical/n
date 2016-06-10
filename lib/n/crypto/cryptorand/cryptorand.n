@@ -2,15 +2,15 @@ from n import *
 import n.fs
 import n.io
 
-globalenv Random:@#io.`Reader
+globalenv Source:@#io.`Reader
 
-fun Install_sys within Random
+fun Install_sys within Source
 	let err, rnd = fs.Open "/dev/urandom"
 	if err != OK
 		Fatal err
 	let header = Alloc_uncounted (Envheader @#io.`Reader)
 	header#Env = rnd
-	Globalenv_install Random header
+	Globalenv_install Source header
 
-fun Read_full b:[!]U8 = [!]U8, Error within Random
-	return io.Read_full b Random
+fun Read_full b:[!]U8 = [!]U8, Error within Source
+	return io.Read_full b Source

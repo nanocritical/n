@@ -1,0 +1,17 @@
+from n import *
+import n.crypto.cryptorand
+
+fun fill_random_buf count:Uint = buf:(Buf U64) within cryptorand.Source
+	buf#Resize count
+	_, never = cryptorand.Read_full buf![.. 0]!Rawbytes
+
+fun Main = I32
+	let buf = fill_random_buf 607
+	var i = 0:Uint
+	foreach x over buf
+		if i % 3 == 2
+			Prn x
+		else
+			Pr x ""
+		i += 1
+	return 0
