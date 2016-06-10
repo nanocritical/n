@@ -250,6 +250,7 @@ static ERROR run_examples(const struct stage *stage) {
   }
 
   fprintf(run, "void _$Nprelude(int *argc, char ***argv, char ***env);\n"
+          "extern int n$builtins$last_exit_code;\n"
           "void _$Npostlude(int *ret);\n");
   fprintf(run, "int main(int argc, char **argv, char **env) {\n"
           "_$Nprelude(&argc, &argv, &env);\n");
@@ -258,9 +259,8 @@ static ERROR run_examples(const struct stage *stage) {
     print_c_runexamples_name(run, mod);
     fprintf(run, "();\n");
   }
-  fprintf(run, "int ret = 0;\n"
-          "_$Npostlude(&ret);\n"
-          "return ret;\n"
+  fprintf(run, "n$builtins$last_exit_code = 0;\n"
+          "return n$builtins$last_exit_code;\n"
           "}\n");
   fclose(run);
 
@@ -297,12 +297,12 @@ static ERROR program_link(const struct stage *stage) {
   fprintf(run, "int _$Nmain(void);\n"
           "void _$Nprelude(int *argc, char ***argv, char ***env);\n"
           "int _$Ninvoke_main(void);\n"
+          "extern int n$builtins$last_exit_code;\n"
           "void _$Npostlude(int *ret);\n");
   fprintf(run, "int main(int argc, char **argv, char **env) {\n"
           "_$Nprelude(&argc, &argv, &env);\n"
-          "int ret = _$Ninvoke_main();\n"
-          "_$Npostlude(&ret);\n"
-          "return ret;\n"
+          "n$builtins$last_exit_code = _$Ninvoke_main();\n"
+          "return n$builtins$last_exit_code;\n"
           "}\n");
   fclose(run);
 

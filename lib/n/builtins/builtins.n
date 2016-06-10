@@ -2144,6 +2144,8 @@ fun Message_at msg:String c:?*Codeloc
 	else
 		Eprn msg
 
+extern fun Exit status:I32
+
 extern fun abort
 
 fun Abort

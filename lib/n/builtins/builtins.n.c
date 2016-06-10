@@ -64,7 +64,11 @@ extern void n$fs$Install_sys(void);
 extern void n$math$rand$Install_sys(void);
 extern void n$crypto$cryptorand$Install_sys(void);
 
+void _$Npostlude(void);
+
 void _$Nprelude(int *argc, char ***argv, char ***env) {
+  atexit(_$Npostlude);
+
   struct NLANG_CREF() cref_sysheap = {
     .ref = (void *) &n$builtins$sysheap,
     .cnt = &n$builtins$sysheap_cnt,
@@ -99,7 +103,18 @@ int _$Ninvoke_main(void) {
   return NB(Main_except)(_$Nmain());
 }
 
-void _$Npostlude(int *ret) {
+// This is available to _$Npostlude and is both set by main() using the return
+// value of _$Nmain() (aka. Main), and by n.builtins.Exit (but not by
+// syscall.Exit).
+int NB(last_exit_code);
+
+void NB(Exit)(NB(I32) status) {
+  NB(last_exit_code) = status;
+  exit(status);
+}
+
+void _$Npostlude(void) {
+  n$stdio$Uninstall_sys();
 }
 
 NB(Void) *NB(Nonnil_void)(void) {

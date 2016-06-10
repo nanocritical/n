@@ -1268,6 +1268,8 @@ fun Fork = Error, pid:Uint
 
 extern fun _exit status:int
 
+-- Calls _exit(2) which bypasses normal process termination (flushing Stdio, ...).
+-- See n.builtins.Exit.
 fun Exit status:I32
 	_exit status
 
