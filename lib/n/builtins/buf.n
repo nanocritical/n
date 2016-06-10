@@ -44,7 +44,7 @@ inline Buf met# Resize cnt:Uint
 		self!s = self.s.[.. cnt]
 		self#auto_shrink
 	else
-		self#Reserve cnt
+		self#auto_grow cnt
 		self!s = self.s.[.. cnt]
 
 inline Buf met# Push = #t
@@ -130,8 +130,10 @@ example -> assert 256 == Buffer_auto_grown_size 256 256
 example -> assert 512 == Buffer_auto_grown_size 256 257
 example -> assert 385 == Buffer_auto_grown_size 257 258
 
+-- Reserve will grow or shrink to exactly atleast elements, unless
+-- atleast <= Count in which case it's a no-op.
 inline Buf met# Reserve atleast:Uint
-	if self.s.cap >= atleast
+	if atleast <= self.s.cnt
 		return
 	Realloc #self#s atleast
 
