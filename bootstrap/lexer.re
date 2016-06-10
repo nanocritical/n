@@ -523,10 +523,15 @@ normal:
     FAIL(EINVAL, "invalid character following '\\'");
   }
 
+  "0."[0-9_]+[eE][\-+]?[0-9][0-9_]* { R(TNUMBER); }
+  "."[0-9_]+[eE][\-+]?[0-9][0-9_]* { R(TNUMBER); }
+  [1-9][0-9_]*"."[0-9]*[eE][\-+]?[0-9][0-9_]* { R(TNUMBER); }
+  [1-9][0-9_]*[eE][\-+]?[0-9][0-9_]* { R(TNUMBER); }
   "0."[0-9_]+ { R(TNUMBER); }
   "."[0-9_]+ { R(TNUMBER); }
-  [1-9][0-9_]*"."[0-9]+ { R(TNUMBER); }
+  [1-9][0-9_]*"."[0-9]* { R(TNUMBER); }
   [1-9][0-9_]* { R(TNUMBER); }
+  "0x" [0-9a-fA-F_][0-9a-fA-F_]*[pP][\-+]?[0-9][0-9_]* { R(TNUMBER); }
   "0x" [0-9a-fA-F_][0-9a-fA-F_]* { R(TNUMBER); }
   "0" [0-7_]+ { R(TNUMBER); }
   "0" { R(TNUMBER); }
