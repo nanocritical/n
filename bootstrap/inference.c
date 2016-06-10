@@ -2638,8 +2638,11 @@ static ERROR try_rewrite_operator_sub_bounds(struct module *mod, struct node *no
        b->as.BIN.operator = TDOT;
        node_subs_append(b, arg);
        G_IDENT(f, "Range_of"));
-     G(vn, IDENT,
-       vn->as.IDENT.name = node_ident(self)));
+
+     // By SSA, self is either an IDENT, or if it's a BIN, it's a
+     // straight accessor, so we're allowed to duplicate it.
+     G(copy_self, 0);
+     node_deepcopy(mod, copy_self, self));
 
   const struct node *except[] = { arg, NULL };
   e = catchup(mod, except, call, CATCHUP_BELOW_CURRENT);
