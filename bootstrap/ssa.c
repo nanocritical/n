@@ -214,8 +214,8 @@ static ERROR fix_ssa_sub(struct module *mod, struct node *node, struct node *sub
 
 STEP_NM(step_ssa_convert_shallow_catchup,
         NM(BIN) | NM(SIZEOF) | NM(ALIGNOF) | NM(UN) | NM(TUPLE) |
-        NM(CALLNAMEDARG) | NM(INIT) | NM(RETURN) | NM(PRE) | NM(POST) |
-        NM(INVARIANT) | NM(THROW) | NM(CALL) | NM(CONV) | NM(BLOCK));
+        NM(CALLNAMEDARG) | NM(INIT) | NM(RETURN) |
+        NM(THROW) | NM(CALL) | NM(CONV) | NM(BLOCK));
 error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
                                        void *user, bool *stop) {
   DSTEP(mod, node);
@@ -253,9 +253,6 @@ error step_ssa_convert_shallow_catchup(struct module *mod, struct node *node,
   case CALLNAMEDARG:
   case INIT:
   case RETURN:
-  case PRE:
-  case POST:
-  case INVARIANT:
   case THROW:
   case CONV:
     FOREACH_SUB(sub, node) {
@@ -381,9 +378,6 @@ error step_ssa_convert(struct module *mod, struct node *node,
   case CALLNAMEDARG:
   case INIT:
   case RETURN:
-  case PRE:
-  case POST:
-  case INVARIANT:
   case THROW:
   case CONV:
     e = ssa_sub(mod, par, node);

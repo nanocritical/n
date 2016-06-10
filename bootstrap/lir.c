@@ -1029,12 +1029,6 @@ error step_lir_conversion_down(struct module *mod, struct node *node,
       node_set_which(node, NOOP);
     }
     break;
-  case PRE:
-    break;
-  case POST:
-    break;
-  case INVARIANT:
-    break;
   default:
     break;
   }
