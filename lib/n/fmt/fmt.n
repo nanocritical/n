@@ -55,12 +55,21 @@ fun F w:#io.`Writer fmt:String ...v:(Vararg ?*`Show)
 			elif verb.[1] == "s"
 				let s = v!Next
 				if not s?
-					break
-				if not (s else nil)?
+					"%!".Show #st
+					_, except = io.Write_full w verb.[1 ..].Bytes
+					"(MISSING)".Show #st
+				elif not (s else nil)?
 					"(nil)".Show #st
 				else
 					s.Show #st
+			else
+				"%!".Show #st
+				_, except = io.Write_full w verb.[1 ..].Bytes
 			fmt = after
+
+		while v!Next?
+			"%!(EXTRA)".Show #st
+
 	catch err
 		drop = err
 
