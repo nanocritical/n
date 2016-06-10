@@ -261,7 +261,9 @@ static ERROR step_flatten_init(struct module *mod, struct node *node,
 
   GSTART();
 
-  const struct node **except = calloc(subs_count(node)/2 + 1, sizeof(struct node *));
+  const size_t except_cap = subs_count(node)/2 + 1
+    + (node->as.INIT.is_defchoice_external_payload_constraint ? 1 : 0);
+  const struct node **except = calloc(except_cap, sizeof(struct node *));
   size_t n = 0;
 
   struct node *nxt = subs_first(node);
@@ -307,6 +309,7 @@ static ERROR step_flatten_init(struct module *mod, struct node *node,
 
        node_subs_append(ass, expr));
 
+    assert(n < except_cap - 1);
     except[n++] = expr;
   }
 
