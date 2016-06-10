@@ -18,9 +18,9 @@ import n.syscall
 globalenv Stdio:@`Stdio
 
 intf `Stdio =
-	met In = #io.`Reader
-	met Out = #io.`Writer
-	met Err = #io.`Writer
+	met In = @#io.`Reader
+	met Out = @#bufio.Auto_writer
+	met Err = @#io.`Writer
 
 
 fun Install_sys within Stdio
@@ -30,6 +30,9 @@ fun Install_sys within Stdio
 	header#Env = s
 	Globalenv_install Stdio header
 
+fun Uninstall_sys within Stdio
+	drop = Stdio.Out#Flush
+
 
 let BUFFER_SIZE = 8192
 
@@ -37,7 +40,7 @@ let BUFFER_SIZE = 8192
 struct stdr =
 	isa io.`Reader
 	fd	:syscall.Fd
-	out	:#bufio.Writer
+	out	:@#bufio.Auto_writer
 
 -- Reads on stdin flush stdout, as per traditional C stdio behavior.
 stdr met# Read b:[!]U8 = r:[!]U8, err:Error
@@ -56,34 +59,40 @@ stdw met# Write b:[]U8 = []U8, Error
 
 struct stdio =
 	isa `Stdio
-	rin	:stdr
-	wout	:stdw
-	werr	:stdw
-	din	:#io.`Reader
-	dout	:#io.`Writer
-	derr	:#io.`Writer
+	rin	:@#stdr
+	wout	:@#stdw
+	werr	:@#stdw
+	din	:@#io.`Reader
+	dout	:@#bufio.Auto_writer
+	derr	:@#io.`Writer
 
-	outbuf	:bufio.Writer
-	outabuf	:bufio.Auto_writer
+	outbuf	:@#bufio.Writer
+	outabuf	:@#bufio.Auto_writer
 
 stdio met# init
-	self#rin#fd = syscall.Fd.Mk 0
-	self#din = #self#rin
+	self#rin = Alloc
+	self#wout = Alloc
+	self#werr = Alloc
 
+	self#rin#fd = syscall.Fd.Mk 0
+	self#din = self#rin
+
+	self#outbuf = Alloc
+	self#outabuf = Alloc
 	self#wout#fd = syscall.Fd.Mk 1
-	self#outbuf = bufio.Writer.Mk #self#wout
-	self#outabuf = {W=#self#outbuf Mode=FULLY_BUFFERED Max=BUFFER_SIZE}
-	self#dout = #self#outabuf
-	self#rin#out = #self#outbuf
+	self#outbuf# = bufio.Writer.Mk self#wout
+	self#outabuf# = {W=self#outbuf Mode=FULLY_BUFFERED Max=BUFFER_SIZE}
+	self#dout = self#outabuf
+	self#rin#out = self#outabuf
 
 	self#werr#fd = syscall.Fd.Mk 2
-	self#derr = #self#werr
+	self#derr = self#werr
 
-stdio met In = #io.`Reader
+stdio met In = @#io.`Reader
 	return self.din
 
-stdio met Out = #io.`Writer
+stdio met Out = @#bufio.Auto_writer
 	return self.dout
 
-stdio met Err = #io.`Writer
+stdio met Err = @#io.`Writer
 	return self.derr

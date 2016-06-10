@@ -1,8 +1,8 @@
 struct stdr =
 	isa io.`Reader
-	bin	:Stringbuf
+	bin	:@#Stringbuf
 	rin	:bufio.Stringbuf_reader
-	out	:#bufio.Writer
+	out	:@#bufio.Auto_writer
 
 -- Reads on stdin flush stdout, as per traditional C stdio behavior.
 stdr met# Read b:[!]U8 = r:[!]U8, err:Error
@@ -13,15 +13,15 @@ stdr met# Read b:[!]U8 = r:[!]U8, err:Error
 
 inline struct Stdio_mock =
 	isa stdio.`Stdio
-	rin	:stdr
-	wout	:Stringbuf
+	rin	:@#stdr
+	wout	:@#Stringbuf
 	outbuf	:bufio.Writer
-	outabuf	:bufio.Auto_writer
-	werr	:Stringbuf
+	outabuf	:@#bufio.Auto_writer
+	werr	:@#Stringbuf
 
-	din	:#io.`Reader
-	dout	:#io.`Writer
-	derr	:#io.`Writer
+	din	:@#io.`Reader
+	dout	:@#bufio.Auto_writer
+	derr	:@#io.`Writer
 
 	installed	:Bool
 
@@ -35,15 +35,21 @@ Stdio_mock met# Dtor within stdio.Stdio
 	self#werr#Dtor
 
 Stdio_mock met# init
+	self#rin = Alloc
+	self#wout = Alloc
+	self#werr = Alloc
+
+	self#rin#bin = Alloc
 	self#rin#rin = bufio.Stringbuf_reader.Mk self.rin.bin
-	self#din = #self#rin
+	self#din = self#rin
 
-	self#outbuf = bufio.Writer.Mk #self#wout
-	self#outabuf = {W=#self#outbuf Mode=FULLY_BUFFERED Max=stdio.BUFFER_SIZE}
-	self#rin#out = #self#outbuf
-	self#dout = #self#outabuf
+	self#outbuf = bufio.Writer.Mk self#wout
+	self#outabuf = Alloc
+	self#outabuf# = {W=#self#outbuf Mode=FULLY_BUFFERED Max=stdio.BUFFER_SIZE}
+	self#rin#out = self#outabuf
+	self#dout = self#outabuf
 
-	self#derr = #self#werr
+	self#derr = self#werr
 
 Stdio_mock fun Setup ?stdin:?String = ret:@#this within stdio.Stdio
 	ret = Alloc this
@@ -83,20 +89,20 @@ Stdio_mock met Check ?stdin:?String ?stdout:?String ?stderr:?String = ok:Bool wi
 		Log#Debug "expected in stderr '%s', but found '%s'" stderr self.werr
 		ok = false
 
-Stdio_mock met# In_buf = #Stringbuf
-	return #self#rin#bin
+Stdio_mock met# In_buf = @#Stringbuf
+	return self#rin#bin
 
-Stdio_mock met# Out_buf = #Stringbuf
-	return #self#wout
+Stdio_mock met# Out_buf = @#Stringbuf
+	return self#wout
 
-Stdio_mock met# Err_buf = #Stringbuf
-	return #self#werr
+Stdio_mock met# Err_buf = @#Stringbuf
+	return self#werr
 
-Stdio_mock met In = #io.`Reader
+Stdio_mock met In = @#io.`Reader
 	return self.din
 
-Stdio_mock met Out = #io.`Writer
+Stdio_mock met Out = @#bufio.Auto_writer
 	return self.dout
 
-Stdio_mock met Err = #io.`Writer
+Stdio_mock met Err = @#io.`Writer
 	return self.derr
